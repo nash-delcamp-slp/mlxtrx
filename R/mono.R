@@ -1,7 +1,7 @@
 # function to execute the command to submit a monolix job to the grid and store record of run in a database
 mono <- function(
   path,
-  db_conn = default_db_conn(path),
+  db_conn = default_db_conn(db = default_db(path)),
   cmd = "mono24",
   output_dir = NULL,
   thread = NULL,
