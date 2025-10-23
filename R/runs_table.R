@@ -1,12 +1,59 @@
-# function to generate a table with details about executed runs
-runs_table <- function(
+#' Extract data about executed Monolix runs
+#'
+#' Queries the database to retrieve information about Monolix jobs that have
+#' been executed and recorded. Returns a data frame with basic job information
+#' or detailed file tracking data.
+#'
+#' @param db_conn A database connection object inheriting from `DBIObject`.
+#'   Defaults to a connection created by `default_db_conn()`.
+#' @param include_files Logical scalar. Whether to include details about input and
+#'   output files in the data. Default is `FALSE`.
+#'
+#' @return A data frame with run information. When `include_files = FALSE`,
+#'   contains columns: `job_id`, `project_name`, `path`, `cmd`, `submitted_at`.
+#'   When `include_files = TRUE`, additionally contains: `file_type`, `file_name`,
+#'   `file_path`, `file_timestamp`, `md5_checksum`. Returns `NULL` if no runs
+#'   are found in the database.
+#'
+#' @details
+#' This function queries the database tables created by \code{\link{mono}} to
+#' extract run information. Two levels of detail are available:
+#'
+#' \strong{Basic mode} (`include_files = FALSE`):
+#' \itemize{
+#'   \item Job ID, project name, full path, command used, and submission time
+#' }
+#'
+#' \strong{Detailed mode} (`include_files = TRUE`):
+#' \itemize{
+#'   \item All basic information plus input and output file details
+#'   \item File paths, modification timestamps, and MD5 checksums
+#'   \item Files are grouped by job and categorized as "input" or "output"
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # data frame of all runs
+#' runs_data()
+#'
+#' # file information
+#' runs_data(include_files = TRUE)
+#'
+#' # Use custom database connection
+#' conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
+#' runs_data(db_conn = conn)
+#' }
+#'
+#' @seealso
+#' \code{\link{runs_table}} for formatted table output,
+#' \code{\link{mono}} for submitting Monolix jobs and recording runs,
+#' \code{\link{default_db_conn}} for default database connections
+#'
+#' @export
+runs_data <- function(
   db_conn = default_db_conn(),
-  format = "gt",
-  output_file = NULL,
   include_files = FALSE
 ) {
-  format <- match.arg(format, c("gt", "csv"))
-
   assertthat::assert_that(
     inherits(db_conn, "DBIObject"),
     msg = "`db_conn` must be a valid database connection"
@@ -65,7 +112,7 @@ runs_table <- function(
   # Return early if no data
   if (nrow(runs_data) == 0) {
     message("No runs found in database")
-    return(invisible(NULL))
+    return(NULL)
   }
 
   # Format the data
@@ -96,6 +143,66 @@ runs_table <- function(
         submitted_at = as.POSIXct(submitted_at)
       ) |>
       dplyr::select(job_id, project_name, path, cmd, submitted_at)
+  }
+
+  runs_formatted
+}
+
+#' Generate a table with details about executed Monolix runs
+#'
+#' Creates a formatted table displaying information about Monolix jobs that have
+#' been executed and recorded in the database. The table can include basic job
+#' information or detailed file tracking data.
+#'
+#' @param db_conn A database connection object inheriting from `DBIObject`.
+#'   Defaults to a connection created by `default_db_conn()`.
+#' @param format Character scalar. Output format for the table.
+#'   Either `"gt"` for a formatted gt table (default) or `"csv"` for a data frame.
+#' @param output_file Character scalar or `NULL`. File path to save output.
+#' @param include_files Logical scalar. Whether to include details about input and
+#'   output files in the table. Default is `FALSE`.
+#'
+#' @return When `format = "gt"`, returns a `gt_tbl` object. When `format = "csv"`
+#'   and `output_file` is specified, returns the data frame invisibly after writing
+#'   to file. When `format = "csv"` and `output_file` is `NULL`, returns the data frame.
+#'   Returns `NULL` invisibly if no runs are found in the database.
+#'
+#' @examples
+#' \dontrun{
+#' # Table of all runs
+#' runs_table()
+#'
+#' # Table with input/output file information
+#' runs_table(include_files = TRUE)
+#'
+#' # Export to CSV
+#' runs_table(format = "csv", output_file = "runs_summary.csv")
+#'
+#' # Use custom database connection
+#' conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
+#' runs_table(db_conn = conn)
+#' }
+#'
+#' @seealso
+#' \code{\link{runs_data}} for extracting the underlying data,
+#' \code{\link{mono}} for submitting Monolix jobs and recording runs,
+#' \code{\link{default_db_conn}} for default database connections
+#'
+#' @export
+runs_table <- function(
+  db_conn = default_db_conn(),
+  format = "gt",
+  output_file = NULL,
+  include_files = FALSE
+) {
+  format <- match.arg(format, c("gt", "csv"))
+
+  # Get the data using runs_data()
+  runs_formatted <- runs_data(db_conn = db_conn, include_files = include_files)
+
+  # Return early if no data
+  if (is.null(runs_formatted)) {
+    return(invisible(NULL))
   }
 
   # Handle output format
@@ -167,6 +274,12 @@ runs_table <- function(
         heading.title.font.size = 16
       )
 
-    return(gt_table)
+    if (!is.null(output_file)) {
+      gt::gtsave(gt_table, output_file)
+      message("HTML written to: ", output_file)
+      return(invisible(gt_table))
+    } else {
+      return(gt_table)
+    }
   }
 }
