@@ -1,7 +1,14 @@
 # helper function to get the path to the preferred database
 default_db <- function(path = getwd()) {
+  db_dir <- unique(utilscognigen::path_stage(path = path))
+  if (length(db_dir) > 1) {
+    stop(
+      "More than 1 unique stage identified: ",
+      paste0(db_dir, collapse = ", ")
+    )
+  }
   file.path(
-    utilscognigen::path_stage(path = path),
+    db_dir,
     "monolix",
     "runs.duckdb"
   )
