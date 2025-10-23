@@ -1,26 +1,105 @@
-# function to execute the command to submit a monolix job to the grid and store record of run in a database
+#' Submit Monolix jobs to grid and record runs in database
+#'
+#' Executes one or more commands that submit Monolix jobs to the grid and
+#' stores a record of the runs in a database.
+#'
+#' @param path Character vector. Paths to existing Monolix project files.
+#' @param output_dir Character vector or `NULL`. Directory for output files.
+#'   Passed as `--output-dir` argument to the Monolix command.
+#'   If `NULL` (default), Monolix uses the export path from the project file.
+#'   Should be same length as `path`, length 1, or `NULL`.
+#' @param thread Integer vector or `NULL`. Number of threads used by Monolix.
+#'   Passed as `--thread` argument to the Monolix command.
+#'   Should be same length as `path`, length 1, or `NULL`.
+#' @param tool Character vector or `NULL`. Tool to launch assessment
+#'   (`"monolix"`, `"modelBuilding"`, `"bootstrap"`).
+#'   Passed as `--tool` argument to the Monolix command.
+#'   If `NULL` (default), Monolix uses `"monolix"`.
+#'   Should be same length as `path`, length 1, or `NULL`.
+#' @param mode Character vector or `NULL`. Console mode
+#'   (`"none"`, `"basic"`, or `"complete"`).
+#'   Passed as `--mode` argument to the Monolix command.
+#'   If `NULL` (default), Monolix uses `"basic"`.
+#'   Should be same length as `path`, length 1, or `NULL`.
+#' @param config Character vector or `NULL`. Configuration file path.
+#'   Passed as `--config` argument to the Monolix command.
+#'   Should be same length as `path`, length 1, or `NULL`.
+#' @param cmd Character vector. The Monolix command to execute. Must be
+#'   identifiable by `Sys.which()` and contain "mono" in the name.
+#'   Default is "mono24". Should be same length as `path` or length 1.
+#' @param db_conn A database connection object inheriting from `DBIObject`.
+#'   Defaults to a connection created by `default_db_conn()`.
+#'
+#' @return Logical vector. Returns `TRUE` for successful job submissions,
+#'   `NA` for jobs where ID extraction fails.
+#'
+#' @details
+#' This function performs the following operations for each job:
+#' \enumerate{
+#'   \item Validates inputs and submits the Monolix job using `system2()`
+#'   \item Extracts the job ID from the submission output
+#'   \item Monitors job completion by checking the job queue
+#'   \item Records job information in the `mono_jobs` table
+#'   \item Tracks input file metadata in the `input_files` table
+#'   \item Records all output files with timestamps and checksums in the `output_files` table
+#' }
+#'
+#' The database schema includes three tables:
+#' \itemize{
+#'   \item `mono_jobs`: Job metadata (ID, path, command, submission time)
+#'   \item `input_files`: Input file tracking with timestamps and MD5 checksums
+#'   \item `output_files`: Output file tracking with timestamps and MD5 checksums
+#' }
+#'
+#' The function automatically creates database tables if they don't exist and
+#' closes the database connection on exit.
+#'
+#' @examples
+#' \dontrun{
+#' # Basic usage with default settings
+#' mono("path/to/project.mlxtran")
+#'
+#' # Multiple jobs
+#' mono(c("project1.mlxtran", "project2.mlxtran"))
+#'
+#' # Specify custom output directory and thread count
+#' mono(
+#'   path = "project.mlxtran",
+#'   output_dir = "/custom/output/path",
+#'   thread = 4
+#' )
+#'
+#' # Use custom database connection
+#' conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
+#' mono("project.mlxtran", db_conn = conn)
+#' }
+#'
+#' @seealso
+#' \code{\link{default_db_conn}} for default database connections,
+#' \code{\link{get_job_files}} for querying recorded file information,
+#' \code{\link{execute_job}} for executing a single job
+#'
+#' @export
 mono <- function(
   path,
-  db_conn = default_db_conn(db = default_db(path)),
-  cmd = "mono24",
   output_dir = NULL,
   thread = NULL,
   tool = NULL,
   mode = NULL,
-  config = NULL
+  config = NULL,
+  cmd = "mono24",
+  db_conn = default_db_conn(db = default_db(path))
 ) {
   assertthat::assert_that(
-    length(path) == 1,
-    file.exists(path),
-    msg = "`path` should be the path to a single existing Monolix project file."
+    all(file.exists(path)),
+    msg = "All `path`s should be paths to existing Monolix project files."
   )
 
   assertthat::assert_that(
     is.character(cmd),
-    length(cmd) == 1,
-    Sys.which(cmd) != "",
-    grepl("mono", cmd),
-    msg = "`cmd` must be a 'mono' command identified by `Sys.which()`"
+    all(Sys.which(cmd) != ""),
+    all(grepl("mono", cmd)),
+    msg = "All `cmd` commands must be 'mono' commands that can be identified by `Sys.which()`."
   )
 
   assertthat::assert_that(
@@ -30,6 +109,64 @@ mono <- function(
 
   on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
 
+  # Submit all jobs using mapply
+  job_ids <- mapply(
+    execute_job,
+    path = path,
+    output_dir = output_dir,
+    thread = thread,
+    tool = tool,
+    mode = mode,
+    config = config,
+    cmd = cmd,
+    SIMPLIFY = TRUE,
+    USE.NAMES = FALSE
+  )
+
+  # Monitor jobs and record completed ones
+  if (any(!is.na(job_ids))) {
+    valid_indices <- which(!is.na(job_ids))
+    # Create recycled cmd vector for valid jobs
+    cmd_recycled <- rep_len(cmd, length(path))
+
+    monitor_jobs(
+      path = path[valid_indices],
+      job_id = job_ids[valid_indices],
+      output_dir = if (is.null(output_dir)) NULL else output_dir[valid_indices],
+      cmd = cmd_recycled[valid_indices],
+      db_conn = db_conn
+    )
+  }
+
+  # Return logical vector indicating success/failure
+  !is.na(job_ids)
+}
+
+
+#' Execute a single Monolix job
+#'
+#' Submits a single Monolix job to the grid and extracts the job ID.
+#'
+#' @param path Character scalar. Path to a single existing Monolix project file.
+#' @param output_dir Character scalar or `NULL`. Directory for output files.
+#' @param thread Integer scalar or `NULL`. Number of threads used by Monolix.
+#' @param tool Character scalar or `NULL`. Tool to launch assessment.
+#' @param mode Character scalar or `NULL`. Console mode.
+#' @param config Character scalar or `NULL`. Configuration file path.
+#' @param cmd Character scalar. The Monolix command to execute.
+#'
+#' @return Integer scalar with job ID, or `NA` if job submission failed.
+#'
+#' @keywords internal
+execute_job <- function(
+  path,
+  output_dir = NULL,
+  thread = NULL,
+  tool = NULL,
+  mode = NULL,
+  config = NULL,
+  cmd = "mono24"
+) {
   result <- system2(
     cmd,
     args = c(
@@ -66,73 +203,128 @@ mono <- function(
       " output: ",
       paste(result, collapse = "\n")
     )
-    return(invisible(NULL))
+    return(NA)
   }
 
   message("Submitted ", cmd, " job ", job_id, " for file: ", path)
+  return(job_id)
+}
 
-  # Extract information from project file
-  path_content <- parse_mlxtran(path)
-  input_file <- path_content$DATAFILE$FILEINFO$file
-
-  if (is.null(output_dir)) {
-    output_dir <- file.path(
-      dirname(path),
-      path_content$MONOLIX$SETTINGS$GLOBAL$exportpath
-    )
-  }
-
-  job_complete <- FALSE
-  while (!job_complete) {
-    job_complete <- !job_in_sq(job_id)
-    Sys.sleep(5)
-  }
-
-  # Create tables if they don't exist
-  db_create_tables(db_conn)
-
-  # Insert the job record
-  DBI::dbExecute(
-    db_conn,
-    "INSERT INTO mono_jobs (job_id, path, cmd) VALUES (?, ?, ?)",
-    params = list(job_id, path, cmd)
+#' Monitor multiple jobs and record completed ones
+#'
+#' @param path Character vector. Paths to Monolix project files.
+#' @param job_id Integer vector. Job IDs to monitor (same length as path).
+#' @param output_dir Character vector or `NULL`. Output directories.
+#' @param cmd Character vector. The commands used for each job.
+#' @param db_conn Database connection object.
+#'
+#' @return NULL (invisible). Called for side effects.
+#'
+#' @keywords internal
+monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
+  assertthat::assert_that(
+    length(path) == length(job_id),
+    msg = "`path` and `job_id` must have the same length"
   )
 
-  # Record input file information
-  if (!is.null(input_file) && input_file != "") {
-    # Make input file path absolute if it's relative
-    if (!file.path(input_file) |> fs::is_absolute_path()) {
-      input_file <- file.path(dirname(path), input_file)
-    }
-
-    input_timestamp <- get_file_timestamp(input_file)
-    input_md5 <- calculate_md5(input_file)
-
-    DBI::dbExecute(
-      db_conn,
-      "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-      params = list(job_id, input_file, input_timestamp, input_md5)
+  if (!is.null(output_dir)) {
+    assertthat::assert_that(
+      length(output_dir) == length(path),
+      msg = "`output_dir` must be NULL or same length as `path`"
     )
   }
 
-  # Record output files information
-  if (dir.exists(output_dir)) {
-    output_files <- list.files(output_dir, full.names = TRUE, recursive = TRUE)
+  # Track which jobs are still running
+  running_jobs <- seq_along(job_id)
 
-    for (output_file in output_files) {
-      if (file.exists(output_file) && !dir.exists(output_file)) {
-        # Only process actual files, not directories
-        output_timestamp <- get_file_timestamp(output_file)
-        output_md5 <- calculate_md5(output_file)
+  while (length(running_jobs) > 0) {
+    # Check which running jobs have completed
+    completed_now <- c()
 
+    for (i in running_jobs) {
+      if (!job_in_sq(job_id[i])) {
+        completed_now <- c(completed_now, i)
+      }
+    }
+
+    # Process completed jobs
+    if (length(completed_now) > 0) {
+      # Create tables if they don't exist
+      db_create_tables(db_conn)
+
+      for (i in completed_now) {
+        # Extract information from project file
+        path_content <- parse_mlxtran(path[i])
+        input_file <- path_content$DATAFILE$FILEINFO$file
+
+        current_output_dir <- output_dir[i] %||%
+          file.path(
+            dirname(path[i]),
+            path_content$MONOLIX$SETTINGS$GLOBAL$exportpath
+          )
+
+        # Insert the job record
         DBI::dbExecute(
           db_conn,
-          "INSERT INTO output_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-          params = list(job_id, output_file, output_timestamp, output_md5)
+          "INSERT INTO mono_jobs (job_id, path, cmd) VALUES (?, ?, ?)",
+          params = list(job_id[i], path[i], cmd[i])
         )
+
+        # Record input file information
+        if (!is.null(input_file) && input_file != "") {
+          # Make input file path absolute if it's relative
+          if (!file.path(input_file) |> fs::is_absolute_path()) {
+            input_file <- file.path(dirname(path[i]), input_file)
+          }
+
+          input_timestamp <- get_file_timestamp(input_file)
+          input_md5 <- calculate_md5(input_file)
+
+          DBI::dbExecute(
+            db_conn,
+            "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+            params = list(job_id[i], input_file, input_timestamp, input_md5)
+          )
+        }
+
+        # Record output files information
+        if (dir.exists(current_output_dir)) {
+          output_files <- list.files(
+            current_output_dir,
+            full.names = TRUE,
+            recursive = TRUE
+          )
+
+          for (output_file in output_files) {
+            if (file.exists(output_file) && !dir.exists(output_file)) {
+              # Only process actual files, not directories
+              output_timestamp <- get_file_timestamp(output_file)
+              output_md5 <- calculate_md5(output_file)
+
+              DBI::dbExecute(
+                db_conn,
+                "INSERT INTO output_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+                params = list(
+                  job_id[i],
+                  output_file,
+                  output_timestamp,
+                  output_md5
+                )
+              )
+            }
+          }
+        }
       }
+
+      # Remove completed jobs from running list
+      running_jobs <- setdiff(running_jobs, completed_now)
+    }
+
+    # Sleep before next check if there are still running jobs
+    if (length(running_jobs) > 0) {
+      Sys.sleep(5)
     }
   }
 
-  return(TRUE)
+  invisible(NULL)
 }
