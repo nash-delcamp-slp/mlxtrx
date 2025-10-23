@@ -1,9 +1,8 @@
-# function to check if a job is in the sq
+# function to check if jobs are in the sq
 job_in_sq <- function(job_id) {
   assertthat::assert_that(
-    length(job_id) == 1,
     is.numeric(job_id) || is.character(job_id),
-    msg = "`job_id` should be a single job ID (numeric or character)."
+    msg = "`job_id` should be a vector of job IDs (numeric or character)."
   )
 
   # Convert to character for consistent handling
