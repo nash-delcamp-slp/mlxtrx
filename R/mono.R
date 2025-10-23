@@ -108,19 +108,30 @@ mono <- function(
   )
 
   on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
-
-  # Submit all jobs using mapply
-  job_ids <- mapply(
-    execute_job,
+  
+  # Build argument list dynamically, excluding NULL values
+  args_list <- list(
     path = path,
-    output_dir = output_dir,
-    thread = thread,
-    tool = tool,
-    mode = mode,
-    config = config,
-    cmd = cmd,
-    SIMPLIFY = TRUE,
-    USE.NAMES = FALSE
+    cmd = cmd
+  )
+  
+  if (!is.null(output_dir)) args_list$output_dir <- output_dir
+  if (!is.null(thread)) args_list$thread <- thread
+  if (!is.null(tool)) args_list$tool <- tool
+  if (!is.null(mode)) args_list$mode <- mode
+  if (!is.null(config)) args_list$config <- config
+  
+  # Submit all jobs using do.call + mapply
+  job_ids <- do.call(
+    mapply,
+    c(
+      list(
+        FUN = execute_job,
+        SIMPLIFY = TRUE,
+        USE.NAMES = FALSE
+      ),
+      args_list
+    )
   )
 
   # Monitor jobs and record completed ones
@@ -219,6 +230,8 @@ execute_job <- function(
 #' @param db_conn Database connection object.
 #'
 #' @return NULL (invisible). Called for side effects.
+#' 
+#' @importFrom rlang %||%
 #'
 #' @keywords internal
 monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
