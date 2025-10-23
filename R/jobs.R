@@ -1,4 +1,42 @@
-# function to check if jobs are in the sq
+#' Check if job IDs are currently in the job queue
+#'
+#' Queries the job queue using the `sq` command to determine if one or more
+#' job IDs are currently active (running or queued).
+#'
+#' @param job_id Numeric or character vector. Job IDs to check in the queue.
+#'
+#' @return Logical vector. Returns `TRUE` for job IDs found in the queue,
+#'   `FALSE` for job IDs not found or if the `sq` command fails.
+#'
+#' @details
+#' This function executes the `sq` command to retrieve current job queue
+#' information and parses the output to check for the presence of specified
+#' job IDs. The function:
+#' \enumerate{
+#'   \item Runs `system2("sq")` to get queue status
+#'   \item Parses the output as a space-separated table with headers
+#'   \item Checks if job IDs exist in the `JOBID` column
+#' }
+#'
+#' If the `sq` command fails, returns no output, or the output cannot be
+#' parsed, the function returns `FALSE` and issues appropriate warnings.
+#'
+#' @examples
+#' \dontrun{
+#' # Check single job ID
+#' job_in_sq(12345)
+#'
+#' # Check multiple job IDs
+#' job_in_sq(c(12345, 67890))
+#'
+#' job_in_sq(c("12345", "67890"))
+#' }
+#'
+#' @seealso
+#' \code{\link{monitor_jobs}} for monitoring job completion,
+#' \code{\link{execute_job}} for submitting jobs
+#'
+#' @keywords internal
 job_in_sq <- function(job_id) {
   assertthat::assert_that(
     is.numeric(job_id) || is.character(job_id),
