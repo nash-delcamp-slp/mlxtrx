@@ -10,7 +10,8 @@
 #'   output files in the data. Default is `FALSE`.
 #'
 #' @return A data frame with run information. When `include_files = FALSE`,
-#'   contains columns: `job_id`, `project_name`, `path`, `cmd`, `submitted_at`, `completed_at`.
+#'   contains columns: `job_id`, `project_name`, `path`, `data_file`, `model_file`,
+#'   `cmd`, `submitted_at`, `completed_at`.
 #'   When `include_files = TRUE`, additionally contains: `file_type`, `file_name`,
 #'   `file_path`, `file_timestamp`, `md5_checksum`. Returns `NULL` if no runs
 #'   are found in the database. All timestamps are converted to the system timezone.
@@ -68,34 +69,36 @@ runs_data <- function(
       db_conn,
       "
       SELECT 
-        j.job_id,
-        j.path,
-        j.cmd,
-        j.submitted_at,
-        j.completed_at,
-        'input' as file_type,
-        i.file_path,
-        i.file_timestamp,
-        i.md5_checksum
-      FROM mono_jobs j
-      LEFT JOIN input_files i ON j.job_id = i.job_id
-      
-      UNION ALL
-      
-      SELECT 
-        j.job_id,
-        j.path,
-        j.cmd,
-        j.submitted_at,
-        j.completed_at,
-        'output' as file_type,
-        o.file_path,
-        o.file_timestamp,
-        o.md5_checksum
-      FROM mono_jobs j
-      LEFT JOIN output_files o ON j.job_id = o.job_id
-      
-      ORDER BY j.submitted_at DESC, j.job_id, file_type
+  j.job_id,
+  j.path,
+  j.data_file,
+  j.model_file,
+  j.cmd,
+  j.submitted_at,
+  j.completed_at,
+  'input' as file_type,
+  i.file_path,
+  i.file_timestamp,
+  i.md5_checksum
+FROM mono_jobs j
+LEFT JOIN input_files i ON j.job_id = i.job_id
+
+UNION ALL
+
+SELECT 
+  j.job_id,
+  j.path,
+  j.data_file,
+  j.model_file,
+  j.cmd,
+  j.submitted_at,
+  j.completed_at,
+  'output' as file_type,
+  o.file_path,
+  o.file_timestamp,
+  o.md5_checksum
+FROM mono_jobs j
+LEFT JOIN output_files o ON j.job_id = o.job_id
       "
     )
   } else {
@@ -103,13 +106,15 @@ runs_data <- function(
       db_conn,
       "
       SELECT 
-        job_id,
-        path,
-        cmd,
-        submitted_at,
-        completed_at
-      FROM mono_jobs 
-      ORDER BY submitted_at DESC
+  job_id,
+  path,
+  data_file,
+  model_file,
+  cmd,
+  submitted_at,
+  completed_at
+FROM mono_jobs 
+ORDER BY submitted_at DESC
       "
     )
   }
@@ -137,6 +142,8 @@ runs_data <- function(
       dplyr::select(
         job_id,
         path,
+        data_file,
+        model_file,
         project_name,
         file_type,
         file_name,
@@ -157,7 +164,16 @@ runs_data <- function(
         completed_at = as.POSIXct(completed_at, tz = "UTC") |>
           lubridate::with_tz(Sys.timezone())
       ) |>
-      dplyr::select(job_id, project_name, path, cmd, submitted_at, completed_at)
+      dplyr::select(
+        job_id,
+        project_name,
+        path,
+        data_file,
+        model_file,
+        cmd,
+        submitted_at,
+        completed_at
+      )
   }
 
   runs_formatted
@@ -269,6 +285,8 @@ runs_table <- function(
           job_id = "Job ID",
           project_name = "Project",
           path = "Path",
+          data_file = "Data File",
+          model_file = "Model File",
           submitted_at = "Submitted",
           completed_at = "Completed"
         ) |>

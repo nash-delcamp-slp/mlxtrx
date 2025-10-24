@@ -15,7 +15,8 @@ output files in the data. Default is \code{FALSE}.}
 }
 \value{
 A data frame with run information. When \code{include_files = FALSE},
-contains columns: \code{job_id}, \code{project_name}, \code{path}, \code{cmd}, \code{submitted_at}, \code{completed_at}.
+contains columns: \code{job_id}, \code{project_name}, \code{path}, \code{data_file}, \code{model_file},
+\code{cmd}, \code{submitted_at}, \code{completed_at}.
 When \code{include_files = TRUE}, additionally contains: \code{file_type}, \code{file_name},
 \code{file_path}, \code{file_timestamp}, \code{md5_checksum}. Returns \code{NULL} if no runs
 are found in the database. All timestamps are converted to the system timezone.

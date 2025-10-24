@@ -96,6 +96,8 @@ default_db_conn <- function(db = default_db()) {
 #' \itemize{
 #'   \item `job_id` (INTEGER PRIMARY KEY): Unique job identifier
 #'   \item `path` (TEXT): Path to the Monolix project file
+#'   \item `data_file` (TEXT): Path to the data file
+#'   \item `model_file` (TEXT): Path to the model file
 #'   \item `cmd` (TEXT): Command used to submit the job
 #'   \item `submitted_at` (TIMESTAMP): Job submission timestamp
 #'   \item `completed_at` (TIMESTAMP): Job completion timestamp (NULL until completed)
@@ -142,6 +144,8 @@ db_create_tables <- function(db_conn = default_db_conn()) {
     CREATE TABLE IF NOT EXISTS mono_jobs (
       job_id INTEGER PRIMARY KEY,
       path TEXT,
+      data_file TEXT,
+      model_file TEXT,
       cmd TEXT,
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       completed_at TIMESTAMP DEFAULT NULL

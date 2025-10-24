@@ -153,32 +153,56 @@ mono <- function(
 
   for (i in seq_along(job_ids)) {
     if (!is.na(job_ids[i])) {
-      # Insert the job record with actual submission time
-      DBI::dbExecute(
-        db_conn,
-        "INSERT INTO mono_jobs (job_id, path, cmd) VALUES (?, ?, ?)",
-        params = list(job_ids[i], path[i], cmd_recycled[i])
-      )
-
-      # Record input file information immediately
+      # Record input file information
       path_content <- parse_mlxtran(path[i])
-      input_file <- path_content$DATAFILE$FILEINFO$file
+      data_file <- path_content$DATAFILE$FILEINFO$file
+      # model file is not an existing file
+      model_file <- path_content$MODEL$LONGITUDINAL$file
 
-      if (!is.null(input_file) && input_file != "") {
+      if (!is.null(data_file) && data_file != "") {
         # Make input file path absolute if it's relative
-        if (!file.path(input_file) |> fs::is_absolute_path()) {
-          input_file <- file.path(dirname(path[i]), input_file)
+        if (!file.path(data_file) |> fs::is_absolute_path()) {
+          data_file <- file.path(dirname(path[i]), data_file)
         }
-
-        input_timestamp <- get_file_timestamp(input_file)
-        input_md5 <- calculate_md5(input_file)
 
         DBI::dbExecute(
           db_conn,
           "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-          params = list(job_ids[i], input_file, input_timestamp, input_md5)
+          params = list(
+            job_ids[i],
+            data_file,
+            get_file_timestamp(data_file),
+            calculate_md5(data_file)
+          )
         )
       }
+
+      if (!is.null(model_file) && data_file != "") {
+        DBI::dbExecute(
+          db_conn,
+          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+          params = list(
+            job_ids[i],
+            model_file,
+            # expecting timestamp and md5 to be missing for model file
+            get_file_timestamp(model_file),
+            calculate_md5(model_file)
+          )
+        )
+      }
+
+      # Insert the job record with actual submission time
+      DBI::dbExecute(
+        db_conn,
+        "INSERT INTO mono_jobs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
+        params = list(
+          job_ids[i],
+          path[i],
+          data_file,
+          model_file,
+          cmd_recycled[i]
+        )
+      )
     }
   }
 
