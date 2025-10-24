@@ -179,7 +179,7 @@ mono <- function(
       db_conn,
       "INSERT INTO runs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
       params = list(
-        if (is.na(job_ids[i])) NULL else job_ids[i], # NULL for failed extractions
+        if (is.na(job_ids[i])) NA_real_ else job_ids[i],
         normalizePath(path[i]),
         data_file,
         model_file,
@@ -299,7 +299,10 @@ execute_job <- function(
 
   if (is.na(job_id)) {
     if (
-      stringr::str_detect(result[1], "Results have been successfully loaded")
+      any(stringr::str_detect(
+        result[1:10],
+        "Results have been successfully loaded"
+      ))
     ) {
       message("Submitted ", cmd, " for file: ", path)
       return(NA)
