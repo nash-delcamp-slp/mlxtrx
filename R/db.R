@@ -99,6 +99,10 @@ default_db_conn <- function(db = default_db()) {
 #'   \item `path` (TEXT): Path to the Monolix project file
 #'   \item `data_file` (TEXT): Path to the data file
 #'   \item `model_file` (TEXT): Path to the model file
+#'   \item `thread` (INTEGER): Number of threads used by Monolix
+#'   \item `tool` (TEXT): Tool to launch assessment
+#'   \item `mode` (TEXT): Console mode
+#'   \item `config` (TEXT): Configuration file path
 #'   \item `cmd` (TEXT): Command used to submit the job
 #'   \item `submitted_at` (TIMESTAMP): Job submission timestamp
 #'   \item `completed_at` (TIMESTAMP): Job completion timestamp (NULL until completed)
@@ -137,6 +141,10 @@ db_create_tables <- function(db_conn = default_db_conn()) {
       path TEXT,
       data_file TEXT,
       model_file TEXT,
+      thread INTEGER,
+      tool TEXT,
+      mode TEXT,
+      config TEXT,
       cmd TEXT,
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       completed_at TIMESTAMP DEFAULT NULL

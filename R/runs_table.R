@@ -10,7 +10,8 @@
 #'   output files in the data. Default is `FALSE`.
 #'
 #' @return A data frame with run information. Contains columns: `run_id`, `job_id`,
-#'   `project_name`, `path`, `data_file`, `model_file`, `cmd`, `submitted_at`, `completed_at`.
+#'   `project_name`, `path`, `data_file`, `model_file`, `thread`, `tool`, `mode`,
+#'   `config`, `cmd`, `submitted_at`, `completed_at`.
 #'   When `include_files = TRUE`, additionally contains file details.
 #'
 #' @export
@@ -35,6 +36,10 @@ runs_data <- function(
   j.path,
   j.data_file,
   j.model_file,
+  j.thread,
+  j.tool,
+  j.mode,
+  j.config,
   j.cmd,
   j.submitted_at,
   j.completed_at,
@@ -53,6 +58,10 @@ SELECT
   j.path,
   j.data_file,
   j.model_file,
+  j.thread,
+  j.tool,
+  j.mode,
+  j.config,
   j.cmd,
   j.submitted_at,
   j.completed_at,
@@ -74,6 +83,10 @@ LEFT JOIN output_files o ON j.run_id = o.run_id
   path,
   data_file,
   model_file,
+  thread,
+  tool,
+  mode,
+  config,
   cmd,
   submitted_at,
   completed_at
@@ -108,6 +121,10 @@ ORDER BY submitted_at DESC
         path,
         data_file,
         model_file,
+        thread,
+        tool,
+        mode,
+        config,
         project_name,
         file_type,
         file_name,
@@ -134,6 +151,10 @@ ORDER BY submitted_at DESC
         path,
         data_file,
         model_file,
+        thread,
+        tool,
+        mode,
+        config,
         cmd,
         submitted_at,
         completed_at
@@ -214,12 +235,13 @@ runs_table <- function(
     if (include_files) {
       gt_table <- runs_formatted |>
         dplyr::mutate(
-          job_id = sprintf("%s '%s' (%d)", cmd, path, job_id),
+          run_id = sprintf("%s '%s' (%d)", cmd, path, run_id),
+          job_id = NULL,
           path = NULL,
           project_name = NULL,
           cmd = NULL
         ) |>
-        gt::gt(groupname_col = "job_id") |>
+        gt::gt(groupname_col = "run_id") |>
         gt::tab_header(
           title = "Executed Runs with File Details",
           subtitle = paste("Total runs:", length(unique(runs_formatted$job_id)))
@@ -230,6 +252,12 @@ runs_table <- function(
           file_path = "Path",
           file_timestamp = "File Modified",
           md5_checksum = "MD5",
+          data_file = "Data File",
+          model_file = "Model File",
+          thread = "Threads",
+          tool = "Tool",
+          mode = "Mode",
+          config = "Config File",
           submitted_at = "Submitted",
           completed_at = "Completed"
         ) |>
@@ -246,11 +274,15 @@ runs_table <- function(
           subtitle = paste("Total runs:", nrow(runs_formatted))
         ) |>
         gt::cols_label(
-          job_id = "Job ID",
+          run_id = "Run ID",
           project_name = "Project",
           path = "Path",
           data_file = "Data File",
           model_file = "Model File",
+          thread = "Threads",
+          tool = "Tool",
+          mode = "Mode",
+          config = "Config File",
           submitted_at = "Submitted",
           completed_at = "Completed"
         ) |>

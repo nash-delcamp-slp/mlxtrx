@@ -28,6 +28,10 @@ This function creates three tables with the following schema:
 \item \code{path} (TEXT): Path to the Monolix project file
 \item \code{data_file} (TEXT): Path to the data file
 \item \code{model_file} (TEXT): Path to the model file
+\item \code{thread} (INTEGER): Number of threads used by Monolix
+\item \code{tool} (TEXT): Tool to launch assessment
+\item \code{mode} (TEXT): Console mode
+\item \code{config} (TEXT): Configuration file path
 \item \code{cmd} (TEXT): Command used to submit the job
 \item \code{submitted_at} (TIMESTAMP): Job submission timestamp
 \item \code{completed_at} (TIMESTAMP): Job completion timestamp (NULL until completed)

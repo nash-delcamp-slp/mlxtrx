@@ -15,7 +15,8 @@ output files in the data. Default is \code{FALSE}.}
 }
 \value{
 A data frame with run information. Contains columns: \code{run_id}, \code{job_id},
-\code{project_name}, \code{path}, \code{data_file}, \code{model_file}, \code{cmd}, \code{submitted_at}, \code{completed_at}.
+\code{project_name}, \code{path}, \code{data_file}, \code{model_file}, \code{thread}, \code{tool}, \code{mode},
+\code{config}, \code{cmd}, \code{submitted_at}, \code{completed_at}.
 When \code{include_files = TRUE}, additionally contains file details.
 }
 \description{

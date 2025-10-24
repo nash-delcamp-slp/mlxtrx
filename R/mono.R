@@ -112,26 +112,46 @@ mono <- function(
   # Create tables if they don't exist
   db_create_tables(db_conn)
 
+  # Recycle all arguments to match length of path
+  cmd_recycled <- rep_len(cmd, length(path))
+  output_dir_recycled <- if (!is.null(output_dir)) {
+    rep_len(output_dir, length(path))
+  } else {
+    NULL
+  }
+  thread_recycled <- if (!is.null(thread)) {
+    rep_len(thread, length(path))
+  } else {
+    NULL
+  }
+  tool_recycled <- if (!is.null(tool)) rep_len(tool, length(path)) else NULL
+  mode_recycled <- if (!is.null(mode)) rep_len(mode, length(path)) else NULL
+  config_recycled <- if (!is.null(config)) {
+    rep_len(config, length(path))
+  } else {
+    NULL
+  }
+
   # Build argument list dynamically, excluding NULL values
   args_list <- list(
     path = path,
-    cmd = cmd
+    cmd = cmd_recycled
   )
 
-  if (!is.null(output_dir)) {
-    args_list$output_dir <- output_dir
+  if (!is.null(output_dir_recycled)) {
+    args_list$output_dir <- output_dir_recycled
   }
-  if (!is.null(thread)) {
-    args_list$thread <- thread
+  if (!is.null(thread_recycled)) {
+    args_list$thread <- thread_recycled
   }
-  if (!is.null(tool)) {
-    args_list$tool <- tool
+  if (!is.null(tool_recycled)) {
+    args_list$tool <- tool_recycled
   }
-  if (!is.null(mode)) {
-    args_list$mode <- mode
+  if (!is.null(mode_recycled)) {
+    args_list$mode <- mode_recycled
   }
-  if (!is.null(config)) {
-    args_list$config <- config
+  if (!is.null(config_recycled)) {
+    args_list$config <- config_recycled
   }
 
   # Submit all jobs using do.call + mapply
@@ -148,7 +168,6 @@ mono <- function(
   )
 
   # Record all runs in database and get run_ids
-  cmd_recycled <- rep_len(cmd, length(path))
   run_ids <- integer(length(path))
 
   for (i in seq_along(path)) {
@@ -174,15 +193,32 @@ mono <- function(
     }
     model_file <- normalizePath(model_file, mustWork = FALSE)
 
-    # Insert job record - let database auto-generate run_id
+    # Resolve config file path if provided
+    config_file <- NULL
+    if (!is.null(config_recycled)) {
+      config_file <- config_recycled[i]
+      if (!fs::is_absolute_path(config_file) && !file.exists(config_file)) {
+        config_file_built <- file.path(dirname(path[i]), config_file)
+        if (file.exists(config_file_built)) {
+          config_file <- config_file_built
+        }
+      }
+      config_file <- normalizePath(config_file, mustWork = FALSE)
+    }
+
+    # Insert job record with all parameters
     DBI::dbExecute(
       db_conn,
-      "INSERT INTO runs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO runs (job_id, path, data_file, model_file, thread, tool, mode, config, cmd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       params = list(
         if (is.na(job_ids[i])) NA_real_ else job_ids[i],
         normalizePath(path[i]),
         data_file,
         model_file,
+        if (!is.null(thread_recycled)) thread_recycled[i] else NA_integer_,
+        if (!is.null(tool_recycled)) tool_recycled[i] else NA_character_,
+        if (!is.null(mode_recycled)) mode_recycled[i] else NA_character_,
+        config_file,
         cmd_recycled[i]
       )
     )
@@ -225,7 +261,7 @@ mono <- function(
     path = path,
     run_id = run_ids,
     job_id = job_ids,
-    output_dir = output_dir,
+    output_dir = output_dir_recycled,
     cmd = cmd_recycled,
     db_conn = db_conn
   )
