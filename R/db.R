@@ -98,6 +98,7 @@ default_db_conn <- function(db = default_db()) {
 #'   \item `path` (TEXT): Path to the Monolix project file
 #'   \item `cmd` (TEXT): Command used to submit the job
 #'   \item `submitted_at` (TIMESTAMP): Job submission timestamp
+#'   \item `completed_at` (TIMESTAMP): Job completion timestamp (NULL until completed)
 #' }
 #'
 #' \strong{input_files}:
@@ -142,7 +143,8 @@ db_create_tables <- function(db_conn = default_db_conn()) {
       job_id INTEGER PRIMARY KEY,
       path TEXT,
       cmd TEXT,
-      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      completed_at TIMESTAMP DEFAULT NULL
     )"
   )
 

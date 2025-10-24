@@ -27,6 +27,7 @@ This function creates three tables with the following schema:
 \item \code{path} (TEXT): Path to the Monolix project file
 \item \code{cmd} (TEXT): Command used to submit the job
 \item \code{submitted_at} (TIMESTAMP): Job submission timestamp
+\item \code{completed_at} (TIMESTAMP): Job completion timestamp (NULL until completed)
 }
 
 \strong{input_files}:

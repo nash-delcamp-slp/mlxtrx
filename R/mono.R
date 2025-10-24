@@ -108,19 +108,32 @@ mono <- function(
   )
 
   on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
-  
+
+  # Create tables if they don't exist
+  db_create_tables(db_conn)
+
   # Build argument list dynamically, excluding NULL values
   args_list <- list(
     path = path,
     cmd = cmd
   )
-  
-  if (!is.null(output_dir)) args_list$output_dir <- output_dir
-  if (!is.null(thread)) args_list$thread <- thread
-  if (!is.null(tool)) args_list$tool <- tool
-  if (!is.null(mode)) args_list$mode <- mode
-  if (!is.null(config)) args_list$config <- config
-  
+
+  if (!is.null(output_dir)) {
+    args_list$output_dir <- output_dir
+  }
+  if (!is.null(thread)) {
+    args_list$thread <- thread
+  }
+  if (!is.null(tool)) {
+    args_list$tool <- tool
+  }
+  if (!is.null(mode)) {
+    args_list$mode <- mode
+  }
+  if (!is.null(config)) {
+    args_list$config <- config
+  }
+
   # Submit all jobs using do.call + mapply
   job_ids <- do.call(
     mapply,
@@ -134,11 +147,43 @@ mono <- function(
     )
   )
 
-  # Monitor jobs and record completed ones
+  # Record successfully submitted jobs immediately
+  cmd_recycled <- rep_len(cmd, length(path))
+
+  for (i in seq_along(job_ids)) {
+    if (!is.na(job_ids[i])) {
+      # Insert the job record with actual submission time
+      DBI::dbExecute(
+        db_conn,
+        "INSERT INTO mono_jobs (job_id, path, cmd) VALUES (?, ?, ?)",
+        params = list(job_ids[i], path[i], cmd_recycled[i])
+      )
+
+      # Record input file information immediately
+      path_content <- parse_mlxtran(path[i])
+      input_file <- path_content$DATAFILE$FILEINFO$file
+
+      if (!is.null(input_file) && input_file != "") {
+        # Make input file path absolute if it's relative
+        if (!file.path(input_file) |> fs::is_absolute_path()) {
+          input_file <- file.path(dirname(path[i]), input_file)
+        }
+
+        input_timestamp <- get_file_timestamp(input_file)
+        input_md5 <- calculate_md5(input_file)
+
+        DBI::dbExecute(
+          db_conn,
+          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+          params = list(job_ids[i], input_file, input_timestamp, input_md5)
+        )
+      }
+    }
+  }
+
+  # Monitor jobs and record output files when completed
   if (any(!is.na(job_ids))) {
     valid_indices <- which(!is.na(job_ids))
-    # Create recycled cmd vector for valid jobs
-    cmd_recycled <- rep_len(cmd, length(path))
 
     monitor_jobs(
       path = path[valid_indices],
@@ -230,7 +275,7 @@ execute_job <- function(
 #' @param db_conn Database connection object.
 #'
 #' @return NULL (invisible). Called for side effects.
-#' 
+#'
 #' @importFrom rlang %||%
 #'
 #' @keywords internal
@@ -262,13 +307,9 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
 
     # Process completed jobs
     if (length(completed_now) > 0) {
-      # Create tables if they don't exist
-      db_create_tables(db_conn)
-
       for (i in completed_now) {
         # Extract information from project file
         path_content <- parse_mlxtran(path[i])
-        input_file <- path_content$DATAFILE$FILEINFO$file
 
         current_output_dir <- output_dir[i] %||%
           file.path(
@@ -276,29 +317,8 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
             path_content$MONOLIX$SETTINGS$GLOBAL$exportpath
           )
 
-        # Insert the job record
-        DBI::dbExecute(
-          db_conn,
-          "INSERT INTO mono_jobs (job_id, path, cmd) VALUES (?, ?, ?)",
-          params = list(job_id[i], path[i], cmd[i])
-        )
-
-        # Record input file information
-        if (!is.null(input_file) && input_file != "") {
-          # Make input file path absolute if it's relative
-          if (!file.path(input_file) |> fs::is_absolute_path()) {
-            input_file <- file.path(dirname(path[i]), input_file)
-          }
-
-          input_timestamp <- get_file_timestamp(input_file)
-          input_md5 <- calculate_md5(input_file)
-
-          DBI::dbExecute(
-            db_conn,
-            "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-            params = list(job_id[i], input_file, input_timestamp, input_md5)
-          )
-        }
+        # Track latest modification time for completion timestamp
+        latest_mod_time <- NULL
 
         # Record output files information
         if (dir.exists(current_output_dir)) {
@@ -314,6 +334,13 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
               output_timestamp <- get_file_timestamp(output_file)
               output_md5 <- calculate_md5(output_file)
 
+              # Track the latest modification time
+              if (
+                is.null(latest_mod_time) || output_timestamp > latest_mod_time
+              ) {
+                latest_mod_time <- output_timestamp
+              }
+
               DBI::dbExecute(
                 db_conn,
                 "INSERT INTO output_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
@@ -327,6 +354,16 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
             }
           }
         }
+
+        # Update job completion time using latest output file modification time
+        # If no output files found, use current time as fallback
+        completion_time <- latest_mod_time %||% Sys.time()
+
+        DBI::dbExecute(
+          db_conn,
+          "UPDATE mono_jobs SET completed_at = ? WHERE job_id = ?",
+          params = list(completion_time, job_id[i])
+        )
       }
 
       # Remove completed jobs from running list
