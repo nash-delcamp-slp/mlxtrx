@@ -156,10 +156,10 @@ mono <- function(
       # Record input file information
       path_content <- parse_mlxtran(path[i])
       data_file <- path_content$DATAFILE$FILEINFO$file
-      # model file is not an existing file
+      # model file is often not an existing file
       model_file <- path_content$MODEL$LONGITUDINAL$file
 
-      if (!is.null(data_file) && data_file != "") {
+      if (!is.null(data_file) && file.exists(data_file)) {
         # Make input file path absolute if it's relative
         if (!file.path(data_file) |> fs::is_absolute_path()) {
           data_file <- file.path(dirname(path[i]), data_file)
@@ -179,7 +179,7 @@ mono <- function(
         )
       )
 
-      if (!is.null(data_file) && data_file != "") {
+      if (!is.null(data_file) && file.exists(data_file)) {
         DBI::dbExecute(
           db_conn,
           "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
@@ -192,14 +192,13 @@ mono <- function(
         )
       }
 
-      if (!is.null(model_file) && model_file != "") {
+      if (!is.null(model_file) && file.exists(model_file)) {
         DBI::dbExecute(
           db_conn,
           "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
           params = list(
             job_ids[i],
-            normalizePath(model_file, mustWork = FALSE),
-            # expecting timestamp and md5 to be missing for model file
+            normalizePath(model_file),
             get_file_timestamp(model_file),
             calculate_md5(model_file)
           )
