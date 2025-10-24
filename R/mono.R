@@ -156,15 +156,24 @@ mono <- function(
       # Record input file information
       path_content <- parse_mlxtran(path[i])
       data_file <- path_content$DATAFILE$FILEINFO$file
-      # model file is often not an existing file
-      model_file <- path_content$MODEL$LONGITUDINAL$file
-
-      if (!is.null(data_file) && file.exists(data_file)) {
-        # Make input file path absolute if it's relative
-        if (!file.path(data_file) |> fs::is_absolute_path()) {
-          data_file <- file.path(dirname(path[i]), data_file)
+      # data_file is relative to project path (if relative)
+      if (!fs::is_absolute_path(data_file) && !file.exists(data_file)) {
+        data_file_built <- file.path(dirname(path[i]), data_file)
+        if (file.exists(data_file_built)) {
+          data_file <- data_file_built
         }
       }
+      data_file <- normalizePath(data_file)
+
+      # model file is often not an existing file
+      model_file <- path_content$MODEL$LONGITUDINAL$file
+      if (!fs::is_absolute_path(model_file) && !file.exists(model_file)) {
+        model_file_built <- file.path(dirname(path[i]), model_file)
+        if (file.exists(model_file_built)) {
+          model_file <- model_file_built
+        }
+      }
+      model_file <- normalizePath(model_file, mustWork = FALSE)
 
       # Insert the job record with actual submission time
       DBI::dbExecute(
@@ -173,8 +182,8 @@ mono <- function(
         params = list(
           job_ids[i],
           normalizePath(path[i]),
-          normalizePath(data_file),
-          normalizePath(model_file, mustWork = FALSE),
+          data_file,
+          model_file,
           cmd_recycled[i]
         )
       )
@@ -185,7 +194,7 @@ mono <- function(
           "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
           params = list(
             job_ids[i],
-            normalizePath(data_file),
+            data_file,
             get_file_timestamp(data_file),
             calculate_md5(data_file)
           )
@@ -198,7 +207,7 @@ mono <- function(
           "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
           params = list(
             job_ids[i],
-            normalizePath(model_file),
+            model_file,
             get_file_timestamp(model_file),
             calculate_md5(model_file)
           )
