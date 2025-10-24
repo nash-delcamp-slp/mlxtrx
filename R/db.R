@@ -128,7 +128,7 @@ db_create_tables <- function(db_conn = default_db_conn()) {
     db_conn,
     "
     CREATE TABLE IF NOT EXISTS mono_jobs (
-      run_id INTEGER PRIMARY KEY,
+      run_id INTEGER PRIMARY KEY AUTOINCREMENT,
       job_id INTEGER,
       path TEXT,
       data_file TEXT,
