@@ -61,7 +61,7 @@ SELECT
   o.file_timestamp,
   o.md5_checksum
 FROM runs j
-LEFT JOIN output_files o ON j.run_id = o.job_id
+LEFT JOIN output_files o ON j.run_id = o.run_id
       "
     )
   } else {
