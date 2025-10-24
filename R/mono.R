@@ -353,9 +353,19 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
           )
 
         # output_dir is relative to project path (if relative)
-        if (!fs::is_absolute_path(current_output_dir)) {
-          current_output_dir <- file.path(dirname(path[i]), current_output_dir)
+        if (
+          !fs::is_absolute_path(current_output_dir) &&
+            !file.exists(current_output_dir)
+        ) {
+          current_output_dir_built <- file.path(
+            dirname(path[i]),
+            current_output_dir
+          )
+          if (file.exists(current_output_dir_built)) {
+            current_output_dir <- current_output_dir_built
+          }
         }
+        current_output_dir <- normalizePath(current_output_dir)
 
         # Track latest modification time for completion timestamp
         latest_mod_time <- NULL
