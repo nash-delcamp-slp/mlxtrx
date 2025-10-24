@@ -164,31 +164,6 @@ mono <- function(
         if (!file.path(data_file) |> fs::is_absolute_path()) {
           data_file <- file.path(dirname(path[i]), data_file)
         }
-
-        DBI::dbExecute(
-          db_conn,
-          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-          params = list(
-            job_ids[i],
-            data_file,
-            get_file_timestamp(data_file),
-            calculate_md5(data_file)
-          )
-        )
-      }
-
-      if (!is.null(model_file) && data_file != "") {
-        DBI::dbExecute(
-          db_conn,
-          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-          params = list(
-            job_ids[i],
-            model_file,
-            # expecting timestamp and md5 to be missing for model file
-            get_file_timestamp(model_file),
-            calculate_md5(model_file)
-          )
-        )
       }
 
       # Insert the job record with actual submission time
@@ -203,6 +178,33 @@ mono <- function(
           cmd_recycled[i]
         )
       )
+
+      if (!is.null(data_file) && data_file != "") {
+        DBI::dbExecute(
+          db_conn,
+          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+          params = list(
+            job_ids[i],
+            data_file,
+            get_file_timestamp(data_file),
+            calculate_md5(data_file)
+          )
+        )
+      }
+
+      if (!is.null(model_file) && model_file != "") {
+        DBI::dbExecute(
+          db_conn,
+          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+          params = list(
+            job_ids[i],
+            model_file,
+            # expecting timestamp and md5 to be missing for model file
+            get_file_timestamp(model_file),
+            calculate_md5(model_file)
+          )
+        )
+      }
     }
   }
 
