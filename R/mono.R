@@ -4,7 +4,8 @@
 #' stores a record of the runs in a database.
 #'
 #' @param path Character vector. Paths to existing Monolix project files.
-#' @param output_dir Character vector or `NULL`. Directory for output files.
+#' @param output_dir Character vector or `NULL`. Directory for
+#'   output files relative to the project path.
 #'   Passed as `--output-dir` argument to the Monolix command.
 #'   If `NULL` (default), Monolix uses the export path from the project file.
 #'   Should be same length as `path`, length 1, or `NULL`.
@@ -65,7 +66,7 @@
 #' # Specify custom output directory and thread count
 #' mono(
 #'   path = "project.mlxtran",
-#'   output_dir = "/custom/output/path",
+#'   output_dir = "custom-project-output",
 #'   thread = 4
 #' )
 #'

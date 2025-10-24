@@ -18,7 +18,8 @@ mono(
 \arguments{
 \item{path}{Character vector. Paths to existing Monolix project files.}
 
-\item{output_dir}{Character vector or \code{NULL}. Directory for output files.
+\item{output_dir}{Character vector or \code{NULL}. Directory for
+output files relative to the project path.
 Passed as \code{--output-dir} argument to the Monolix command.
 If \code{NULL} (default), Monolix uses the export path from the project file.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
@@ -90,7 +91,7 @@ mono(c("project1.mlxtran", "project2.mlxtran"))
 # Specify custom output directory and thread count
 mono(
   path = "project.mlxtran",
-  output_dir = "/custom/output/path",
+  output_dir = "custom-project-output",
   thread = 4
 )
 
