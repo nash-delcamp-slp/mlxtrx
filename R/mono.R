@@ -270,7 +270,7 @@ execute_job <- function(
   result <- system2(
     cmd,
     args = c(
-      "--no-gui",
+      if (basename(cmd) == "monolix.sh") "--no-gui" else NULL,
       paste("-p", shQuote(normalizePath(path))),
       if (!is.null(output_dir)) {
         paste("--output-dir", shQuote(output_dir))
@@ -298,6 +298,12 @@ execute_job <- function(
   }
 
   if (is.na(job_id)) {
+    if (
+      stringr::str_detect(result[1], "Results have been successfully loaded")
+    ) {
+      message("Submitted ", cmd, " for file: ", path)
+      return(NA)
+    }
     warning(
       "Could not extract job ID from ",
       cmd,
