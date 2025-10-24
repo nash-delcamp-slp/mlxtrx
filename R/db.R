@@ -92,7 +92,7 @@ default_db_conn <- function(db = default_db()) {
 #' @details
 #' This function creates three tables with the following schema:
 #'
-#' \strong{mono_jobs}:
+#' \strong{runs}:
 #' \itemize{
 #'   \item `run_id` (INTEGER PRIMARY KEY): Auto-generated unique run identifier
 #'   \item `job_id` (INTEGER): External job ID (may be NULL if extraction fails)
@@ -106,7 +106,7 @@ default_db_conn <- function(db = default_db()) {
 #'
 #' \strong{input_files}:
 #' \itemize{
-#'   \item `run_id` (INTEGER): Foreign key to mono_jobs
+#'   \item `run_id` (INTEGER): Foreign key to runs
 #'   \item `file_path` (TEXT): Path to the input file
 #'   \item `file_timestamp` (TIMESTAMP): File modification timestamp
 #'   \item `md5_checksum` (TEXT): MD5 hash of the file
@@ -115,7 +115,7 @@ default_db_conn <- function(db = default_db()) {
 #'
 #' \strong{output_files}:
 #' \itemize{
-#'   \item `run_id` (INTEGER): Foreign key to mono_jobs
+#'   \item `run_id` (INTEGER): Foreign key to runs
 #'   \item `file_path` (TEXT): Path to the output file
 #'   \item `file_timestamp` (TIMESTAMP): File modification timestamp
 #'   \item `md5_checksum` (TEXT): MD5 hash of the file
@@ -131,7 +131,7 @@ db_create_tables <- function(db_conn = default_db_conn()) {
   DBI::dbExecute(
     db_conn,
     "
-    CREATE TABLE IF NOT EXISTS mono_jobs (
+    CREATE TABLE IF NOT EXISTS runs (
       run_id INTEGER PRIMARY KEY DEFAULT nextval('run_id_seq'),
       job_id INTEGER,
       path TEXT,
@@ -152,7 +152,7 @@ db_create_tables <- function(db_conn = default_db_conn()) {
       file_timestamp TIMESTAMP,
       md5_checksum TEXT,
       recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (run_id) REFERENCES mono_jobs (run_id)
+      FOREIGN KEY (run_id) REFERENCES runs (run_id)
     )"
   )
 
@@ -165,7 +165,7 @@ db_create_tables <- function(db_conn = default_db_conn()) {
       file_timestamp TIMESTAMP,
       md5_checksum TEXT,
       recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (run_id) REFERENCES mono_jobs (run_id)
+      FOREIGN KEY (run_id) REFERENCES runs (run_id)
     )"
   )
 }

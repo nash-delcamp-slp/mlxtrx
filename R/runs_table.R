@@ -42,7 +42,7 @@ runs_data <- function(
   i.file_path,
   i.file_timestamp,
   i.md5_checksum
-FROM mono_jobs j
+FROM runs j
 LEFT JOIN input_files i ON j.run_id = i.run_id
 
 UNION ALL
@@ -60,7 +60,7 @@ SELECT
   o.file_path,
   o.file_timestamp,
   o.md5_checksum
-FROM mono_jobs j
+FROM runs j
 LEFT JOIN output_files o ON j.run_id = o.job_id
       "
     )
@@ -77,7 +77,7 @@ LEFT JOIN output_files o ON j.run_id = o.job_id
   cmd,
   submitted_at,
   completed_at
-FROM mono_jobs 
+FROM runs 
 ORDER BY submitted_at DESC
       "
     )

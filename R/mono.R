@@ -39,14 +39,14 @@
 #'   \item Validates inputs and submits the Monolix job using `system2()`
 #'   \item Extracts the job ID from the submission output
 #'   \item Monitors job completion by checking the job queue
-#'   \item Records job information in the `mono_jobs` table
+#'   \item Records job information in the `runs` table
 #'   \item Tracks input file metadata in the `input_files` table
 #'   \item Records all output files with timestamps and checksums in the `output_files` table
 #' }
 #'
 #' The database schema includes three tables:
 #' \itemize{
-#'   \item `mono_jobs`: Job metadata (ID, path, command, submission time)
+#'   \item `runs`: Job metadata (ID, path, command, submission time)
 #'   \item `input_files`: Input file tracking with timestamps and MD5 checksums
 #'   \item `output_files`: Output file tracking with timestamps and MD5 checksums
 #' }
@@ -177,7 +177,7 @@ mono <- function(
     # Insert job record - let database auto-generate run_id
     DBI::dbExecute(
       db_conn,
-      "INSERT INTO mono_jobs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
+      "INSERT INTO runs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
       params = list(
         if (is.na(job_ids[i])) NULL else job_ids[i], # NULL for failed extractions
         normalizePath(path[i]),
@@ -433,7 +433,7 @@ monitor_jobs <- function(
 
         DBI::dbExecute(
           db_conn,
-          "UPDATE mono_jobs SET completed_at = ? WHERE run_id = ?",
+          "UPDATE runs SET completed_at = ? WHERE run_id = ?",
           params = list(completion_time, run_id[i])
         )
       }

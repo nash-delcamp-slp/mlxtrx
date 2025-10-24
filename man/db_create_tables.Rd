@@ -21,7 +21,7 @@ already exist.
 \details{
 This function creates three tables with the following schema:
 
-\strong{mono_jobs}:
+\strong{runs}:
 \itemize{
 \item \code{run_id} (INTEGER PRIMARY KEY): Auto-generated unique run identifier
 \item \code{job_id} (INTEGER): External job ID (may be NULL if extraction fails)
@@ -35,7 +35,7 @@ This function creates three tables with the following schema:
 
 \strong{input_files}:
 \itemize{
-\item \code{run_id} (INTEGER): Foreign key to mono_jobs
+\item \code{run_id} (INTEGER): Foreign key to runs
 \item \code{file_path} (TEXT): Path to the input file
 \item \code{file_timestamp} (TIMESTAMP): File modification timestamp
 \item \code{md5_checksum} (TEXT): MD5 hash of the file
@@ -44,7 +44,7 @@ This function creates three tables with the following schema:
 
 \strong{output_files}:
 \itemize{
-\item \code{run_id} (INTEGER): Foreign key to mono_jobs
+\item \code{run_id} (INTEGER): Foreign key to runs
 \item \code{file_path} (TEXT): Path to the output file
 \item \code{file_timestamp} (TIMESTAMP): File modification timestamp
 \item \code{md5_checksum} (TEXT): MD5 hash of the file

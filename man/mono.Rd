@@ -64,14 +64,14 @@ This function performs the following operations for each job:
 \item Validates inputs and submits the Monolix job using \code{system2()}
 \item Extracts the job ID from the submission output
 \item Monitors job completion by checking the job queue
-\item Records job information in the \code{mono_jobs} table
+\item Records job information in the \code{runs} table
 \item Tracks input file metadata in the \code{input_files} table
 \item Records all output files with timestamps and checksums in the \code{output_files} table
 }
 
 The database schema includes three tables:
 \itemize{
-\item \code{mono_jobs}: Job metadata (ID, path, command, submission time)
+\item \code{runs}: Job metadata (ID, path, command, submission time)
 \item \code{input_files}: Input file tracking with timestamps and MD5 checksums
 \item \code{output_files}: Output file tracking with timestamps and MD5 checksums
 }
