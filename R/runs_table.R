@@ -10,7 +10,7 @@
 #'   output files in the data. Default is `FALSE`.
 #'
 #' @return A data frame with run information. When `include_files = FALSE`,
-#'   contains columns: `job_id`, `project_name`, `path`, `cmd`, `submitted_at`.
+#'   contains columns: `job_id`, `project_name`, `path`, `cmd`, `submitted_at`, `completed_at`.
 #'   When `include_files = TRUE`, additionally contains: `file_type`, `file_name`,
 #'   `file_path`, `file_timestamp`, `md5_checksum`. Returns `NULL` if no runs
 #'   are found in the database.
@@ -21,7 +21,7 @@
 #'
 #' \strong{Basic mode} (`include_files = FALSE`):
 #' \itemize{
-#'   \item Job ID, project name, full path, command used, and submission time
+#'   \item Job ID, project name, full path, command used, submission time, and completion time
 #' }
 #'
 #' \strong{Detailed mode} (`include_files = TRUE`):
@@ -70,6 +70,7 @@ runs_data <- function(
         j.path,
         j.cmd,
         j.submitted_at,
+        j.completed_at,
         'input' as file_type,
         i.file_path,
         i.file_timestamp,
@@ -84,6 +85,7 @@ runs_data <- function(
         j.path,
         j.cmd,
         j.submitted_at,
+        j.completed_at,
         'output' as file_type,
         o.file_path,
         o.file_timestamp,
@@ -102,7 +104,8 @@ runs_data <- function(
         job_id,
         path,
         cmd,
-        submitted_at
+        submitted_at,
+        completed_at
       FROM mono_jobs 
       ORDER BY submitted_at DESC
       "
@@ -121,6 +124,7 @@ runs_data <- function(
       dplyr::mutate(
         project_name = basename(path),
         submitted_at = as.POSIXct(submitted_at),
+        completed_at = as.POSIXct(completed_at),
         file_timestamp = as.POSIXct(file_timestamp),
         file_name = basename(file_path)
       ) |>
@@ -134,15 +138,17 @@ runs_data <- function(
         file_timestamp,
         md5_checksum,
         cmd,
-        submitted_at
+        submitted_at,
+        completed_at
       )
   } else {
     runs_formatted <- runs_data |>
       dplyr::mutate(
         project_name = basename(path),
-        submitted_at = as.POSIXct(submitted_at)
+        submitted_at = as.POSIXct(submitted_at),
+        completed_at = as.POSIXct(completed_at)
       ) |>
-      dplyr::select(job_id, project_name, path, cmd, submitted_at)
+      dplyr::select(job_id, project_name, path, cmd, submitted_at, completed_at)
   }
 
   runs_formatted
@@ -235,10 +241,11 @@ runs_table <- function(
           file_path = "Path",
           file_timestamp = "File Modified",
           md5_checksum = "MD5",
-          submitted_at = "Submitted"
+          submitted_at = "Submitted",
+          completed_at = "Completed"
         ) |>
         gt::fmt_datetime(
-          columns = c(submitted_at, file_timestamp),
+          columns = c(submitted_at, completed_at, file_timestamp),
           date_style = "yMMMd",
           time_style = "Hm"
         )
@@ -253,10 +260,11 @@ runs_table <- function(
           job_id = "Job ID",
           project_name = "Project",
           path = "Path",
-          submitted_at = "Submitted"
+          submitted_at = "Submitted",
+          completed_at = "Completed"
         ) |>
         gt::fmt_datetime(
-          columns = submitted_at,
+          columns = c(submitted_at, completed_at),
           date_style = "yMMMd",
           time_style = "Hm"
         )
