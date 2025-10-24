@@ -190,7 +190,7 @@ mono <- function(
     # Get the auto-generated run_id
     run_ids[i] <- DBI::dbGetQuery(
       db_conn,
-      "SELECT last_insert_rowid() as run_id"
+      "SELECT currval('run_id_seq') as run_id"
     )$run_id
 
     # Record input files
