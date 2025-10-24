@@ -270,7 +270,8 @@ execute_job <- function(
   result <- system2(
     cmd,
     args = c(
-      paste("-p", shQuote(path)),
+      "--no-gui",
+      paste("-p", shQuote(normalizePath(path))),
       if (!is.null(output_dir)) {
         paste("--output-dir", shQuote(output_dir))
       } else {
