@@ -172,9 +172,9 @@ mono <- function(
         "INSERT INTO mono_jobs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
         params = list(
           job_ids[i],
-          path[i],
-          data_file,
-          model_file,
+          normalizePath(path[i]),
+          normalizePath(data_file),
+          normalizePath(model_file, mustWork = FALSE),
           cmd_recycled[i]
         )
       )
@@ -185,7 +185,7 @@ mono <- function(
           "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
           params = list(
             job_ids[i],
-            data_file,
+            normalizePath(data_file),
             get_file_timestamp(data_file),
             calculate_md5(data_file)
           )
@@ -198,7 +198,7 @@ mono <- function(
           "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
           params = list(
             job_ids[i],
-            model_file,
+            normalizePath(model_file, mustWork = FALSE),
             # expecting timestamp and md5 to be missing for model file
             get_file_timestamp(model_file),
             calculate_md5(model_file)
