@@ -14,52 +14,12 @@ Defaults to a connection created by \code{default_db_conn()}.}
 output files in the data. Default is \code{FALSE}.}
 }
 \value{
-A data frame with run information. When \code{include_files = FALSE},
-contains columns: \code{job_id}, \code{project_name}, \code{path}, \code{data_file}, \code{model_file},
-\code{cmd}, \code{submitted_at}, \code{completed_at}.
-When \code{include_files = TRUE}, additionally contains: \code{file_type}, \code{file_name},
-\code{file_path}, \code{file_timestamp}, \code{md5_checksum}. Returns \code{NULL} if no runs
-are found in the database. All timestamps are converted to the system timezone.
+A data frame with run information. Contains columns: \code{run_id}, \code{job_id},
+\code{project_name}, \code{path}, \code{data_file}, \code{model_file}, \code{cmd}, \code{submitted_at}, \code{completed_at}.
+When \code{include_files = TRUE}, additionally contains file details.
 }
 \description{
 Queries the database to retrieve information about Monolix jobs that have
 been executed and recorded. Returns a data frame with basic job information
 or detailed file tracking data.
-}
-\details{
-This function queries the database tables created by \code{\link{mono}} to
-extract run information. Two levels of detail are available:
-
-\strong{Basic mode} (\code{include_files = FALSE}):
-\itemize{
-\item Job ID, project name, full path, command used, submission time, and completion time
-}
-
-\strong{Detailed mode} (\code{include_files = TRUE}):
-\itemize{
-\item All basic information plus input and output file details
-\item File paths, modification timestamps, and MD5 checksums
-\item Files are grouped by job and categorized as "input" or "output"
-}
-
-Timestamps are stored in UTC in the database but converted to the system timezone for display.
-}
-\examples{
-\dontrun{
-# data frame of all runs
-runs_data()
-
-# file information
-runs_data(include_files = TRUE)
-
-# Use custom database connection
-conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
-runs_data(db_conn = conn)
-}
-
-}
-\seealso{
-\code{\link{runs_table}} for formatted table output,
-\code{\link{mono}} for submitting Monolix jobs and recording runs,
-\code{\link{default_db_conn}} for default database connections
 }

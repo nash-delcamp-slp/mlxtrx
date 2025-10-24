@@ -4,12 +4,14 @@
 \alias{monitor_jobs}
 \title{Monitor multiple jobs and record completed ones}
 \usage{
-monitor_jobs(path, job_id, output_dir = NULL, cmd, db_conn)
+monitor_jobs(path, run_id, job_id, output_dir = NULL, cmd, db_conn)
 }
 \arguments{
 \item{path}{Character vector. Paths to Monolix project files.}
 
-\item{job_id}{Integer vector. Job IDs to monitor (same length as path).}
+\item{run_id}{Integer vector. Database run IDs.}
+
+\item{job_id}{Integer vector. External job IDs (from job scheduler).}
 
 \item{output_dir}{Character vector or \code{NULL}. Output directories.}
 

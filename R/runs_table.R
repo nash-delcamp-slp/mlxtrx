@@ -9,48 +9,9 @@
 #' @param include_files Logical scalar. Whether to include details about input and
 #'   output files in the data. Default is `FALSE`.
 #'
-#' @return A data frame with run information. When `include_files = FALSE`,
-#'   contains columns: `job_id`, `project_name`, `path`, `data_file`, `model_file`,
-#'   `cmd`, `submitted_at`, `completed_at`.
-#'   When `include_files = TRUE`, additionally contains: `file_type`, `file_name`,
-#'   `file_path`, `file_timestamp`, `md5_checksum`. Returns `NULL` if no runs
-#'   are found in the database. All timestamps are converted to the system timezone.
-#'
-#' @details
-#' This function queries the database tables created by \code{\link{mono}} to
-#' extract run information. Two levels of detail are available:
-#'
-#' \strong{Basic mode} (`include_files = FALSE`):
-#' \itemize{
-#'   \item Job ID, project name, full path, command used, submission time, and completion time
-#' }
-#'
-#' \strong{Detailed mode} (`include_files = TRUE`):
-#' \itemize{
-#'   \item All basic information plus input and output file details
-#'   \item File paths, modification timestamps, and MD5 checksums
-#'   \item Files are grouped by job and categorized as "input" or "output"
-#' }
-#'
-#' Timestamps are stored in UTC in the database but converted to the system timezone for display.
-#'
-#' @examples
-#' \dontrun{
-#' # data frame of all runs
-#' runs_data()
-#'
-#' # file information
-#' runs_data(include_files = TRUE)
-#'
-#' # Use custom database connection
-#' conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
-#' runs_data(db_conn = conn)
-#' }
-#'
-#' @seealso
-#' \code{\link{runs_table}} for formatted table output,
-#' \code{\link{mono}} for submitting Monolix jobs and recording runs,
-#' \code{\link{default_db_conn}} for default database connections
+#' @return A data frame with run information. Contains columns: `run_id`, `job_id`,
+#'   `project_name`, `path`, `data_file`, `model_file`, `cmd`, `submitted_at`, `completed_at`.
+#'   When `include_files = TRUE`, additionally contains file details.
 #'
 #' @export
 runs_data <- function(
@@ -69,6 +30,7 @@ runs_data <- function(
       db_conn,
       "
       SELECT 
+  j.run_id,
   j.job_id,
   j.path,
   j.data_file,
@@ -81,11 +43,12 @@ runs_data <- function(
   i.file_timestamp,
   i.md5_checksum
 FROM mono_jobs j
-LEFT JOIN input_files i ON j.job_id = i.job_id
+LEFT JOIN input_files i ON j.run_id = i.run_id
 
 UNION ALL
 
 SELECT 
+  j.run_id,
   j.job_id,
   j.path,
   j.data_file,
@@ -98,7 +61,7 @@ SELECT
   o.file_timestamp,
   o.md5_checksum
 FROM mono_jobs j
-LEFT JOIN output_files o ON j.job_id = o.job_id
+LEFT JOIN output_files o ON j.run_id = o.job_id
       "
     )
   } else {
@@ -106,6 +69,7 @@ LEFT JOIN output_files o ON j.job_id = o.job_id
       db_conn,
       "
       SELECT 
+  run_id,
   job_id,
   path,
   data_file,
@@ -130,7 +94,6 @@ ORDER BY submitted_at DESC
     runs_formatted <- runs_data |>
       dplyr::mutate(
         project_name = basename(path),
-        # Convert UTC timestamps to system timezone
         submitted_at = as.POSIXct(submitted_at, tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
         completed_at = as.POSIXct(completed_at, tz = "UTC") |>
@@ -140,6 +103,7 @@ ORDER BY submitted_at DESC
         file_name = basename(file_path)
       ) |>
       dplyr::select(
+        run_id,
         job_id,
         path,
         data_file,
@@ -158,13 +122,13 @@ ORDER BY submitted_at DESC
     runs_formatted <- runs_data |>
       dplyr::mutate(
         project_name = basename(path),
-        # Convert UTC timestamps to system timezone
         submitted_at = as.POSIXct(submitted_at, tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
         completed_at = as.POSIXct(completed_at, tz = "UTC") |>
           lubridate::with_tz(Sys.timezone())
       ) |>
       dplyr::select(
+        run_id,
         job_id,
         project_name,
         path,

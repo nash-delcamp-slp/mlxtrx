@@ -52,8 +52,7 @@ Default is "mono24". Should be same length as \code{path} or length 1.}
 Defaults to a connection created by \code{default_db_conn()}.}
 }
 \value{
-Logical vector. Returns \code{TRUE} for successful job submissions,
-\code{NA} for jobs where ID extraction fails.
+Integer vector. Returns the run IDs for all submitted jobs.
 }
 \description{
 Executes one or more commands that submit Monolix jobs to the grid and

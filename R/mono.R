@@ -31,8 +31,7 @@
 #' @param db_conn A database connection object inheriting from `DBIObject`.
 #'   Defaults to a connection created by `default_db_conn()`.
 #'
-#' @return Logical vector. Returns `TRUE` for successful job submissions,
-#'   `NA` for jobs where ID extraction fails.
+#' @return Integer vector. Returns the run IDs for all submitted jobs.
 #'
 #' @details
 #' This function performs the following operations for each job:
@@ -148,89 +147,99 @@ mono <- function(
     )
   )
 
-  # Record successfully submitted jobs immediately
+  # Record all runs in database and get run_ids
   cmd_recycled <- rep_len(cmd, length(path))
+  run_ids <- integer(length(path))
 
-  for (i in seq_along(job_ids)) {
-    if (!is.na(job_ids[i])) {
-      # Record input file information
-      path_content <- parse_mlxtran(path[i])
-      data_file <- path_content$DATAFILE$FILEINFO$file
-      # data_file is relative to project path (if relative)
-      if (!fs::is_absolute_path(data_file) && !file.exists(data_file)) {
-        data_file_built <- file.path(dirname(path[i]), data_file)
-        if (file.exists(data_file_built)) {
-          data_file <- data_file_built
-        }
+  for (i in seq_along(path)) {
+    # Parse project file for metadata
+    path_content <- parse_mlxtran(path[i])
+    data_file <- path_content$DATAFILE$FILEINFO$file
+
+    # Resolve relative paths
+    if (!fs::is_absolute_path(data_file) && !file.exists(data_file)) {
+      data_file_built <- file.path(dirname(path[i]), data_file)
+      if (file.exists(data_file_built)) {
+        data_file <- data_file_built
       }
-      data_file <- normalizePath(data_file)
+    }
+    data_file <- normalizePath(data_file)
 
-      # model file is often not an existing file
-      model_file <- path_content$MODEL$LONGITUDINAL$file
-      if (!fs::is_absolute_path(model_file) && !file.exists(model_file)) {
-        model_file_built <- file.path(dirname(path[i]), model_file)
-        if (file.exists(model_file_built)) {
-          model_file <- model_file_built
-        }
+    model_file <- path_content$MODEL$LONGITUDINAL$file
+    if (!fs::is_absolute_path(model_file) && !file.exists(model_file)) {
+      model_file_built <- file.path(dirname(path[i]), model_file)
+      if (file.exists(model_file_built)) {
+        model_file <- model_file_built
       }
-      model_file <- normalizePath(model_file, mustWork = FALSE)
+    }
+    model_file <- normalizePath(model_file, mustWork = FALSE)
 
-      # Insert the job record with actual submission time
+    # Insert job record - let database auto-generate run_id
+    DBI::dbExecute(
+      db_conn,
+      "INSERT INTO mono_jobs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
+      params = list(
+        if (is.na(job_ids[i])) NULL else job_ids[i], # NULL for failed extractions
+        normalizePath(path[i]),
+        data_file,
+        model_file,
+        cmd_recycled[i]
+      )
+    )
+
+    # Get the auto-generated run_id
+    run_ids[i] <- DBI::dbGetQuery(
+      db_conn,
+      "SELECT last_insert_rowid() as run_id"
+    )$run_id
+
+    # Record input files
+    if (!is.null(data_file) && file.exists(data_file)) {
       DBI::dbExecute(
         db_conn,
-        "INSERT INTO mono_jobs (job_id, path, data_file, model_file, cmd) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO input_files (run_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
         params = list(
-          job_ids[i],
-          normalizePath(path[i]),
+          run_ids[i],
           data_file,
-          model_file,
-          cmd_recycled[i]
+          get_file_timestamp(data_file),
+          calculate_md5(data_file)
         )
       )
+    }
 
-      if (!is.null(data_file) && file.exists(data_file)) {
-        DBI::dbExecute(
-          db_conn,
-          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-          params = list(
-            job_ids[i],
-            data_file,
-            get_file_timestamp(data_file),
-            calculate_md5(data_file)
-          )
+    if (!is.null(model_file) && file.exists(model_file)) {
+      DBI::dbExecute(
+        db_conn,
+        "INSERT INTO input_files (run_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+        params = list(
+          run_ids[i],
+          model_file,
+          get_file_timestamp(model_file),
+          calculate_md5(model_file)
         )
-      }
-
-      if (!is.null(model_file) && file.exists(model_file)) {
-        DBI::dbExecute(
-          db_conn,
-          "INSERT INTO input_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
-          params = list(
-            job_ids[i],
-            model_file,
-            get_file_timestamp(model_file),
-            calculate_md5(model_file)
-          )
-        )
-      }
+      )
     }
   }
 
-  # Monitor jobs and record output files when completed
-  if (any(!is.na(job_ids))) {
-    valid_indices <- which(!is.na(job_ids))
+  # Monitor jobs that have valid job_ids
+  valid_job_indices <- which(!is.na(job_ids))
 
+  if (length(valid_job_indices) > 0) {
     monitor_jobs(
-      path = path[valid_indices],
-      job_id = job_ids[valid_indices],
-      output_dir = if (is.null(output_dir)) NULL else output_dir[valid_indices],
-      cmd = cmd_recycled[valid_indices],
+      path = path[valid_job_indices],
+      run_id = run_ids[valid_job_indices],
+      job_id = job_ids[valid_job_indices],
+      output_dir = if (is.null(output_dir)) {
+        NULL
+      } else {
+        output_dir[valid_job_indices]
+      },
+      cmd = cmd_recycled[valid_job_indices],
       db_conn = db_conn
     )
   }
 
-  # Return logical vector indicating success/failure
-  !is.na(job_ids)
+  return(run_ids)
 }
 
 
@@ -304,7 +313,8 @@ execute_job <- function(
 #' Monitor multiple jobs and record completed ones
 #'
 #' @param path Character vector. Paths to Monolix project files.
-#' @param job_id Integer vector. Job IDs to monitor (same length as path).
+#' @param run_id Integer vector. Database run IDs.
+#' @param job_id Integer vector. External job IDs (from job scheduler).
 #' @param output_dir Character vector or `NULL`. Output directories.
 #' @param cmd Character vector. The commands used for each job.
 #' @param db_conn Database connection object.
@@ -314,10 +324,17 @@ execute_job <- function(
 #' @importFrom rlang %||%
 #'
 #' @keywords internal
-monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
+monitor_jobs <- function(
+  path,
+  run_id,
+  job_id,
+  output_dir = NULL,
+  cmd,
+  db_conn
+) {
   assertthat::assert_that(
-    length(path) == length(job_id),
-    msg = "`path` and `job_id` must have the same length"
+    length(path) == length(run_id) && length(run_id) == length(job_id),
+    msg = "`path`, `run_id`, and `job_id` must have the same length"
   )
 
   if (!is.null(output_dir)) {
@@ -352,7 +369,7 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
             path_content$MONOLIX$SETTINGS$GLOBAL$exportpath
           )
 
-        # output_dir is relative to project path (if relative)
+        # Resolve relative output directory path
         if (
           !fs::is_absolute_path(current_output_dir) &&
             !file.exists(current_output_dir)
@@ -380,7 +397,6 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
 
           for (output_file in output_files) {
             if (file.exists(output_file) && !dir.exists(output_file)) {
-              # Only process actual files, not directories
               output_timestamp <- get_file_timestamp(output_file)
               output_md5 <- calculate_md5(output_file)
 
@@ -393,9 +409,9 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
 
               DBI::dbExecute(
                 db_conn,
-                "INSERT INTO output_files (job_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+                "INSERT INTO output_files (run_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
                 params = list(
-                  job_id[i],
+                  run_id[i],
                   output_file,
                   output_timestamp,
                   output_md5
@@ -405,14 +421,13 @@ monitor_jobs <- function(path, job_id, output_dir = NULL, cmd, db_conn) {
           }
         }
 
-        # Update job completion time using latest output file modification time
-        # If no output files found, use current time as fallback
+        # Update job completion time
         completion_time <- latest_mod_time %||% Sys.time()
 
         DBI::dbExecute(
           db_conn,
-          "UPDATE mono_jobs SET completed_at = ? WHERE job_id = ?",
-          params = list(completion_time, job_id[i])
+          "UPDATE mono_jobs SET completed_at = ? WHERE run_id = ?",
+          params = list(completion_time, run_id[i])
         )
       }
 

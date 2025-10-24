@@ -94,7 +94,8 @@ default_db_conn <- function(db = default_db()) {
 #'
 #' \strong{mono_jobs}:
 #' \itemize{
-#'   \item `job_id` (INTEGER PRIMARY KEY): Unique job identifier
+#'   \item `run_id` (INTEGER PRIMARY KEY): Auto-generated unique run identifier
+#'   \item `job_id` (INTEGER): External job ID (may be NULL if extraction fails)
 #'   \item `path` (TEXT): Path to the Monolix project file
 #'   \item `data_file` (TEXT): Path to the data file
 #'   \item `model_file` (TEXT): Path to the model file
@@ -105,7 +106,7 @@ default_db_conn <- function(db = default_db()) {
 #'
 #' \strong{input_files}:
 #' \itemize{
-#'   \item `job_id` (INTEGER): Foreign key to mono_jobs
+#'   \item `run_id` (INTEGER): Foreign key to mono_jobs
 #'   \item `file_path` (TEXT): Path to the input file
 #'   \item `file_timestamp` (TIMESTAMP): File modification timestamp
 #'   \item `md5_checksum` (TEXT): MD5 hash of the file
@@ -114,27 +115,12 @@ default_db_conn <- function(db = default_db()) {
 #'
 #' \strong{output_files}:
 #' \itemize{
-#'   \item `job_id` (INTEGER): Foreign key to mono_jobs
+#'   \item `run_id` (INTEGER): Foreign key to mono_jobs
 #'   \item `file_path` (TEXT): Path to the output file
 #'   \item `file_timestamp` (TIMESTAMP): File modification timestamp
 #'   \item `md5_checksum` (TEXT): MD5 hash of the file
 #'   \item `recorded_at` (TIMESTAMP): When the record was created
 #' }
-#'
-#' @examples
-#' \dontrun{
-#' # Create tables with default connection
-#' db_create_tables()
-#'
-#' # Create tables with custom connection
-#' conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
-#' db_create_tables(conn)
-#' DBI::dbDisconnect(conn)
-#' }
-#'
-#' @seealso
-#' \code{\link{default_db_conn}} for creating database connections,
-#' \code{\link{mono}} for submitting jobs that use these tables
 #'
 #' @keywords internal
 db_create_tables <- function(db_conn = default_db_conn()) {
@@ -142,7 +128,8 @@ db_create_tables <- function(db_conn = default_db_conn()) {
     db_conn,
     "
     CREATE TABLE IF NOT EXISTS mono_jobs (
-      job_id INTEGER PRIMARY KEY,
+      run_id INTEGER PRIMARY KEY,
+      job_id INTEGER,
       path TEXT,
       data_file TEXT,
       model_file TEXT,
@@ -156,12 +143,12 @@ db_create_tables <- function(db_conn = default_db_conn()) {
     db_conn,
     "
     CREATE TABLE IF NOT EXISTS input_files (
-      job_id INTEGER,
+      run_id INTEGER,
       file_path TEXT,
       file_timestamp TIMESTAMP,
       md5_checksum TEXT,
       recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (job_id) REFERENCES mono_jobs (job_id)
+      FOREIGN KEY (run_id) REFERENCES mono_jobs (run_id)
     )"
   )
 
@@ -169,65 +156,37 @@ db_create_tables <- function(db_conn = default_db_conn()) {
     db_conn,
     "
     CREATE TABLE IF NOT EXISTS output_files (
-      job_id INTEGER,
+      run_id INTEGER,
       file_path TEXT,
       file_timestamp TIMESTAMP,
       md5_checksum TEXT,
       recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (job_id) REFERENCES mono_jobs (job_id)
+      FOREIGN KEY (run_id) REFERENCES mono_jobs (run_id)
     )"
   )
 }
 
-#' Get file information for specific jobs
+#' Get file information for specific runs
 #'
 #' Retrieves information about input and output files associated
-#' with one or more Monolix jobs from the database.
+#' with one or more Monolix runs from the database.
 #'
-#' @param job_id Integer vector. The job ID(s) to query file information for.
+#' @param run_id Integer vector. The run ID(s) to query file information for.
 #' @param db_conn A database connection object inheriting from `DBIObject`.
 #'   Defaults to a connection created by `default_db_conn()`.
 #'
-#' @return A data frame with columns: `job_id`, `file_type`, `file_path`,
+#' @return A data frame with columns: `run_id`, `file_type`, `file_path`,
 #'   `file_timestamp`, `md5_checksum`, and `recorded_at`. Returns an empty
-#'   data frame if no files are found for the specified job ID(s).
-#'   All timestamps are converted to the system timezone.
-#'
-#' @details
-#' This function queries both the `input_files` and `output_files` tables
-#' to retrieve comprehensive file information for the specified jobs. The
-#' `file_type` column indicates whether each file is an "input" or "output" file.
-#' Timestamps are stored in UTC but converted to the system timezone for display.
-#'
-#' When multiple job IDs are provided, results are ordered by job ID, then
-#' file type, then file path.
-#'
-#' @examples
-#' \dontrun{
-#' # Get files for a specific job
-#' get_job_files(12345)
-#'
-#' # Get files for multiple jobs
-#' get_job_files(c(12345, 12346, 12347))
-#'
-#' # Use custom database connection
-#' conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
-#' get_job_files(12345, db_conn = conn)
-#' }
-#'
-#' @seealso
-#' \code{\link{mono}} for submitting jobs that create file records,
-#' \code{\link{runs_data}} for getting information about all runs,
-#' \code{\link{default_db_conn}} for database connections
+#'   data frame if no files are found for the specified run ID(s).
 #'
 #' @export
-get_job_files <- function(job_id, db_conn = default_db_conn()) {
+get_run_files <- function(run_id, db_conn = default_db_conn()) {
   on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
 
-  # Handle empty job_id vector
-  if (length(job_id) == 0) {
+  # Handle empty run_id vector
+  if (length(run_id) == 0) {
     return(data.frame(
-      job_id = integer(0),
+      run_id = integer(0),
       file_type = character(0),
       file_path = character(0),
       file_timestamp = as.POSIXct(character(0)),
@@ -237,42 +196,42 @@ get_job_files <- function(job_id, db_conn = default_db_conn()) {
   }
 
   # Create placeholder string for IN clause
-  placeholders <- paste(rep("?", length(job_id)), collapse = ",")
+  placeholders <- paste(rep("?", length(run_id)), collapse = ",")
 
   files_data <- DBI::dbGetQuery(
     db_conn,
     paste0(
       "
       SELECT 
-        job_id,
+        run_id,
         'input' as file_type,
         file_path,
         file_timestamp,
         md5_checksum,
         recorded_at
       FROM input_files 
-      WHERE job_id IN (",
+      WHERE run_id IN (",
       placeholders,
       ")
       
       UNION ALL
       
       SELECT 
-        job_id,
+        run_id,
         'output' as file_type,
         file_path,
         file_timestamp,
         md5_checksum,
         recorded_at
       FROM output_files 
-      WHERE job_id IN (",
+      WHERE run_id IN (",
       placeholders,
       ")
       
-      ORDER BY job_id, file_type, file_path
+      ORDER BY run_id, file_type, file_path
       "
     ),
-    params = c(as.list(job_id), as.list(job_id))
+    params = c(as.list(run_id), as.list(run_id))
   )
 
   # Convert UTC timestamps to system timezone
