@@ -187,12 +187,13 @@ db_create_tables <- function(db_conn = default_db_conn()) {
 #' @return A data frame with columns: `job_id`, `file_type`, `file_path`,
 #'   `file_timestamp`, `md5_checksum`, and `recorded_at`. Returns an empty
 #'   data frame if no files are found for the specified job ID(s).
+#'   All timestamps are converted to the system timezone.
 #'
 #' @details
 #' This function queries both the `input_files` and `output_files` tables
 #' to retrieve comprehensive file information for the specified jobs. The
 #' `file_type` column indicates whether each file is an "input" or "output" file.
-#' Timestamps are converted to POSIXct objects for easier handling in R.
+#' Timestamps are stored in UTC but converted to the system timezone for display.
 #'
 #' When multiple job IDs are provided, results are ordered by job ID, then
 #' file type, then file path.
@@ -270,9 +271,12 @@ get_job_files <- function(job_id, db_conn = default_db_conn()) {
     params = c(as.list(job_id), as.list(job_id))
   )
 
+  # Convert UTC timestamps to system timezone
   files_data |>
     dplyr::mutate(
-      file_timestamp = as.POSIXct(file_timestamp),
-      recorded_at = as.POSIXct(recorded_at)
+      file_timestamp = as.POSIXct(file_timestamp, tz = "UTC") |>
+        lubridate::with_tz(Sys.timezone()),
+      recorded_at = as.POSIXct(recorded_at, tz = "UTC") |>
+        lubridate::with_tz(Sys.timezone())
     )
 }

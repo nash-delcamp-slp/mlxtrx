@@ -13,7 +13,7 @@
 #'   contains columns: `job_id`, `project_name`, `path`, `cmd`, `submitted_at`, `completed_at`.
 #'   When `include_files = TRUE`, additionally contains: `file_type`, `file_name`,
 #'   `file_path`, `file_timestamp`, `md5_checksum`. Returns `NULL` if no runs
-#'   are found in the database.
+#'   are found in the database. All timestamps are converted to the system timezone.
 #'
 #' @details
 #' This function queries the database tables created by \code{\link{mono}} to
@@ -30,6 +30,8 @@
 #'   \item File paths, modification timestamps, and MD5 checksums
 #'   \item Files are grouped by job and categorized as "input" or "output"
 #' }
+#'
+#' Timestamps are stored in UTC in the database but converted to the system timezone for display.
 #'
 #' @examples
 #' \dontrun{
@@ -118,14 +120,18 @@ runs_data <- function(
     return(NULL)
   }
 
-  # Format the data
+  # Format the data with timezone conversion
   if (include_files) {
     runs_formatted <- runs_data |>
       dplyr::mutate(
         project_name = basename(path),
-        submitted_at = as.POSIXct(submitted_at),
-        completed_at = as.POSIXct(completed_at),
-        file_timestamp = as.POSIXct(file_timestamp),
+        # Convert UTC timestamps to system timezone
+        submitted_at = as.POSIXct(submitted_at, tz = "UTC") |>
+          lubridate::with_tz(Sys.timezone()),
+        completed_at = as.POSIXct(completed_at, tz = "UTC") |>
+          lubridate::with_tz(Sys.timezone()),
+        file_timestamp = as.POSIXct(file_timestamp, tz = "UTC") |>
+          lubridate::with_tz(Sys.timezone()),
         file_name = basename(file_path)
       ) |>
       dplyr::select(
@@ -145,8 +151,11 @@ runs_data <- function(
     runs_formatted <- runs_data |>
       dplyr::mutate(
         project_name = basename(path),
-        submitted_at = as.POSIXct(submitted_at),
-        completed_at = as.POSIXct(completed_at)
+        # Convert UTC timestamps to system timezone
+        submitted_at = as.POSIXct(submitted_at, tz = "UTC") |>
+          lubridate::with_tz(Sys.timezone()),
+        completed_at = as.POSIXct(completed_at, tz = "UTC") |>
+          lubridate::with_tz(Sys.timezone())
       ) |>
       dplyr::select(job_id, project_name, path, cmd, submitted_at, completed_at)
   }

@@ -16,6 +16,7 @@ Defaults to a connection created by \code{default_db_conn()}.}
 A data frame with columns: \code{job_id}, \code{file_type}, \code{file_path},
 \code{file_timestamp}, \code{md5_checksum}, and \code{recorded_at}. Returns an empty
 data frame if no files are found for the specified job ID(s).
+All timestamps are converted to the system timezone.
 }
 \description{
 Retrieves information about input and output files associated
@@ -25,7 +26,7 @@ with one or more Monolix jobs from the database.
 This function queries both the \code{input_files} and \code{output_files} tables
 to retrieve comprehensive file information for the specified jobs. The
 \code{file_type} column indicates whether each file is an "input" or "output" file.
-Timestamps are converted to POSIXct objects for easier handling in R.
+Timestamps are stored in UTC but converted to the system timezone for display.
 
 When multiple job IDs are provided, results are ordered by job ID, then
 file type, then file path.

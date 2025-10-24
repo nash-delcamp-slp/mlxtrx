@@ -15,10 +15,10 @@ output files in the data. Default is \code{FALSE}.}
 }
 \value{
 A data frame with run information. When \code{include_files = FALSE},
-contains columns: \code{job_id}, \code{project_name}, \code{path}, \code{cmd}, \code{submitted_at}.
+contains columns: \code{job_id}, \code{project_name}, \code{path}, \code{cmd}, \code{submitted_at}, \code{completed_at}.
 When \code{include_files = TRUE}, additionally contains: \code{file_type}, \code{file_name},
 \code{file_path}, \code{file_timestamp}, \code{md5_checksum}. Returns \code{NULL} if no runs
-are found in the database.
+are found in the database. All timestamps are converted to the system timezone.
 }
 \description{
 Queries the database to retrieve information about Monolix jobs that have
@@ -31,7 +31,7 @@ extract run information. Two levels of detail are available:
 
 \strong{Basic mode} (\code{include_files = FALSE}):
 \itemize{
-\item Job ID, project name, full path, command used, and submission time
+\item Job ID, project name, full path, command used, submission time, and completion time
 }
 
 \strong{Detailed mode} (\code{include_files = TRUE}):
@@ -40,6 +40,8 @@ extract run information. Two levels of detail are available:
 \item File paths, modification timestamps, and MD5 checksums
 \item Files are grouped by job and categorized as "input" or "output"
 }
+
+Timestamps are stored in UTC in the database but converted to the system timezone for display.
 }
 \examples{
 \dontrun{
