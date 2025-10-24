@@ -71,3 +71,37 @@ parse_mlxtran <- function(path) {
 
   return(result)
 }
+
+#' Resolve output directory for a Monolix project
+#'
+#' @param path Character scalar. Path to Monolix project file.
+#' @param output_dir Character scalar or NULL. Override output directory.
+#'
+#' @return Character scalar. Resolved output directory path.
+#'
+#' @keywords internal
+resolve_output_dir <- function(path, output_dir = NULL) {
+  path_content <- parse_mlxtran(path)
+
+  current_output_dir <- output_dir %||%
+    file.path(
+      dirname(path),
+      path_content$MONOLIX$SETTINGS$GLOBAL$exportpath
+    )
+
+  # Resolve relative output directory path
+  if (
+    !fs::is_absolute_path(current_output_dir) &&
+      !file.exists(current_output_dir)
+  ) {
+    current_output_dir_built <- file.path(
+      dirname(path),
+      current_output_dir
+    )
+    if (file.exists(current_output_dir_built)) {
+      current_output_dir <- current_output_dir_built
+    }
+  }
+
+  current_output_dir
+}

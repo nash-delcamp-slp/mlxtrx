@@ -221,23 +221,14 @@ mono <- function(
     }
   }
 
-  # Monitor jobs that have valid job_ids
-  valid_job_indices <- which(!is.na(job_ids))
-
-  if (length(valid_job_indices) > 0) {
-    monitor_jobs(
-      path = path[valid_job_indices],
-      run_id = run_ids[valid_job_indices],
-      job_id = job_ids[valid_job_indices],
-      output_dir = if (is.null(output_dir)) {
-        NULL
-      } else {
-        output_dir[valid_job_indices]
-      },
-      cmd = cmd_recycled[valid_job_indices],
-      db_conn = db_conn
-    )
-  }
+  monitor_jobs(
+    path = path,
+    run_id = run_ids,
+    job_id = job_ids,
+    output_dir = output_dir,
+    cmd = cmd_recycled,
+    db_conn = db_conn
+  )
 
   return(run_ids)
 }
@@ -362,7 +353,19 @@ monitor_jobs <- function(
     completed_now <- c()
 
     for (i in running_jobs) {
-      if (!job_in_sq(job_id[i])) {
+      job_completed <- FALSE
+
+      if (!is.na(job_id[i])) {
+        # For jobs with valid job_id, check if they're still in the queue
+        job_completed <- !job_in_sq(job_id[i])
+      } else {
+        # For jobs without job_id, check for summary.txt file
+        current_output_dir <- resolve_output_dir(path[i], output_dir[i])
+        summary_file <- file.path(current_output_dir, "summary.txt")
+        job_completed <- file.exists(summary_file)
+      }
+
+      if (job_completed) {
         completed_now <- c(completed_now, i)
       }
     }
@@ -370,29 +373,10 @@ monitor_jobs <- function(
     # Process completed jobs
     if (length(completed_now) > 0) {
       for (i in completed_now) {
-        # Extract information from project file
-        path_content <- parse_mlxtran(path[i])
-
-        current_output_dir <- output_dir[i] %||%
-          file.path(
-            dirname(path[i]),
-            path_content$MONOLIX$SETTINGS$GLOBAL$exportpath
-          )
-
-        # Resolve relative output directory path
-        if (
-          !fs::is_absolute_path(current_output_dir) &&
-            !file.exists(current_output_dir)
-        ) {
-          current_output_dir_built <- file.path(
-            dirname(path[i]),
-            current_output_dir
-          )
-          if (file.exists(current_output_dir_built)) {
-            current_output_dir <- current_output_dir_built
-          }
-        }
-        current_output_dir <- normalizePath(current_output_dir)
+        current_output_dir <- normalizePath(resolve_output_dir(
+          path[i],
+          output_dir[i]
+        ))
 
         # Track latest modification time for completion timestamp
         latest_mod_time <- NULL
