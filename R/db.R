@@ -126,9 +126,13 @@ default_db_conn <- function(db = default_db()) {
 db_create_tables <- function(db_conn = default_db_conn()) {
   DBI::dbExecute(
     db_conn,
+    "CREATE SEQUENCE IF NOT EXISTS run_id_seq START 1"
+  )
+  DBI::dbExecute(
+    db_conn,
     "
     CREATE TABLE IF NOT EXISTS mono_jobs (
-      run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id INTEGER PRIMARY KEY DEFAULT nextval('run_id_seq'),
       job_id INTEGER,
       path TEXT,
       data_file TEXT,
