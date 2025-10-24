@@ -218,7 +218,7 @@ mono <- function(
         if (!is.null(thread_recycled)) thread_recycled[i] else NA_integer_,
         if (!is.null(tool_recycled)) tool_recycled[i] else NA_character_,
         if (!is.null(mode_recycled)) mode_recycled[i] else NA_character_,
-        config_file,
+        if (!is.null(config_file)) config_file else NA_character_,
         cmd_recycled[i]
       )
     )
