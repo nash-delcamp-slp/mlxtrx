@@ -171,6 +171,7 @@ mono <- function(
   run_ids <- integer(length(path))
 
   for (i in seq_along(path)) {
+    config_file <- NULL
     ext <- fs::path_ext(path)
     if (tolower(ext) != "mlxtran") {
       message("More logging for ", ext, " files coming soon.")
@@ -200,7 +201,6 @@ mono <- function(
       model_file <- normalizePath(model_file, mustWork = FALSE)
 
       # Resolve config file path if provided
-      config_file <- NULL
       if (!is.null(config_recycled)) {
         config_file <- config_recycled[i]
         if (!fs::is_absolute_path(config_file) && !file.exists(config_file)) {
