@@ -172,7 +172,7 @@ mono <- function(
 
   for (i in seq_along(path)) {
     config_file <- NULL
-    ext <- fs::path_ext(path)
+    ext <- fs::path_ext(path[i])
     if (tolower(ext) != "mlxtran") {
       message("More logging for ", ext, " files coming soon.")
       data_file <- NA_character_
