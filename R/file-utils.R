@@ -72,22 +72,33 @@ parse_mlxtran <- function(path) {
   return(result)
 }
 
-#' Resolve output directory for a Monolix project
+#' Resolve output directory for a Monolix or Simulx project
 #'
-#' @param path Character scalar. Path to Monolix project file.
+#' @param path Character scalar. Path to Monolix or Simulx project file.
 #' @param output_dir Character scalar or NULL. Override output directory.
 #'
 #' @return Character scalar. Resolved output directory path.
 #'
 #' @keywords internal
 resolve_output_dir <- function(path, output_dir = NULL) {
-  path_content <- parse_mlxtran(path)
-
-  current_output_dir <- output_dir %||%
-    file.path(
+  ext <- fs::path_ext(path)
+  if (tolower(ext) == "mlxtran") {
+    path_content <- parse_mlxtran(path)
+    path_based_output_dir <- file.path(
       dirname(path),
       path_content$MONOLIX$SETTINGS$GLOBAL$exportpath
     )
+  } else if (tolower(ext) == "smlx") {
+    path_based_output_dir <- file.path(
+      dirname(path),
+      fs::path_ext_remove(basename(path))
+    )
+  } else {
+    return(NA_character_)
+  }
+
+  current_output_dir <- output_dir %||%
+    path_based_output_dir
 
   # Resolve relative output directory path
   if (

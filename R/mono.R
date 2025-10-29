@@ -1,16 +1,16 @@
-#' Submit Monolix jobs to grid and record runs in database
+#' Submit Monolix and Simulx jobs to grid and record runs in database
 #'
-#' Executes one or more commands that submit Monolix jobs to the grid and
+#' Executes one or more commands that submit Monolix/Simulx jobs to the grid and
 #' stores a record of the runs in a database.
 #'
-#' @param path Character vector. Paths to existing Monolix project files.
+#' @param path Character vector. Paths to existing Monolix or Simulx project files.
 #' @param output_dir Character vector or `NULL`. Directory for
 #'   output files relative to the project path.
 #'   Passed as `--output-dir` argument to the Monolix command.
 #'   If `NULL` (default), Monolix uses the export path from the project file.
 #'   Should be same length as `path`, length 1, or `NULL`.
-#' @param thread Integer vector or `NULL`. Number of threads used by Monolix.
-#'   Passed as `--thread` argument to the Monolix command.
+#' @param thread Integer vector or `NULL`. Number of threads used by Monolix/Simulx.
+#'   Passed as `--thread` argument to the Monolix and Simulx commands.
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param tool Character vector or `NULL`. Tool to launch assessment
 #'   (`"monolix"`, `"modelBuilding"`, `"bootstrap"`).
@@ -19,14 +19,14 @@
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param mode Character vector or `NULL`. Console mode
 #'   (`"none"`, `"basic"`, or `"complete"`).
-#'   Passed as `--mode` argument to the Monolix command.
-#'   If `NULL` (default), Monolix uses `"basic"`.
+#'   Passed as `--mode` argument to the Monolix and Simulx commands.
+#'   If `NULL` (default), Monolix and Simulx use `"basic"`.
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param config Character vector or `NULL`. Configuration file path.
 #'   Passed as `--config` argument to the Monolix command.
 #'   Should be same length as `path`, length 1, or `NULL`.
-#' @param cmd Character vector. The Monolix command to execute. Must be
-#'   identifiable by `Sys.which()` and contain "mono" in the name.
+#' @param cmd Character vector. The Monolix or Simulx command to execute. Must be
+#'   identifiable by `Sys.which()` and contain "mono" or "sim" in the name.
 #'   Default is "mono24". Should be same length as `path` or length 1.
 #' @param db_conn A database connection object inheriting from `DBIObject`.
 #'   Defaults to a connection created by `default_db_conn()`.
@@ -36,7 +36,7 @@
 #' @details
 #' This function performs the following operations for each job:
 #' \enumerate{
-#'   \item Validates inputs and submits the Monolix job using `system2()`
+#'   \item Validates inputs and submits the job using `system2()`
 #'   \item Extracts the job ID from the submission output
 #'   \item Monitors job completion by checking the job queue
 #'   \item Records job information in the `runs` table
@@ -87,19 +87,19 @@ mono <- function(
   tool = NULL,
   mode = NULL,
   config = NULL,
-  cmd = "mono24",
+  cmd = getOption("mlxtrx.mono_cmd", "mono24"),
   db_conn = default_db_conn(db = default_db(path))
 ) {
   assertthat::assert_that(
     all(file.exists(path)),
-    msg = "All `path`s should be paths to existing Monolix project files."
+    msg = "All `path`s should be paths to existing Monolix or Simulx project files."
   )
 
   assertthat::assert_that(
     is.character(cmd),
     all(Sys.which(cmd) != ""),
-    all(grepl("mono", cmd)),
-    msg = "All `cmd` commands must be 'mono' commands that can be identified by `Sys.which()`."
+    all(grepl("mono|sim", cmd, ignore.case = TRUE)),
+    msg = "All `cmd` commands must be 'mono' or 'sim' commands that can be identified by `Sys.which()`."
   )
 
   assertthat::assert_that(
@@ -171,39 +171,46 @@ mono <- function(
   run_ids <- integer(length(path))
 
   for (i in seq_along(path)) {
-    # Parse project file for metadata
-    path_content <- parse_mlxtran(path[i])
-    data_file <- path_content$DATAFILE$FILEINFO$file
+    ext <- fs::path_ext(path)
+    if (tolower(ext) != "mlxtran") {
+      message("More logging for ", ext, " files coming soon.")
+      data_file <- NA_character_
+      model_file <- NA_character_
+    } else {
+      # Parse project file for metadata
+      path_content <- parse_mlxtran(path[i])
+      data_file <- path_content$DATAFILE$FILEINFO$file
 
-    # Resolve relative paths
-    if (!fs::is_absolute_path(data_file) && !file.exists(data_file)) {
-      data_file_built <- file.path(dirname(path[i]), data_file)
-      if (file.exists(data_file_built)) {
-        data_file <- data_file_built
-      }
-    }
-    data_file <- normalizePath(data_file)
-
-    model_file <- path_content$MODEL$LONGITUDINAL$file
-    if (!fs::is_absolute_path(model_file) && !file.exists(model_file)) {
-      model_file_built <- file.path(dirname(path[i]), model_file)
-      if (file.exists(model_file_built)) {
-        model_file <- model_file_built
-      }
-    }
-    model_file <- normalizePath(model_file, mustWork = FALSE)
-
-    # Resolve config file path if provided
-    config_file <- NULL
-    if (!is.null(config_recycled)) {
-      config_file <- config_recycled[i]
-      if (!fs::is_absolute_path(config_file) && !file.exists(config_file)) {
-        config_file_built <- file.path(dirname(path[i]), config_file)
-        if (file.exists(config_file_built)) {
-          config_file <- config_file_built
+      # Resolve relative paths
+      if (!fs::is_absolute_path(data_file) && !file.exists(data_file)) {
+        data_file_built <- file.path(dirname(path[i]), data_file)
+        if (file.exists(data_file_built)) {
+          data_file <- data_file_built
         }
       }
-      config_file <- normalizePath(config_file, mustWork = FALSE)
+      data_file <- normalizePath(data_file)
+
+      model_file <- path_content$MODEL$LONGITUDINAL$file
+      if (!fs::is_absolute_path(model_file) && !file.exists(model_file)) {
+        model_file_built <- file.path(dirname(path[i]), model_file)
+        if (file.exists(model_file_built)) {
+          model_file <- model_file_built
+        }
+      }
+      model_file <- normalizePath(model_file, mustWork = FALSE)
+
+      # Resolve config file path if provided
+      config_file <- NULL
+      if (!is.null(config_recycled)) {
+        config_file <- config_recycled[i]
+        if (!fs::is_absolute_path(config_file) && !file.exists(config_file)) {
+          config_file_built <- file.path(dirname(path[i]), config_file)
+          if (file.exists(config_file_built)) {
+            config_file <- config_file_built
+          }
+        }
+        config_file <- normalizePath(config_file, mustWork = FALSE)
+      }
     }
 
     # Insert job record with all parameters
@@ -269,6 +276,17 @@ mono <- function(
   return(run_ids)
 }
 
+#' @rdname mono
+#' @export
+sim <- function(
+  path,
+  thread = NULL,
+  mode = NULL,
+  cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
+  db_conn = default_db_conn(db = default_db(path))
+) {
+  mono(path = path, thread = thread, mode = mode, cmd = cmd, db_conn = db_conn)
+}
 
 #' Execute a single Monolix job
 #'
@@ -395,6 +413,12 @@ monitor_jobs <- function(
         # For jobs with valid job_id, check if they're still in the queue
         job_completed <- !job_in_sq(job_id[i])
       } else {
+        if (tolower(fs::path_ext(path[i])) != "mlxtran") {
+          warning(
+            "Can't currently monitor non-Monolix jobs that are not submitted to the grid."
+          )
+          job_completed <- TRUE
+        }
         # For jobs without job_id, check for summary.txt file
         current_output_dir <- resolve_output_dir(path[i], output_dir[i])
         summary_file <- file.path(current_output_dir, "summary.txt")

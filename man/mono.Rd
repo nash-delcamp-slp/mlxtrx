@@ -2,7 +2,8 @@
 % Please edit documentation in R/mono.R
 \name{mono}
 \alias{mono}
-\title{Submit Monolix jobs to grid and record runs in database}
+\alias{sim}
+\title{Submit Monolix and Simulx jobs to grid and record runs in database}
 \usage{
 mono(
   path,
@@ -11,12 +12,20 @@ mono(
   tool = NULL,
   mode = NULL,
   config = NULL,
-  cmd = "mono24",
+  cmd = getOption("mlxtrx.mono_cmd", "mono24"),
+  db_conn = default_db_conn(db = default_db(path))
+)
+
+sim(
+  path,
+  thread = NULL,
+  mode = NULL,
+  cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
   db_conn = default_db_conn(db = default_db(path))
 )
 }
 \arguments{
-\item{path}{Character vector. Paths to existing Monolix project files.}
+\item{path}{Character vector. Paths to existing Monolix or Simulx project files.}
 
 \item{output_dir}{Character vector or \code{NULL}. Directory for
 output files relative to the project path.
@@ -24,8 +33,8 @@ Passed as \code{--output-dir} argument to the Monolix command.
 If \code{NULL} (default), Monolix uses the export path from the project file.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
-\item{thread}{Integer vector or \code{NULL}. Number of threads used by Monolix.
-Passed as \code{--thread} argument to the Monolix command.
+\item{thread}{Integer vector or \code{NULL}. Number of threads used by Monolix/Simulx.
+Passed as \code{--thread} argument to the Monolix and Simulx commands.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{tool}{Character vector or \code{NULL}. Tool to launch assessment
@@ -36,16 +45,16 @@ Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{mode}{Character vector or \code{NULL}. Console mode
 (\code{"none"}, \code{"basic"}, or \code{"complete"}).
-Passed as \code{--mode} argument to the Monolix command.
-If \code{NULL} (default), Monolix uses \code{"basic"}.
+Passed as \code{--mode} argument to the Monolix and Simulx commands.
+If \code{NULL} (default), Monolix and Simulx use \code{"basic"}.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{config}{Character vector or \code{NULL}. Configuration file path.
 Passed as \code{--config} argument to the Monolix command.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
-\item{cmd}{Character vector. The Monolix command to execute. Must be
-identifiable by \code{Sys.which()} and contain "mono" in the name.
+\item{cmd}{Character vector. The Monolix or Simulx command to execute. Must be
+identifiable by \code{Sys.which()} and contain "mono" or "sim" in the name.
 Default is "mono24". Should be same length as \code{path} or length 1.}
 
 \item{db_conn}{A database connection object inheriting from \code{DBIObject}.
@@ -55,13 +64,13 @@ Defaults to a connection created by \code{default_db_conn()}.}
 Integer vector. Returns the run IDs for all submitted jobs.
 }
 \description{
-Executes one or more commands that submit Monolix jobs to the grid and
+Executes one or more commands that submit Monolix/Simulx jobs to the grid and
 stores a record of the runs in a database.
 }
 \details{
 This function performs the following operations for each job:
 \enumerate{
-\item Validates inputs and submits the Monolix job using \code{system2()}
+\item Validates inputs and submits the job using \code{system2()}
 \item Extracts the job ID from the submission output
 \item Monitors job completion by checking the job queue
 \item Records job information in the \code{runs} table

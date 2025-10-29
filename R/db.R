@@ -78,9 +78,9 @@ default_db_conn <- function(db = default_db()) {
   DBI::dbConnect(duckdb::duckdb(), dbdir = db)
 }
 
-#' Create database tables for Monolix run tracking
+#' Create database tables for Monolix/Simulx run tracking
 #'
-#' Creates the required database tables for storing Monolix job information,
+#' Creates the required database tables for storing run information,
 #' input files, and output files. Tables are created only if they don't
 #' already exist.
 #'
@@ -96,10 +96,10 @@ default_db_conn <- function(db = default_db()) {
 #' \itemize{
 #'   \item `run_id` (INTEGER PRIMARY KEY): Auto-generated unique run identifier
 #'   \item `job_id` (INTEGER): External job ID (may be NULL if extraction fails)
-#'   \item `path` (TEXT): Path to the Monolix project file
+#'   \item `path` (TEXT): Path to the Monolix/Simulx file
 #'   \item `data_file` (TEXT): Path to the data file
 #'   \item `model_file` (TEXT): Path to the model file
-#'   \item `thread` (INTEGER): Number of threads used by Monolix
+#'   \item `thread` (INTEGER): Number of threads used by grid jobs
 #'   \item `tool` (TEXT): Tool to launch assessment
 #'   \item `mode` (TEXT): Console mode
 #'   \item `config` (TEXT): Configuration file path
@@ -181,7 +181,7 @@ db_create_tables <- function(db_conn = default_db_conn()) {
 #' Get file information for specific runs
 #'
 #' Retrieves information about input and output files associated
-#' with one or more Monolix runs from the database.
+#' with one or more runs from the database.
 #'
 #' @param run_id Integer vector. The run ID(s) to query file information for.
 #' @param db_conn A database connection object inheriting from `DBIObject`.

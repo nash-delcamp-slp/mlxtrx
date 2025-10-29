@@ -3,7 +3,7 @@ Title: Track Monolix Runs
 Version: 0.0.0.9000
 Authors@R: 
     person("Nash", "Delcamp", , "nash.delcamp@simulations-plus.com", role = c("aut", "cre"))
-Description: Track grid execution of Monolix runs.
+Description: Track grid execution of Monolix and Simulx runs.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

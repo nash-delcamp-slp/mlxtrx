@@ -19,5 +19,5 @@ data frame if no files are found for the specified run ID(s).
 }
 \description{
 Retrieves information about input and output files associated
-with one or more Monolix runs from the database.
+with one or more runs from the database.
 }

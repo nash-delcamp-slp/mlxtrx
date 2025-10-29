@@ -2,12 +2,12 @@
 % Please edit documentation in R/file-utils.R
 \name{resolve_output_dir}
 \alias{resolve_output_dir}
-\title{Resolve output directory for a Monolix project}
+\title{Resolve output directory for a Monolix or Simulx project}
 \usage{
 resolve_output_dir(path, output_dir = NULL)
 }
 \arguments{
-\item{path}{Character scalar. Path to Monolix project file.}
+\item{path}{Character scalar. Path to Monolix or Simulx project file.}
 
 \item{output_dir}{Character scalar or NULL. Override output directory.}
 }
@@ -15,6 +15,6 @@ resolve_output_dir(path, output_dir = NULL)
 Character scalar. Resolved output directory path.
 }
 \description{
-Resolve output directory for a Monolix project
+Resolve output directory for a Monolix or Simulx project
 }
 \keyword{internal}

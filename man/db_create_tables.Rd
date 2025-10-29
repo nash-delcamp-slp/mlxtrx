@@ -2,7 +2,7 @@
 % Please edit documentation in R/db.R
 \name{db_create_tables}
 \alias{db_create_tables}
-\title{Create database tables for Monolix run tracking}
+\title{Create database tables for Monolix/Simulx run tracking}
 \usage{
 db_create_tables(db_conn = default_db_conn())
 }
@@ -14,7 +14,7 @@ Defaults to a connection created by \code{default_db_conn()}.}
 NULL (invisible). Called for side effects.
 }
 \description{
-Creates the required database tables for storing Monolix job information,
+Creates the required database tables for storing run information,
 input files, and output files. Tables are created only if they don't
 already exist.
 }
@@ -25,10 +25,10 @@ This function creates three tables with the following schema:
 \itemize{
 \item \code{run_id} (INTEGER PRIMARY KEY): Auto-generated unique run identifier
 \item \code{job_id} (INTEGER): External job ID (may be NULL if extraction fails)
-\item \code{path} (TEXT): Path to the Monolix project file
+\item \code{path} (TEXT): Path to the Monolix/Simulx file
 \item \code{data_file} (TEXT): Path to the data file
 \item \code{model_file} (TEXT): Path to the model file
-\item \code{thread} (INTEGER): Number of threads used by Monolix
+\item \code{thread} (INTEGER): Number of threads used by grid jobs
 \item \code{tool} (TEXT): Tool to launch assessment
 \item \code{mode} (TEXT): Console mode
 \item \code{config} (TEXT): Configuration file path
