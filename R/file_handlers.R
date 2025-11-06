@@ -174,6 +174,11 @@ SimulxHandler <- R6::R6Class(
             path = monolix_suite_path,
             force = TRUE
           )
+          lixoftConnectors::initializeLixoftConnectors(
+            "simulx",
+            path = monolix_suite_path,
+            force = TRUE
+          )
         })
       } else {
         return(list())
