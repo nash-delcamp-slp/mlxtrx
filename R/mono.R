@@ -168,7 +168,7 @@ mono <- function(
   run_ids <- integer(length(path))
 
   for (i in seq_along(path)) {
-    ext <- fs::path_ext(path[i][i])
+    ext <- fs::path_ext(path[i])
     handler <- get_file_handler(ext)
 
     # Parse file and extract metadata
