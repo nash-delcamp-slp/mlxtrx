@@ -12,7 +12,7 @@ mono(
   tool = NULL,
   mode = NULL,
   config = NULL,
-  cmd = getOption("mlxtrx.mono_cmd", "mono24"),
+  cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
   db_conn = default_db_conn(db = default_db(path))
 )
 
@@ -108,9 +108,4 @@ conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
 mono("project.mlxtran", db_conn = conn)
 }
 
-}
-\seealso{
-\code{\link{default_db_conn}} for default database connections,
-\code{\link{get_job_files}} for querying recorded file information,
-\code{\link{execute_job}} for executing a single job
 }

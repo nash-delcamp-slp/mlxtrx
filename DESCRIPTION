@@ -14,8 +14,12 @@ Imports:
     digest,
     dplyr,
     duckdb,
+    fs,
     gt,
+    lixoftConnectors,
+    lubridate,
     readr,
+    rlang,
     stringr,
     utilscognigen
 Remotes:

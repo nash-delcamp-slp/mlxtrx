@@ -74,11 +74,6 @@
 #' mono("project.mlxtran", db_conn = conn)
 #' }
 #'
-#' @seealso
-#' \code{\link{default_db_conn}} for default database connections,
-#' \code{\link{get_job_files}} for querying recorded file information,
-#' \code{\link{execute_job}} for executing a single job
-#'
 #' @export
 mono <- function(
   path,
@@ -87,7 +82,7 @@ mono <- function(
   tool = NULL,
   mode = NULL,
   config = NULL,
-  cmd = getOption("mlxtrx.mono_cmd", "mono24"),
+  cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
   db_conn = default_db_conn(db = default_db(path))
 ) {
   assertthat::assert_that(
@@ -172,47 +167,32 @@ mono <- function(
 
   for (i in seq_along(path)) {
     config_file <- NULL
-    ext <- fs::path_ext(path[i])
-    if (tolower(ext) != "mlxtran") {
-      message("More logging for ", ext, " files coming soon.")
-      data_file <- NA_character_
-      model_file <- NA_character_
-    } else {
-      # Parse project file for metadata
-      path_content <- parse_mlxtran(path[i])
-      data_file <- path_content$DATAFILE$FILEINFO$file
+    ext <- fs::path_ext(path[i][i])
+    handler <- get_file_handler(ext)
 
-      # Resolve relative paths
-      if (!fs::is_absolute_path(data_file) && !file.exists(data_file)) {
-        data_file_built <- file.path(dirname(path[i]), data_file)
-        if (file.exists(data_file_built)) {
-          data_file <- data_file_built
+    # Parse file and extract metadata
+    parsed_content <- handler$parse_file(path[i])
+    input_files <- handler$get_input_files(parsed_content, dirname(path[i]))
+
+    # Extract individual files with fallback to NA
+    data_file <- input_files$data_file %||% NA_character_
+    model_file <- input_files$model_file %||% NA_character_
+
+    # Store handler capability for monitoring
+    can_monitor <- handler$can_monitor()
+
+    # Resolve config file path if provided
+    config_file <- NULL
+    if (!is.null(config_recycled)) {
+      config_file <- config_recycled[i]
+      if (!fs::is_absolute_path(config_file) && !file.exists(config_file)) {
+        config_file_built <- file.path(dirname(path[i]), config_file)
+        if (file.exists(config_file_built)) {
+          config_file <- config_file_built
         }
       }
-      data_file <- normalizePath(data_file)
-
-      model_file <- path_content$MODEL$LONGITUDINAL$file
-      if (!fs::is_absolute_path(model_file) && !file.exists(model_file)) {
-        model_file_built <- file.path(dirname(path[i]), model_file)
-        if (file.exists(model_file_built)) {
-          model_file <- model_file_built
-        }
-      }
-      model_file <- normalizePath(model_file, mustWork = FALSE)
-
-      # Resolve config file path if provided
-      if (!is.null(config_recycled)) {
-        config_file <- config_recycled[i]
-        if (!fs::is_absolute_path(config_file) && !file.exists(config_file)) {
-          config_file_built <- file.path(dirname(path[i]), config_file)
-          if (file.exists(config_file_built)) {
-            config_file <- config_file_built
-          }
-        }
-        config_file <- normalizePath(config_file, mustWork = FALSE)
-      }
+      config_file <- normalizePath(config_file, mustWork = FALSE)
     }
-
     # Insert job record with all parameters
     DBI::dbExecute(
       db_conn,
@@ -376,8 +356,6 @@ execute_job <- function(
 #'
 #' @return NULL (invisible). Called for side effects.
 #'
-#' @importFrom rlang %||%
-#'
 #' @keywords internal
 monitor_jobs <- function(
   path,
@@ -410,19 +388,24 @@ monitor_jobs <- function(
       job_completed <- FALSE
 
       if (!is.na(job_id[i])) {
-        # For jobs with valid job_id, check if they're still in the queue
         job_completed <- !job_in_sq(job_id[i])
       } else {
-        if (tolower(fs::path_ext(path[i])) != "mlxtran") {
+        ext <- fs::path_ext(path[i])
+        handler <- get_file_handler(ext)
+
+        if (!handler$can_monitor()) {
           warning(
-            "Can't currently monitor non-Monolix jobs that are not submitted to the grid."
+            "Can't currently monitor .",
+            ext,
+            " jobs that are not submitted to the grid."
           )
           job_completed <- TRUE
+        } else {
+          # Use handler-specific monitoring logic
+          current_output_dir <- handler$get_output_dir(path[i], output_dir[i])
+          summary_file <- file.path(current_output_dir, "summary.txt")
+          job_completed <- file.exists(summary_file)
         }
-        # For jobs without job_id, check for summary.txt file
-        current_output_dir <- resolve_output_dir(path[i], output_dir[i])
-        summary_file <- file.path(current_output_dir, "summary.txt")
-        job_completed <- file.exists(summary_file)
       }
 
       if (job_completed) {
@@ -433,7 +416,10 @@ monitor_jobs <- function(
     # Process completed jobs
     if (length(completed_now) > 0) {
       for (i in completed_now) {
-        current_output_dir <- normalizePath(resolve_output_dir(
+        ext <- fs::path_ext(path[i])
+        handler <- get_file_handler(ext)
+
+        current_output_dir <- normalizePath(handler$get_output_dir(
           path[i],
           output_dir[i]
         ))
