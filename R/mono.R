@@ -152,11 +152,17 @@ mono <- function(
   }
 
   # Submit all jobs using do.call + mapply
+  submission_times <- rep(Sys.time(), length(path))
+
   job_ids <- do.call(
     mapply,
     c(
       list(
-        FUN = execute_job,
+        FUN = function(..., submission_idx) {
+          submission_times[submission_idx] <<- Sys.time()
+          execute_job(...)
+        },
+        submission_idx = seq_along(path),
         SIMPLIFY = TRUE,
         USE.NAMES = FALSE
       ),
@@ -197,7 +203,7 @@ mono <- function(
     # Insert job record with all parameters
     DBI::dbExecute(
       db_conn,
-      "INSERT INTO runs (job_id, path, data_file, model_file, thread, tool, mode, config, cmd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO runs (job_id, path, data_file, model_file, thread, tool, mode, config, cmd, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       params = list(
         if (is.na(job_ids[i])) NA_real_ else job_ids[i],
         normalizePath(path[i]),
@@ -207,7 +213,8 @@ mono <- function(
         if (!is.null(tool_recycled)) tool_recycled[i] else NA_character_,
         if (!is.null(mode_recycled)) mode_recycled[i] else NA_character_,
         if (!is.null(config_file)) config_file else NA_character_,
-        cmd_recycled[i]
+        cmd_recycled[i],
+        submission_times[i]
       )
     )
 
