@@ -13,7 +13,8 @@ mono(
   mode = NULL,
   config = NULL,
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
-  db_conn = default_db_conn(db = default_db(path))
+  db_conn = default_db_conn(db = default_db(path)),
+  require_charts_data = TRUE
 )
 
 sim(
@@ -21,7 +22,8 @@ sim(
   thread = NULL,
   mode = NULL,
   cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
-  db_conn = default_db_conn(db = default_db(path))
+  db_conn = default_db_conn(db = default_db(path)),
+  require_charts_data = FALSE
 )
 }
 \arguments{
@@ -59,6 +61,10 @@ Default is "mono24". Should be same length as \code{path} or length 1.}
 
 \item{db_conn}{A database connection object inheriting from \code{DBIObject}.
 Defaults to a connection created by \code{default_db_conn()}.}
+
+\item{require_charts_data}{A logical indicating whether charts data must
+be exported. This requires the relevant config.ini file includes options
+\code{"exportChartsData" = "true"} and \code{"export-charts-datasets" = "true"}.}
 }
 \value{
 Integer vector. Returns the run IDs for all submitted jobs.

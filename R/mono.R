@@ -30,6 +30,9 @@
 #'   Default is "mono24". Should be same length as `path` or length 1.
 #' @param db_conn A database connection object inheriting from `DBIObject`.
 #'   Defaults to a connection created by `default_db_conn()`.
+#' @param require_charts_data A logical indicating whether charts data must
+#'   be exported. This requires the relevant config.ini file includes options
+#'   `"exportChartsData" = "true"` and `"export-charts-datasets" = "true"`.
 #'
 #' @return Integer vector. Returns the run IDs for all submitted jobs.
 #'
@@ -83,7 +86,8 @@ mono <- function(
   mode = NULL,
   config = NULL,
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
-  db_conn = default_db_conn(db = default_db(path))
+  db_conn = default_db_conn(db = default_db(path)),
+  require_charts_data = TRUE
 ) {
   if (missing(db_conn)) {
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
@@ -106,7 +110,11 @@ mono <- function(
     msg = "`db_conn` must be a valid database connection"
   )
 
-  check_config_ini(cmd = Sys.which(cmd))
+  if (require_charts_data) {
+    for (.cmd in unique(cmd)) {
+      check_config_ini(cmd = Sys.which(.cmd))
+    }
+  }
 
   # Create tables if they don't exist
   db_create_tables(db_conn)
@@ -273,12 +281,20 @@ sim <- function(
   thread = NULL,
   mode = NULL,
   cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
-  db_conn = default_db_conn(db = default_db(path))
+  db_conn = default_db_conn(db = default_db(path)),
+  require_charts_data = FALSE
 ) {
   if (missing(db_conn)) {
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
-  mono(path = path, thread = thread, mode = mode, cmd = cmd, db_conn = db_conn)
+  mono(
+    path = path,
+    thread = thread,
+    mode = mode,
+    cmd = cmd,
+    db_conn = db_conn,
+    require_charts_data = require_charts_data
+  )
 }
 
 #' Execute a single Monolix job
