@@ -168,7 +168,6 @@ mono <- function(
   run_ids <- integer(length(path))
 
   for (i in seq_along(path)) {
-    config_file <- NULL
     ext <- fs::path_ext(path[i][i])
     handler <- get_file_handler(ext)
 
