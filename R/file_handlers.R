@@ -125,7 +125,7 @@ MonolixHandler <- R6::R6Class(
       )
       current_output_dir <- output_dir %||%
         path_based_output_dir
-      resolve_output_dir(current_output_dir)
+      resolve_output_dir(path = path, output_dir = current_output_dir)
     }
   )
 )
@@ -215,7 +215,7 @@ SimulxHandler <- R6::R6Class(
       )
       current_output_dir <- output_dir %||%
         path_based_output_dir
-      resolve_output_dir(current_output_dir)
+      resolve_output_dir(path = path, output_dir = current_output_dir)
     }
   )
 )
