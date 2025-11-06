@@ -85,6 +85,10 @@ mono <- function(
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
   db_conn = default_db_conn(db = default_db(path))
 ) {
+  if (missing(db_conn)) {
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
+
   assertthat::assert_that(
     all(file.exists(path)),
     msg = "All `path`s should be paths to existing Monolix or Simulx project files."
@@ -102,9 +106,7 @@ mono <- function(
     msg = "`db_conn` must be a valid database connection"
   )
 
-  if (missing(db_conn)) {
-    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
-  }
+  check_config_ini(cmd = Sys.which(cmd))
 
   # Create tables if they don't exist
   db_create_tables(db_conn)

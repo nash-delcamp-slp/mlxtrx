@@ -132,7 +132,7 @@ check_config_ini <- function(
   }
 
   # offer to fix
-  warning(error_msg, "\n\n", sep = "", immediate. = TRUE)
+  warning(error_msg, "\n\n", sep = "", immediate. = TRUE, call. = FALSE)
 
   # Create modified version
   ini_lines <- readLines(ini_path, warn = FALSE)
@@ -163,7 +163,7 @@ check_config_ini <- function(
     return(invisible(TRUE))
   } else {
     cat("File not modified. You can manually copy from:", temp_file, "\n")
-    return(invisible(FALSE))
+    stop(error_msg, call. = FALSE)
   }
 }
 
