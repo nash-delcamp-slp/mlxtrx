@@ -189,7 +189,6 @@ SimulxHandler <- R6::R6Class(
     #' @param parsed_content Result from parse_file()
     #' @param project_dir Directory containing the project file
     get_input_files = function(parsed_content, project_dir) {
-      browser()
       # Simulx has different input file structure
       files <- list()
 
@@ -279,7 +278,8 @@ GenericHandler <- R6::R6Class(
     #' @description Check if job monitoring is supported
     can_monitor = function() {
       FALSE
-    }  )
+    }
+  )
 )
 
 #' Resolve output directory for a project file
@@ -291,18 +291,27 @@ GenericHandler <- R6::R6Class(
 #'
 #' @keywords internal
 resolve_output_dir <- function(path, output_dir = NULL) {
-  if (
-    !fs::is_absolute_path(output_dir) &&
-      !file.exists(output_dir)
-  ) {
+  if (!is.null(output_dir)) {
+    if (
+      !fs::is_absolute_path(output_dir) &&
+        !file.exists(output_dir)
+    ) {
+      output_dir_built <- file.path(
+        dirname(path),
+        output_dir
+      )
+      if (file.exists(output_dir_built)) {
+        output_dir <- output_dir_built
+      }
+    }
+  } else {
     output_dir_built <- file.path(
       dirname(path),
-      output_dir
+      fs::path_ext_remove(basename(path))
     )
     if (file.exists(output_dir_built)) {
       output_dir <- output_dir_built
     }
   }
-
   output_dir
 }
