@@ -249,9 +249,9 @@ get_run_files <- function(run_id, db_conn = default_db_conn()) {
   # Convert UTC timestamps to system timezone
   files_data |>
     dplyr::mutate(
-      file_timestamp = as.POSIXct(file_timestamp, tz = "UTC") |>
+      file_timestamp = as.POSIXct(.data[["file_timestamp"]], tz = "UTC") |>
         lubridate::with_tz(Sys.timezone()),
-      recorded_at = as.POSIXct(recorded_at, tz = "UTC") |>
+      recorded_at = as.POSIXct(.data[["recorded_at"]], tz = "UTC") |>
         lubridate::with_tz(Sys.timezone())
     )
 }

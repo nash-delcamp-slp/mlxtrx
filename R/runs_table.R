@@ -106,59 +106,59 @@ ORDER BY submitted_at DESC
   if (include_files) {
     runs_formatted <- runs_data |>
       dplyr::mutate(
-        project_name = basename(path),
-        submitted_at = as.POSIXct(submitted_at, tz = "UTC") |>
+        project_name = basename(.data[["path"]]),
+        submitted_at = as.POSIXct(.data[["submitted_at"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
-        completed_at = as.POSIXct(completed_at, tz = "UTC") |>
+        completed_at = as.POSIXct(.data[["completed_at"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
-        file_timestamp = as.POSIXct(file_timestamp, tz = "UTC") |>
+        file_timestamp = as.POSIXct(.data[["file_timestamp"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
-        file_name = basename(file_path)
+        file_name = basename(.data[["file_path"]])
       ) |>
-      dplyr::select(
-        run_id,
-        job_id,
-        path,
-        data_file,
-        model_file,
-        thread,
-        tool,
-        mode,
-        config,
-        project_name,
-        file_type,
-        file_name,
-        file_path,
-        file_timestamp,
-        md5_checksum,
-        cmd,
-        submitted_at,
-        completed_at
-      )
+      dplyr::select(dplyr::any_of(c(
+        "run_id",
+        "job_id",
+        "path",
+        "data_file",
+        "model_file",
+        "thread",
+        "tool",
+        "mode",
+        "config",
+        "project_name",
+        "file_type",
+        "file_name",
+        "file_path",
+        "file_timestamp",
+        "md5_checksum",
+        "cmd",
+        "submitted_at",
+        "completed_at"
+      )))
   } else {
     runs_formatted <- runs_data |>
       dplyr::mutate(
-        project_name = basename(path),
-        submitted_at = as.POSIXct(submitted_at, tz = "UTC") |>
+        project_name = basename(.data[["path"]]),
+        submitted_at = as.POSIXct(.data[["submitted_at"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
-        completed_at = as.POSIXct(completed_at, tz = "UTC") |>
+        completed_at = as.POSIXct(.data[["completed_at"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone())
       ) |>
-      dplyr::select(
-        run_id,
-        job_id,
-        project_name,
-        path,
-        data_file,
-        model_file,
-        thread,
-        tool,
-        mode,
-        config,
-        cmd,
-        submitted_at,
-        completed_at
-      )
+      dplyr::select(dplyr::any_of(c(
+        "run_id",
+        "job_id",
+        "project_name",
+        "path",
+        "data_file",
+        "model_file",
+        "thread",
+        "tool",
+        "mode",
+        "config",
+        "cmd",
+        "submitted_at",
+        "completed_at"
+      )))
   }
 
   runs_formatted
@@ -235,7 +235,12 @@ runs_table <- function(
     if (include_files) {
       gt_table <- runs_formatted |>
         dplyr::mutate(
-          run_id = sprintf("%s '%s' (%d)", cmd, path, run_id),
+          run_id = sprintf(
+            "%s '%s' (%d)",
+            .data[["cmd"]],
+            .data[["path"]],
+            .data[["run_id"]]
+          ),
           job_id = NULL,
           path = NULL,
           project_name = NULL,
@@ -262,7 +267,11 @@ runs_table <- function(
           completed_at = "Completed"
         ) |>
         gt::fmt_datetime(
-          columns = c(submitted_at, completed_at, file_timestamp),
+          columns = dplyr::any_of(c(
+            "submitted_at",
+            "completed_at",
+            "file_timestamp"
+          )),
           date_style = "yMMMd",
           time_style = "Hm"
         )
@@ -287,7 +296,7 @@ runs_table <- function(
           completed_at = "Completed"
         ) |>
         gt::fmt_datetime(
-          columns = c(submitted_at, completed_at),
+          columns = dplyr::any_of(c("submitted_at", "completed_at")),
           date_style = "yMMMd",
           time_style = "Hm"
         )
@@ -297,7 +306,7 @@ runs_table <- function(
       gt::tab_style(
         style = gt::cell_text(font = gt::google_font("JetBrains Mono")),
         locations = gt::cells_body(
-          columns = contains(c("job_id", "path", "md5"))
+          columns = dplyr::contains(c("job_id", "path", "md5"))
         )
       ) |>
       gt::tab_options(
