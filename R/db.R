@@ -75,7 +75,11 @@ default_db <- function(path = getwd()) {
 #'
 #' @export
 default_db_conn <- function(db = default_db()) {
-  DBI::dbConnect(duckdb::duckdb(), dbdir = db)
+  db_conn <- DBI::dbConnect(duckdb::duckdb(), dbdir = db)
+  if (length(DBI::dbListTables(db_conn)) == 0) {
+    db_create_tables(db_conn)
+  }
+  db_conn
 }
 
 #' Create database tables for Monolix/Simulx run tracking
@@ -128,6 +132,9 @@ default_db_conn <- function(db = default_db()) {
 #'
 #' @keywords internal
 db_create_tables <- function(db_conn = default_db_conn()) {
+  if (missing(db_conn)) {
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
   DBI::dbExecute(
     db_conn,
     "CREATE SEQUENCE IF NOT EXISTS run_id_seq START 1"
@@ -193,7 +200,9 @@ db_create_tables <- function(db_conn = default_db_conn()) {
 #'
 #' @export
 get_run_files <- function(run_id, db_conn = default_db_conn()) {
-  on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  if (missing(db_conn)) {
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
 
   # Handle empty run_id vector
   if (length(run_id) == 0) {

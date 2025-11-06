@@ -102,7 +102,9 @@ mono <- function(
     msg = "`db_conn` must be a valid database connection"
   )
 
-  on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  if (missing(db_conn)) {
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
 
   # Create tables if they don't exist
   db_create_tables(db_conn)
@@ -265,6 +267,9 @@ sim <- function(
   cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
   db_conn = default_db_conn(db = default_db(path))
 ) {
+  if (missing(db_conn)) {
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
   mono(path = path, thread = thread, mode = mode, cmd = cmd, db_conn = db_conn)
 }
 

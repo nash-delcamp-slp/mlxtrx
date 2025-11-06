@@ -23,7 +23,9 @@ runs_data <- function(
     inherits(db_conn, "DBIObject"),
     msg = "`db_conn` must be a valid database connection"
   )
-  on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  if (missing(db_conn)) {
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
 
   # Query the runs data
   if (include_files) {
@@ -99,7 +101,7 @@ ORDER BY submitted_at DESC
   # Return early if no data
   if (nrow(runs_data) == 0) {
     message("No runs found in database")
-    return(NULL)
+    return(invisible(NULL))
   }
 
   # Format the data with timezone conversion
@@ -212,6 +214,10 @@ runs_table <- function(
   include_files = FALSE
 ) {
   format <- match.arg(format, c("gt", "csv"))
+
+  if (missing(db_conn)) {
+    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
+  }
 
   # Get the data using runs_data()
   runs_formatted <- runs_data(db_conn = db_conn, include_files = include_files)
