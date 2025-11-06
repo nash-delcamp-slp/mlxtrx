@@ -13,11 +13,11 @@ get_run_files(run_id, db_conn = default_db_conn())
 Defaults to a connection created by \code{default_db_conn()}.}
 }
 \value{
-A data frame with columns: \code{run_id}, \code{file_type}, \code{file_path},
-\code{file_timestamp}, \code{md5_checksum}, and \code{recorded_at}. Returns an empty
+A data frame with columns: \code{run_id}, \code{file_id}, \code{io_type}, \code{path},
+\code{name}, \code{timestamp}, \code{md5_checksum}, and \code{recorded_at}. Returns an empty
 data frame if no files are found for the specified run ID(s).
 }
 \description{
-Retrieves information about input and output files associated
-with one or more runs from the database.
+Retrieves information about files associated with one or more runs
+from the database using the new schema.
 }

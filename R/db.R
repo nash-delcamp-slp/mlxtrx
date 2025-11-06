@@ -85,7 +85,7 @@ default_db_conn <- function(db = default_db()) {
 #' Create database tables for Monolix/Simulx run tracking
 #'
 #' Creates the required database tables for storing run information,
-#' input files, and output files. Tables are created only if they don't
+#' files, and their relationships. Tables are created only if they don't
 #' already exist.
 #'
 #' @param db_conn A database connection object inheriting from `DBIObject`.
@@ -96,13 +96,13 @@ default_db_conn <- function(db = default_db()) {
 #' @details
 #' This function creates three tables with the following schema:
 #'
-#' \strong{runs}:
+#' \strong{run}:
 #' \itemize{
 #'   \item `run_id` (INTEGER PRIMARY KEY): Auto-generated unique run identifier
 #'   \item `job_id` (INTEGER): External job ID (may be NULL if extraction fails)
-#'   \item `path` (TEXT): Path to the Monolix/Simulx file
-#'   \item `data_file` (TEXT): Path to the data file
-#'   \item `model_file` (TEXT): Path to the model file
+#'   \item `project_file_id` (INTEGER): Foreign key to file table for project file
+#'   \item `data_file_id` (INTEGER): Foreign key to file table for data file
+#'   \item `model_file_id` (INTEGER): Foreign key to file table for model file
 #'   \item `thread` (INTEGER): Number of threads used by grid jobs
 #'   \item `tool` (TEXT): Tool to launch assessment
 #'   \item `mode` (TEXT): Console mode
@@ -112,20 +112,19 @@ default_db_conn <- function(db = default_db()) {
 #'   \item `completed_at` (TIMESTAMP): Job completion timestamp (NULL until completed)
 #' }
 #'
-#' \strong{input_files}:
+#' \strong{file}:
 #' \itemize{
-#'   \item `run_id` (INTEGER): Foreign key to runs
-#'   \item `file_path` (TEXT): Path to the input file
-#'   \item `file_timestamp` (TIMESTAMP): File modification timestamp
-#'   \item `md5_checksum` (TEXT): MD5 hash of the file
-#'   \item `recorded_at` (TIMESTAMP): When the record was created
+#'   \item `id` (INTEGER PRIMARY KEY): Auto-generated unique file identifier
+#'   \item `path` (TEXT): Full path to the file
+#'   \item `name` (TEXT): File name (basename)
 #' }
 #'
-#' \strong{output_files}:
+#' \strong{run_file}:
 #' \itemize{
-#'   \item `run_id` (INTEGER): Foreign key to runs
-#'   \item `file_path` (TEXT): Path to the output file
-#'   \item `file_timestamp` (TIMESTAMP): File modification timestamp
+#'   \item `run_id` (INTEGER): Foreign key to run table
+#'   \item `file_id` (INTEGER): Foreign key to file table
+#'   \item `io_type` (TEXT): Type of file relation (project, input, output)
+#'   \item `timestamp` (TIMESTAMP): File modification timestamp
 #'   \item `md5_checksum` (TEXT): MD5 hash of the file
 #'   \item `recorded_at` (TIMESTAMP): When the record was created
 #' }
@@ -135,67 +134,133 @@ db_create_tables <- function(db_conn = default_db_conn()) {
   if (missing(db_conn)) {
     on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
   }
+
+  # Create sequences for auto-incrementing IDs
   DBI::dbExecute(
     db_conn,
     "CREATE SEQUENCE IF NOT EXISTS run_id_seq START 1"
   )
+
+  DBI::dbExecute(
+    db_conn,
+    "CREATE SEQUENCE IF NOT EXISTS file_id_seq START 1"
+  )
+
+  # Create file table
   DBI::dbExecute(
     db_conn,
     "
-    CREATE TABLE IF NOT EXISTS runs (
+    CREATE TABLE IF NOT EXISTS file (
+      id INTEGER PRIMARY KEY DEFAULT nextval('file_id_seq'),
+      path TEXT UNIQUE,
+      name TEXT NOT NULL
+    )"
+  )
+
+  # Create run table
+  DBI::dbExecute(
+    db_conn,
+    "
+    CREATE TABLE IF NOT EXISTS run (
       run_id INTEGER PRIMARY KEY DEFAULT nextval('run_id_seq'),
       job_id INTEGER,
-      path TEXT,
-      data_file TEXT,
-      model_file TEXT,
+      project_file_id INTEGER,
+      data_file_id INTEGER,
+      model_file_id INTEGER,
       thread INTEGER,
       tool TEXT,
       mode TEXT,
       config TEXT,
       cmd TEXT,
       submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      completed_at TIMESTAMP DEFAULT NULL
+      completed_at TIMESTAMP DEFAULT NULL,
+      FOREIGN KEY (project_file_id) REFERENCES file (id),
+      FOREIGN KEY (data_file_id) REFERENCES file (id),
+      FOREIGN KEY (model_file_id) REFERENCES file (id)
     )"
   )
 
+  # Create run_file junction table
   DBI::dbExecute(
     db_conn,
     "
-    CREATE TABLE IF NOT EXISTS input_files (
-      run_id INTEGER,
-      file_path TEXT,
-      file_timestamp TIMESTAMP,
+    CREATE TABLE IF NOT EXISTS run_file (
+      run_id INTEGER NOT NULL,
+      file_id INTEGER NOT NULL,
+      io_type TEXT NOT NULL CHECK (io_type IN ('project', 'input', 'output')),
+      timestamp TIMESTAMP,
       md5_checksum TEXT,
       recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (run_id) REFERENCES runs (run_id)
-    )"
-  )
-
-  DBI::dbExecute(
-    db_conn,
-    "
-    CREATE TABLE IF NOT EXISTS output_files (
-      run_id INTEGER,
-      file_path TEXT,
-      file_timestamp TIMESTAMP,
-      md5_checksum TEXT,
-      recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (run_id) REFERENCES runs (run_id)
+      PRIMARY KEY (run_id, file_id, io_type),
+      FOREIGN KEY (run_id) REFERENCES run (run_id),
+      FOREIGN KEY (file_id) REFERENCES file (id)
     )"
   )
 }
 
+#' Get or create file record
+#'
+#' Retrieves an existing file record or creates a new one if it doesn't exist.
+#' Handles both regular files and built-in model files.
+#'
+#' @param file_path Character scalar. Full path to the file or built-in model.
+#' @param db_conn A database connection object inheriting from `DBIObject`.
+#'
+#' @return Integer. The file ID.
+#'
+#' @keywords internal
+get_or_create_file <- function(file_path, db_conn) {
+  # Check if this is a built-in library file
+  is_builtin <- startsWith(file_path, "lib:") &&
+    endsWith(file_path, ".txt") &&
+    !file.exists(file_path)
+
+  if (is_builtin) {
+    normalized_path <- file_path
+    file_name <- file_path
+  } else {
+    normalized_path <- normalizePath(file_path, mustWork = FALSE)
+    file_name <- basename(file_path)
+  }
+
+  # Check if file already exists
+  existing <- DBI::dbGetQuery(
+    db_conn,
+    "SELECT id FROM file WHERE path = ?",
+    params = list(normalized_path)
+  )
+
+  if (nrow(existing) > 0) {
+    return(existing$id[1])
+  }
+
+  # Create new file record
+  DBI::dbExecute(
+    db_conn,
+    "INSERT INTO file (path, name) VALUES (?, ?)",
+    params = list(normalized_path, file_name)
+  )
+
+  # Return the new file ID
+  result <- DBI::dbGetQuery(
+    db_conn,
+    "SELECT currval('file_id_seq') as id"
+  )
+
+  return(result$id[1])
+}
+
 #' Get file information for specific runs
 #'
-#' Retrieves information about input and output files associated
-#' with one or more runs from the database.
+#' Retrieves information about files associated with one or more runs
+#' from the database using the new schema.
 #'
 #' @param run_id Integer vector. The run ID(s) to query file information for.
 #' @param db_conn A database connection object inheriting from `DBIObject`.
 #'   Defaults to a connection created by `default_db_conn()`.
 #'
-#' @return A data frame with columns: `run_id`, `file_type`, `file_path`,
-#'   `file_timestamp`, `md5_checksum`, and `recorded_at`. Returns an empty
+#' @return A data frame with columns: `run_id`, `file_id`, `io_type`, `path`,
+#'   `name`, `timestamp`, `md5_checksum`, and `recorded_at`. Returns an empty
 #'   data frame if no files are found for the specified run ID(s).
 #'
 #' @export
@@ -208,9 +273,11 @@ get_run_files <- function(run_id, db_conn = default_db_conn()) {
   if (length(run_id) == 0) {
     return(data.frame(
       run_id = integer(0),
-      file_type = character(0),
-      file_path = character(0),
-      file_timestamp = as.POSIXct(character(0)),
+      file_id = integer(0),
+      io_type = character(0),
+      path = character(0),
+      name = character(0),
+      timestamp = as.POSIXct(character(0)),
       md5_checksum = character(0),
       recorded_at = as.POSIXct(character(0))
     ))
@@ -224,41 +291,29 @@ get_run_files <- function(run_id, db_conn = default_db_conn()) {
     paste0(
       "
       SELECT 
-        run_id,
-        'input' as file_type,
-        file_path,
-        file_timestamp,
-        md5_checksum,
-        recorded_at
-      FROM input_files 
-      WHERE run_id IN (",
+        rf.run_id,
+        rf.file_id,
+        rf.io_type,
+        f.path,
+        f.name,
+        rf.timestamp,
+        rf.md5_checksum,
+        rf.recorded_at
+      FROM run_file rf
+      JOIN file f ON rf.file_id = f.id
+      WHERE rf.run_id IN (",
       placeholders,
       ")
-      
-      UNION ALL
-      
-      SELECT 
-        run_id,
-        'output' as file_type,
-        file_path,
-        file_timestamp,
-        md5_checksum,
-        recorded_at
-      FROM output_files 
-      WHERE run_id IN (",
-      placeholders,
-      ")
-      
-      ORDER BY run_id, file_type, file_path
+      ORDER BY rf.run_id, rf.io_type, f.path
       "
     ),
-    params = c(as.list(run_id), as.list(run_id))
+    params = as.list(run_id)
   )
 
   # Convert UTC timestamps to system timezone
   files_data |>
     dplyr::mutate(
-      file_timestamp = as.POSIXct(.data[["file_timestamp"]], tz = "UTC") |>
+      timestamp = as.POSIXct(.data[["timestamp"]], tz = "UTC") |>
         lubridate::with_tz(Sys.timezone()),
       recorded_at = as.POSIXct(.data[["recorded_at"]], tz = "UTC") |>
         lubridate::with_tz(Sys.timezone())

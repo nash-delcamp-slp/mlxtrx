@@ -10,8 +10,9 @@
 #'   output files in the data. Default is `FALSE`.
 #'
 #' @return A data frame with run information. Contains columns: `run_id`, `job_id`,
-#'   `project_name`, `path`, `data_file`, `model_file`, `thread`, `tool`, `mode`,
-#'   `config`, `cmd`, `submitted_at`, `completed_at`.
+#'   `project_name`, `project_path`, `data_file`, `model_file`, `thread`, `tool`, `mode`,
+#'   `config`, `cmd`, `project_file_timestamp`, `project_file_md5_checksum`,
+#'   `submitted_at`, `completed_at`.
 #'   When `include_files = TRUE`, additionally contains file details.
 #'
 #' @export
@@ -33,46 +34,34 @@ runs_data <- function(
       db_conn,
       "
       SELECT 
-  j.run_id,
-  j.job_id,
-  j.path,
-  j.data_file,
-  j.model_file,
-  j.thread,
-  j.tool,
-  j.mode,
-  j.config,
-  j.cmd,
-  j.submitted_at,
-  j.completed_at,
-  'input' as file_type,
-  i.file_path,
-  i.file_timestamp,
-  i.md5_checksum
-FROM runs j
-LEFT JOIN input_files i ON j.run_id = i.run_id
-
-UNION ALL
-
-SELECT 
-  j.run_id,
-  j.job_id,
-  j.path,
-  j.data_file,
-  j.model_file,
-  j.thread,
-  j.tool,
-  j.mode,
-  j.config,
-  j.cmd,
-  j.submitted_at,
-  j.completed_at,
-  'output' as file_type,
-  o.file_path,
-  o.file_timestamp,
-  o.md5_checksum
-FROM runs j
-LEFT JOIN output_files o ON j.run_id = o.run_id
+        r.run_id,
+        r.job_id,
+        pf.path as project_path,
+        pf.name as project_name,
+        df.path as data_file,
+        mf.path as model_file,
+        r.thread,
+        r.tool,
+        r.mode,
+        r.config,
+        r.cmd,
+        r.submitted_at,
+        r.completed_at,
+        rf.io_type,
+        f.path as file_path,
+        f.name as file_name,
+        rf.timestamp as file_timestamp,
+        rf.md5_checksum,
+        prf.timestamp as project_file_timestamp,
+        prf.md5_checksum as project_file_md5_checksum
+      FROM run r
+      LEFT JOIN file pf ON r.project_file_id = pf.id
+      LEFT JOIN file df ON r.data_file_id = df.id
+      LEFT JOIN file mf ON r.model_file_id = mf.id
+      LEFT JOIN run_file prf ON r.run_id = prf.run_id AND r.project_file_id = prf.file_id AND prf.io_type = 'project'
+      LEFT JOIN run_file rf ON r.run_id = rf.run_id AND rf.io_type IN ('input', 'output')
+      LEFT JOIN file f ON rf.file_id = f.id
+      ORDER BY r.submitted_at DESC, rf.io_type, f.path
       "
     )
   } else {
@@ -80,20 +69,27 @@ LEFT JOIN output_files o ON j.run_id = o.run_id
       db_conn,
       "
       SELECT 
-  run_id,
-  job_id,
-  path,
-  data_file,
-  model_file,
-  thread,
-  tool,
-  mode,
-  config,
-  cmd,
-  submitted_at,
-  completed_at
-FROM runs 
-ORDER BY submitted_at DESC
+        r.run_id,
+        r.job_id,
+        pf.path as project_path,
+        pf.name as project_name,
+        df.path as data_file,
+        mf.path as model_file,
+        r.thread,
+        r.tool,
+        r.mode,
+        r.config,
+        r.cmd,
+        r.submitted_at,
+        r.completed_at,
+        prf.timestamp as project_file_timestamp,
+        prf.md5_checksum as project_file_md5_checksum
+      FROM run r
+      LEFT JOIN file pf ON r.project_file_id = pf.id
+      LEFT JOIN file df ON r.data_file_id = df.id
+      LEFT JOIN file mf ON r.model_file_id = mf.id
+      LEFT JOIN run_file prf ON r.run_id = prf.run_id AND r.project_file_id = prf.file_id AND prf.io_type = 'project'
+      ORDER BY r.submitted_at DESC
       "
     )
   }
@@ -108,27 +104,32 @@ ORDER BY submitted_at DESC
   if (include_files) {
     runs_formatted <- runs_data |>
       dplyr::mutate(
-        project_name = basename(.data[["path"]]),
         submitted_at = as.POSIXct(.data[["submitted_at"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
         completed_at = as.POSIXct(.data[["completed_at"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
-        file_timestamp = as.POSIXct(.data[["file_timestamp"]], tz = "UTC") |>
+        project_file_timestamp = as.POSIXct(
+          .data[["project_file_timestamp"]],
+          tz = "UTC"
+        ) |>
           lubridate::with_tz(Sys.timezone()),
-        file_name = basename(.data[["file_path"]])
+        file_timestamp = as.POSIXct(.data[["file_timestamp"]], tz = "UTC") |>
+          lubridate::with_tz(Sys.timezone())
       ) |>
       dplyr::select(dplyr::any_of(c(
         "run_id",
         "job_id",
-        "path",
+        "project_path",
+        "project_name",
         "data_file",
         "model_file",
         "thread",
         "tool",
         "mode",
         "config",
-        "project_name",
-        "file_type",
+        "project_file_timestamp",
+        "project_file_md5_checksum",
+        "io_type",
         "file_name",
         "file_path",
         "file_timestamp",
@@ -140,23 +141,29 @@ ORDER BY submitted_at DESC
   } else {
     runs_formatted <- runs_data |>
       dplyr::mutate(
-        project_name = basename(.data[["path"]]),
         submitted_at = as.POSIXct(.data[["submitted_at"]], tz = "UTC") |>
           lubridate::with_tz(Sys.timezone()),
         completed_at = as.POSIXct(.data[["completed_at"]], tz = "UTC") |>
+          lubridate::with_tz(Sys.timezone()),
+        project_file_timestamp = as.POSIXct(
+          .data[["project_file_timestamp"]],
+          tz = "UTC"
+        ) |>
           lubridate::with_tz(Sys.timezone())
       ) |>
       dplyr::select(dplyr::any_of(c(
         "run_id",
         "job_id",
         "project_name",
-        "path",
+        "project_path",
         "data_file",
         "model_file",
         "thread",
         "tool",
         "mode",
         "config",
+        "project_file_timestamp",
+        "project_file_md5_checksum",
         "cmd",
         "submitted_at",
         "completed_at"
@@ -237,6 +244,7 @@ runs_table <- function(
       return(runs_formatted)
     }
   } else {
+
     # Create gt table
     if (include_files) {
       gt_table <- runs_formatted |>
@@ -244,21 +252,21 @@ runs_table <- function(
           run_id = sprintf(
             "%s '%s' (%d)",
             .data[["cmd"]],
-            .data[["path"]],
+            .data[["project_path"]],
             .data[["run_id"]]
           ),
           job_id = NULL,
-          path = NULL,
+          project_path = NULL,
           project_name = NULL,
           cmd = NULL
         ) |>
         gt::gt(groupname_col = "run_id") |>
         gt::tab_header(
           title = "Executed Runs with File Details",
-          subtitle = paste("Total runs:", length(unique(runs_formatted$job_id)))
+          subtitle = paste("Total runs:", length(unique(runs_formatted$run_id)))
         ) |>
         gt::cols_label(
-          file_type = "Type",
+          io_type = "Type",
           file_name = "File",
           file_path = "Path",
           file_timestamp = "File Modified",
@@ -269,6 +277,8 @@ runs_table <- function(
           tool = "Tool",
           mode = "Mode",
           config = "Config File",
+          project_file_timestamp = "Project Modified",
+          project_file_md5_checksum = "Project MD5",
           submitted_at = "Submitted",
           completed_at = "Completed"
         ) |>
@@ -276,6 +286,7 @@ runs_table <- function(
           columns = dplyr::any_of(c(
             "submitted_at",
             "completed_at",
+            "project_file_timestamp",
             "file_timestamp"
           )),
           date_style = "yMMMd",
@@ -291,18 +302,24 @@ runs_table <- function(
         gt::cols_label(
           run_id = "Run ID",
           project_name = "Project",
-          path = "Path",
+          project_path = "Path",
           data_file = "Data File",
           model_file = "Model File",
           thread = "Threads",
           tool = "Tool",
           mode = "Mode",
           config = "Config File",
+          project_file_timestamp = "Project Modified",
+          project_file_md5_checksum = "Project MD5",
           submitted_at = "Submitted",
           completed_at = "Completed"
         ) |>
         gt::fmt_datetime(
-          columns = dplyr::any_of(c("submitted_at", "completed_at")),
+          columns = dplyr::any_of(c(
+            "submitted_at",
+            "completed_at",
+            "project_file_timestamp"
+          )),
           date_style = "yMMMd",
           time_style = "Hm"
         )

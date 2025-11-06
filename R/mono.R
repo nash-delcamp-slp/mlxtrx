@@ -210,15 +210,37 @@ mono <- function(
       }
       config_file <- normalizePath(config_file, mustWork = FALSE)
     }
-    # Insert job record with all parameters
+
+    # Get or create file records for project, data, and model files
+    project_file_id <- get_or_create_file(path[i], db_conn)
+
+    data_file_id <- NULL
+    if (!is.na(data_file) && file.exists(data_file)) {
+      data_file_id <- get_or_create_file(data_file, db_conn)
+    }
+
+    model_file_id <- NULL
+    if (!is.na(model_file)) {
+      if (file.exists(model_file)) {
+        # Regular model file that exists on filesystem
+        model_file_id <- get_or_create_file(model_file, db_conn)
+      } else if (
+        startsWith(model_file, "lib:") && endsWith(model_file, ".txt")
+      ) {
+        # Built-in library model file
+        model_file_id <- get_or_create_file(model_file, db_conn)
+      }
+    }
+
+    # Insert run record with file IDs
     DBI::dbExecute(
       db_conn,
-      "INSERT INTO runs (job_id, path, data_file, model_file, thread, tool, mode, config, cmd, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO run (job_id, project_file_id, data_file_id, model_file_id, thread, tool, mode, config, cmd, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       params = list(
         if (is.na(job_ids[i])) NA_real_ else job_ids[i],
-        normalizePath(path[i]),
-        data_file,
-        model_file,
+        project_file_id,
+        data_file_id,
+        model_file_id,
         if (!is.null(thread_recycled)) thread_recycled[i] else NA_integer_,
         if (!is.null(tool_recycled)) tool_recycled[i] else NA_character_,
         if (!is.null(mode_recycled)) mode_recycled[i] else NA_character_,
@@ -234,27 +256,43 @@ mono <- function(
       "SELECT currval('run_id_seq') as run_id"
     )$run_id
 
-    # Record input files
-    if (!is.null(data_file) && file.exists(data_file)) {
+    # Record project file in run_file table
+    DBI::dbExecute(
+      db_conn,
+      "INSERT INTO run_file (run_id, file_id, io_type, timestamp, md5_checksum) VALUES (?, ?, ?, ?, ?)",
+      params = list(
+        run_ids[i],
+        project_file_id,
+        "project",
+        get_file_timestamp(path[i]),
+        calculate_md5(path[i])
+      )
+    )
+
+    # Record data file in run_file table if it exists
+    if (!is.null(data_file_id)) {
       DBI::dbExecute(
         db_conn,
-        "INSERT INTO input_files (run_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+        "INSERT INTO run_file (run_id, file_id, io_type, timestamp, md5_checksum) VALUES (?, ?, ?, ?, ?)",
         params = list(
           run_ids[i],
-          data_file,
+          data_file_id,
+          "input",
           get_file_timestamp(data_file),
           calculate_md5(data_file)
         )
       )
     }
 
-    if (!is.null(model_file) && file.exists(model_file)) {
+    # Record model file in run_file table if it exists
+    if (!is.null(model_file_id)) {
       DBI::dbExecute(
         db_conn,
-        "INSERT INTO input_files (run_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+        "INSERT INTO run_file (run_id, file_id, io_type, timestamp, md5_checksum) VALUES (?, ?, ?, ?, ?)",
         params = list(
           run_ids[i],
-          model_file,
+          model_file_id,
+          "input",
           get_file_timestamp(model_file),
           calculate_md5(model_file)
         )
@@ -476,12 +514,16 @@ monitor_jobs <- function(
                 latest_mod_time <- output_timestamp
               }
 
+              # Get or create file record and record in run_file table
+              output_file_id <- get_or_create_file(output_file, db_conn)
+
               DBI::dbExecute(
                 db_conn,
-                "INSERT INTO output_files (run_id, file_path, file_timestamp, md5_checksum) VALUES (?, ?, ?, ?)",
+                "INSERT INTO run_file (run_id, file_id, io_type, timestamp, md5_checksum) VALUES (?, ?, ?, ?, ?)",
                 params = list(
                   run_id[i],
-                  output_file,
+                  output_file_id,
+                  "output",
                   output_timestamp,
                   output_md5
                 )
@@ -495,7 +537,7 @@ monitor_jobs <- function(
 
         DBI::dbExecute(
           db_conn,
-          "UPDATE runs SET completed_at = ? WHERE run_id = ?",
+          "UPDATE run SET completed_at = ? WHERE run_id = ?",
           params = list(completion_time, run_id[i])
         )
       }

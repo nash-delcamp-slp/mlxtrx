@@ -15,19 +15,19 @@ NULL (invisible). Called for side effects.
 }
 \description{
 Creates the required database tables for storing run information,
-input files, and output files. Tables are created only if they don't
+files, and their relationships. Tables are created only if they don't
 already exist.
 }
 \details{
 This function creates three tables with the following schema:
 
-\strong{runs}:
+\strong{run}:
 \itemize{
 \item \code{run_id} (INTEGER PRIMARY KEY): Auto-generated unique run identifier
 \item \code{job_id} (INTEGER): External job ID (may be NULL if extraction fails)
-\item \code{path} (TEXT): Path to the Monolix/Simulx file
-\item \code{data_file} (TEXT): Path to the data file
-\item \code{model_file} (TEXT): Path to the model file
+\item \code{project_file_id} (INTEGER): Foreign key to file table for project file
+\item \code{data_file_id} (INTEGER): Foreign key to file table for data file
+\item \code{model_file_id} (INTEGER): Foreign key to file table for model file
 \item \code{thread} (INTEGER): Number of threads used by grid jobs
 \item \code{tool} (TEXT): Tool to launch assessment
 \item \code{mode} (TEXT): Console mode
@@ -37,20 +37,19 @@ This function creates three tables with the following schema:
 \item \code{completed_at} (TIMESTAMP): Job completion timestamp (NULL until completed)
 }
 
-\strong{input_files}:
+\strong{file}:
 \itemize{
-\item \code{run_id} (INTEGER): Foreign key to runs
-\item \code{file_path} (TEXT): Path to the input file
-\item \code{file_timestamp} (TIMESTAMP): File modification timestamp
-\item \code{md5_checksum} (TEXT): MD5 hash of the file
-\item \code{recorded_at} (TIMESTAMP): When the record was created
+\item \code{id} (INTEGER PRIMARY KEY): Auto-generated unique file identifier
+\item \code{path} (TEXT): Full path to the file
+\item \code{name} (TEXT): File name (basename)
 }
 
-\strong{output_files}:
+\strong{run_file}:
 \itemize{
-\item \code{run_id} (INTEGER): Foreign key to runs
-\item \code{file_path} (TEXT): Path to the output file
-\item \code{file_timestamp} (TIMESTAMP): File modification timestamp
+\item \code{run_id} (INTEGER): Foreign key to run table
+\item \code{file_id} (INTEGER): Foreign key to file table
+\item \code{io_type} (TEXT): Type of file relation (project, input, output)
+\item \code{timestamp} (TIMESTAMP): File modification timestamp
 \item \code{md5_checksum} (TEXT): MD5 hash of the file
 \item \code{recorded_at} (TIMESTAMP): When the record was created
 }
