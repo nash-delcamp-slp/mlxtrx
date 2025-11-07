@@ -69,6 +69,8 @@ check_config_ini <- function(
 
   if (!file.exists(ini_path)) {
     stop("config.ini file not found for cmd: ", cmd, call. = FALSE)
+  } else {
+    message("Identified config.ini file at: ", ini_path)
   }
 
   # Parse the ini file to extract sections and settings
