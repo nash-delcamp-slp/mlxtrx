@@ -8,7 +8,10 @@ runs_table(
   db_conn = default_db_conn(),
   format = "gt",
   output_file = NULL,
-  include_files = FALSE
+  include_files = FALSE,
+  ignore_failed_runs = FALSE,
+  latest_only = FALSE,
+  include_summary = FALSE
 )
 }
 \arguments{
@@ -22,6 +25,15 @@ Either \code{"gt"} for a formatted gt table (default) or \code{"csv"} for a data
 
 \item{include_files}{Logical scalar. Whether to include details about input and
 output files in the table. Default is \code{FALSE}.}
+
+\item{ignore_failed_runs}{Logical scalar. Whether to exclude runs where
+\code{completed_at} is missing (i.e., failed or incomplete runs). Default is \code{FALSE}.}
+
+\item{latest_only}{Logical scalar. Whether to return only the latest run for
+each project file. Default is \code{FALSE}.}
+
+\item{include_summary}{Logical scalar. Whether to include information from the
+summary.txt file. Default is \code{FALSE}.}
 }
 \value{
 When \code{format = "gt"}, returns a \code{gt_tbl} object. When \code{format = "csv"}
@@ -41,6 +53,15 @@ runs_table()
 
 # Table with input/output file information
 runs_table(include_files = TRUE)
+
+# Table excluding failed runs
+runs_table(ignore_failed_runs = TRUE)
+
+# Table showing only latest run per project file
+runs_table(latest_only = TRUE)
+
+# Table with summary.txt fields
+runs_table(include_summary = TRUE)
 
 # Export to CSV
 runs_table(format = "csv", output_file = "runs_summary.csv")

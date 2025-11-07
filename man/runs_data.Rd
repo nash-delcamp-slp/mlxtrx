@@ -4,7 +4,13 @@
 \alias{runs_data}
 \title{Extract data about executed Monolix runs}
 \usage{
-runs_data(db_conn = default_db_conn(), include_files = FALSE)
+runs_data(
+  db_conn = default_db_conn(),
+  include_files = FALSE,
+  ignore_failed_runs = FALSE,
+  latest_only = FALSE,
+  include_summary = FALSE
+)
 }
 \arguments{
 \item{db_conn}{A database connection object inheriting from \code{DBIObject}.
@@ -12,6 +18,15 @@ Defaults to a connection created by \code{default_db_conn()}.}
 
 \item{include_files}{Logical scalar. Whether to include details about input and
 output files in the data. Default is \code{FALSE}.}
+
+\item{ignore_failed_runs}{Logical scalar. Whether to exclude runs where
+\code{completed_at} is missing (i.e., failed or incomplete runs). Default is \code{FALSE}.}
+
+\item{latest_only}{Logical scalar. Whether to return only the latest run for
+each project file. Default is \code{FALSE}.}
+
+\item{include_summary}{Logical scalar. Whether to include information from the
+summary.txt file. Default is \code{FALSE}.}
 }
 \value{
 A data frame with run information. Contains columns: \code{run_id}, \code{job_id},
@@ -19,6 +34,7 @@ A data frame with run information. Contains columns: \code{run_id}, \code{job_id
 \code{config}, \code{cmd}, \code{project_file_timestamp}, \code{project_file_md5_checksum},
 \code{submitted_at}, \code{completed_at}.
 When \code{include_files = TRUE}, additionally contains file details.
+When \code{include_summary = TRUE}, additionally contains run summary from summary.txt.
 }
 \description{
 Queries the database to retrieve information about Monolix jobs that have
