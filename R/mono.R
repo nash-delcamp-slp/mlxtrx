@@ -237,14 +237,14 @@ mono <- function(
       db_conn,
       "INSERT INTO run (job_id, project_file_id, data_file_id, model_file_id, thread, tool, mode, config, cmd, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       params = list(
-        if (is.na(job_ids[i])) NA_real_ else job_ids[i],
+        if (is.na(job_ids[i])) NA_integer_ else job_ids[i],
         project_file_id,
-        data_file_id,
-        model_file_id,
-        if (!is.null(thread_recycled)) thread_recycled[i] else NA_integer_,
-        if (!is.null(tool_recycled)) tool_recycled[i] else NA_character_,
-        if (!is.null(mode_recycled)) mode_recycled[i] else NA_character_,
-        if (!is.null(config_file)) config_file else NA_character_,
+        data_file_id %||% NA_integer_,
+        model_file_id %||% NA_integer_,
+        thread_recycled[i] %||% NA_integer_,
+        tool_recycled[i] %||% NA_character_,
+        mode_recycled[i] %||% NA_character_,
+        config_file %||% NA_character_,
         cmd_recycled[i],
         submission_times[i]
       )
@@ -530,6 +530,13 @@ monitor_jobs <- function(
               )
             }
           }
+        }
+
+        # Parse and record summary data if available
+        summary_file <- handler$get_summary_file_path(path[i], output_dir[i])
+        if (file.exists(summary_file)) {
+          parsed_summary <- handler$parse_summary(summary_file)
+          record_summary_data(run_id[i], parsed_summary, db_conn)
         }
 
         # Update job completion time

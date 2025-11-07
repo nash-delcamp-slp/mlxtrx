@@ -18,6 +18,7 @@ Monolix file handler
 \item \href{#method-MonolixHandler-parse_file}{\code{MonolixHandler$parse_file()}}
 \item \href{#method-MonolixHandler-get_input_files}{\code{MonolixHandler$get_input_files()}}
 \item \href{#method-MonolixHandler-get_output_dir}{\code{MonolixHandler$get_output_dir()}}
+\item \href{#method-MonolixHandler-parse_summary}{\code{MonolixHandler$parse_summary()}}
 \item \href{#method-MonolixHandler-clone}{\code{MonolixHandler$clone()}}
 }
 }
@@ -25,6 +26,7 @@ Monolix file handler
 <details open><summary>Inherited methods</summary>
 <ul>
 <li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="can_monitor"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-can_monitor'><code>mlxtrx::FileHandler$can_monitor()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="get_summary_file_path"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-get_summary_file_path'><code>mlxtrx::FileHandler$get_summary_file_path()</code></a></span></li>
 </ul>
 </details>
 }}
@@ -79,6 +81,23 @@ Get expected output directory
 \item{\code{path}}{Path to project file}
 
 \item{\code{output_dir}}{User-specified output directory (may be NULL)}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MonolixHandler-parse_summary"></a>}}
+\if{latex}{\out{\hypertarget{method-MonolixHandler-parse_summary}{}}}
+\subsection{Method \code{parse_summary()}}{
+Parse Monolix summary file
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MonolixHandler$parse_summary(summary_file_path)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{summary_file_path}}{Path to summary.txt file}
 }
 \if{html}{\out{</div>}}
 }

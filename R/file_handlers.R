@@ -26,6 +26,20 @@ FileHandler <- R6::R6Class(
     #' @description Check if job monitoring is supported
     can_monitor = function() {
       TRUE
+    },
+
+    #' @description Parse summary file
+    #' @param summary_file_path Path to summary.txt file
+    parse_summary = function(summary_file_path) {
+      NULL
+    },
+
+    #' @description Get path to summary file
+    #' @param project_path Path to project file
+    #' @param output_dir Optional output directory override
+    get_summary_file_path = function(project_path, output_dir = NULL) {
+      output_dir_resolved <- self$get_output_dir(project_path, output_dir)
+      file.path(output_dir_resolved, "summary.txt")
     }
   )
 )
@@ -126,6 +140,173 @@ MonolixHandler <- R6::R6Class(
       current_output_dir <- output_dir %||%
         path_based_output_dir
       resolve_output_dir(path = path, output_dir = current_output_dir)
+    },
+
+    #' @description Parse Monolix summary file
+    #' @param summary_file_path Path to summary.txt file
+    parse_summary = function(summary_file_path) {
+      if (!file.exists(summary_file_path)) {
+        return(NULL)
+      }
+
+      tryCatch(
+        {
+          summary_lines <- readLines(summary_file_path)
+
+          # Initialize summary data structure
+          summary_data <- list(
+            summary_stats = list(
+              exploratory_iterations = NA_integer_,
+              smoothing_iterations = NA_integer_,
+              fisher_matrix_estimation = FALSE,
+              eigenvalue_min = NA_real_,
+              eigenvalue_max = NA_real_,
+              ofv = NA_real_,
+              aic = NA_real_,
+              bicc = NA_real_,
+              bic = NA_real_,
+              n_individuals = NA_integer_,
+              n_doses = NA_integer_
+            ),
+
+            # Flexible observations data
+            observations = list()
+          )
+
+          # Parse iterations
+          exp_match <- stringr::str_extract(
+            summary_lines,
+            "(Exploratory phase iterations\\s*:\\s*)(\\d*)",
+            group = 2
+          )
+          summary_data$summary_stats$exploratory_iterations <- as.integer(exp_match[
+            !is.na(exp_match)
+          ][1])
+
+          smooth_match <- stringr::str_extract(
+            summary_lines,
+            "(Smoothing phase iterations\\s*:\\s*)(\\d+)",
+            group = 2
+          )
+          summary_data$summary_stats$smoothing_iterations <- as.integer(smooth_match[
+            !is.na(smooth_match)
+          ][1])
+
+          # Check for Fisher matrix estimation
+          fisher_line <- any(stringr::str_detect(
+            summary_lines,
+            "ESTIMATION OF THE FISHER INFORMATION MATRIX"
+          ))
+          summary_data$summary_stats$fisher_matrix_estimation <- fisher_line
+
+          # Parse eigenvalues if Fisher matrix exists
+          if (fisher_line) {
+            eigen_lines <- summary_lines[stringr::str_detect(
+              summary_lines,
+              "Eigen values"
+            )]
+            if (length(eigen_lines) > 0) {
+              eigen_numbers <- stringr::str_extract_all(
+                eigen_lines[1],
+                "\\d+\\.?\\d*"
+              )[[1]]
+              if (length(eigen_numbers) >= 2) {
+                summary_data$summary_stats$eigenvalue_min <- as.numeric(eigen_numbers[
+                  1
+                ])
+                summary_data$summary_stats$eigenvalue_max <- as.numeric(eigen_numbers[
+                  2
+                ])
+              }
+            }
+          }
+
+          # Parse statistical criteria
+          ofv_match <- stringr::str_extract(
+            summary_lines,
+            "(-2 x log-likelihood\\s*\\(OFV\\)\\s*:\\s*)([-+]?\\d*\\.?\\d+)",
+            group = 2
+          )
+          summary_data$summary_stats$ofv <- as.numeric(ofv_match[
+            !is.na(ofv_match)
+          ][1])
+
+          aic_match <- stringr::str_extract(
+            summary_lines,
+            "(Akaike Information Criteria\\s*\\(AIC\\)\\s*:\\s*)([-+]?\\d*\\.?\\d+)",
+            group = 2
+          )
+          summary_data$summary_stats$aic <- as.numeric(aic_match[
+            !is.na(aic_match)
+          ][1])
+
+          bicc_match <- stringr::str_extract(
+            summary_lines,
+            "(Corrected Bayesian Information Criteria\\s*\\(BICc\\)\\s*:\\s*)([-+]?\\d*\\.?\\d+)",
+            group = 2
+          )
+          summary_data$summary_stats$bicc <- as.numeric(bicc_match[
+            !is.na(bicc_match)
+          ][1])
+
+          bic_match <- stringr::str_extract(
+            summary_lines,
+            "(Bayesian Information Criteria\\s*\\(BIC\\)\\s*:\\s*)([-+]?\\d*\\.?\\d+)",
+            group = 2
+          )
+          summary_data$summary_stats$bic <- as.numeric(bic_match[
+            !is.na(bic_match)
+          ][1])
+
+          # Parse dataset information
+          indiv_match <- stringr::str_extract(
+            summary_lines,
+            "(Number of individuals\\s*:\\s*)(\\d+)",
+            group = 2
+          )
+          summary_data$summary_stats$n_individuals <- as.integer(indiv_match[
+            !is.na(indiv_match)
+          ][1])
+
+          doses_match <- stringr::str_extract(
+            summary_lines,
+            "(Number of doses\\s*:\\s*)(\\d+)",
+            group = 2
+          )
+          summary_data$summary_stats$n_doses <- as.integer(doses_match[
+            !is.na(doses_match)
+          ][1])
+
+          # Parse observations
+          obs_lines <- summary_lines[stringr::str_detect(
+            summary_lines,
+            "Number of observations"
+          )]
+
+          for (obs_line in obs_lines) {
+            obs_match <- stringr::str_match(
+              obs_line,
+              "Number of observations\\s*\\((.+?)\\):\\s*(\\d+)"
+            )
+            if (!is.na(obs_match[1])) {
+              obs_type <- stringr::str_trim(obs_match[2])
+              obs_count <- as.integer(obs_match[3])
+              summary_data$observations[[obs_type]] <- obs_count
+            }
+          }
+
+          return(summary_data)
+        },
+        error = function(e) {
+          warning(
+            "Failed to parse summary file ",
+            summary_file_path,
+            ": ",
+            e$message
+          )
+          return(NULL)
+        }
+      )
     }
   )
 )

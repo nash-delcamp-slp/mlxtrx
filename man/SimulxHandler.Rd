@@ -25,6 +25,8 @@ Simulx file handler
 <details open><summary>Inherited methods</summary>
 <ul>
 <li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="can_monitor"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-can_monitor'><code>mlxtrx::FileHandler$can_monitor()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="get_summary_file_path"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-get_summary_file_path'><code>mlxtrx::FileHandler$get_summary_file_path()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_summary"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-parse_summary'><code>mlxtrx::FileHandler$parse_summary()</code></a></span></li>
 </ul>
 </details>
 }}

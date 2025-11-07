@@ -22,6 +22,14 @@ Generic file handler for unknown file types
 \item \href{#method-GenericHandler-clone}{\code{GenericHandler$clone()}}
 }
 }
+\if{html}{\out{
+<details open><summary>Inherited methods</summary>
+<ul>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="get_summary_file_path"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-get_summary_file_path'><code>mlxtrx::FileHandler$get_summary_file_path()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_summary"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-parse_summary'><code>mlxtrx::FileHandler$parse_summary()</code></a></span></li>
+</ul>
+</details>
+}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-GenericHandler-parse_file"></a>}}
 \if{latex}{\out{\hypertarget{method-GenericHandler-parse_file}{}}}

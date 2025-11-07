@@ -19,7 +19,7 @@ files, and their relationships. Tables are created only if they don't
 already exist.
 }
 \details{
-This function creates three tables with the following schema:
+This function creates five tables with the following schema:
 
 \strong{run}:
 \itemize{
@@ -52,6 +52,30 @@ This function creates three tables with the following schema:
 \item \code{timestamp} (TIMESTAMP): File modification timestamp
 \item \code{md5_checksum} (TEXT): MD5 hash of the file
 \item \code{recorded_at} (TIMESTAMP): When the record was created
+}
+
+\strong{run_summary}:
+\itemize{
+\item \code{run_id} (INTEGER PRIMARY KEY): Foreign key to run table
+\item \code{exploratory_iterations} (INTEGER): Number of exploratory phase iterations
+\item \code{smoothing_iterations} (INTEGER): Number of smoothing phase iterations
+\item \code{fisher_matrix_estimation} (BOOLEAN): Whether Fisher matrix estimation was successful
+\item \code{eigenvalue_min} (INTEGER): Minimum eigenvalue from Fisher matrix
+\item \code{eigenvalue_max} (INTEGER): Maximum eigenvalue from Fisher matrix
+\item \code{ofv} (REAL): -2 x log-likelihood (Objective Function Value)
+\item \code{aic} (REAL): Akaike Information Criteria
+\item \code{bicc} (REAL): Corrected Bayesian Information Criteria
+\item \code{bic} (REAL): Bayesian Information Criteria
+\item \code{n_individuals} (INTEGER): Total number of individuals
+\item \code{n_doses} (INTEGER): Total number of doses
+\item \code{summary_extracted_at} (TIMESTAMP): When summary data was extracted
+}
+
+\strong{run_observations}:
+\itemize{
+\item \code{run_id} (INTEGER): Foreign key to run table
+\item \code{obs_type} (TEXT): Observation type identifier (e.g., "Y", "CONC", "obsid 1_Cp")
+\item \code{n_observations} (INTEGER): Number of observations for this type
 }
 }
 \keyword{internal}

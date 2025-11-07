@@ -94,7 +94,7 @@ default_db_conn <- function(db = default_db()) {
 #' @return NULL (invisible). Called for side effects.
 #'
 #' @details
-#' This function creates three tables with the following schema:
+#' This function creates five tables with the following schema:
 #'
 #' \strong{run}:
 #' \itemize{
@@ -127,6 +127,30 @@ default_db_conn <- function(db = default_db()) {
 #'   \item `timestamp` (TIMESTAMP): File modification timestamp
 #'   \item `md5_checksum` (TEXT): MD5 hash of the file
 #'   \item `recorded_at` (TIMESTAMP): When the record was created
+#' }
+#'
+#' \strong{run_summary}:
+#' \itemize{
+#'   \item `run_id` (INTEGER PRIMARY KEY): Foreign key to run table
+#'   \item `exploratory_iterations` (INTEGER): Number of exploratory phase iterations
+#'   \item `smoothing_iterations` (INTEGER): Number of smoothing phase iterations
+#'   \item `fisher_matrix_estimation` (BOOLEAN): Whether Fisher matrix estimation was successful
+#'   \item `eigenvalue_min` (INTEGER): Minimum eigenvalue from Fisher matrix
+#'   \item `eigenvalue_max` (INTEGER): Maximum eigenvalue from Fisher matrix
+#'   \item `ofv` (REAL): -2 x log-likelihood (Objective Function Value)
+#'   \item `aic` (REAL): Akaike Information Criteria
+#'   \item `bicc` (REAL): Corrected Bayesian Information Criteria
+#'   \item `bic` (REAL): Bayesian Information Criteria
+#'   \item `n_individuals` (INTEGER): Total number of individuals
+#'   \item `n_doses` (INTEGER): Total number of doses
+#'   \item `summary_extracted_at` (TIMESTAMP): When summary data was extracted
+#' }
+#'
+#' \strong{run_observations}:
+#' \itemize{
+#'   \item `run_id` (INTEGER): Foreign key to run table
+#'   \item `obs_type` (TEXT): Observation type identifier (e.g., "Y", "CONC", "obsid 1_Cp")
+#'   \item `n_observations` (INTEGER): Number of observations for this type
 #' }
 #'
 #' @keywords internal
@@ -194,6 +218,41 @@ db_create_tables <- function(db_conn = default_db_conn()) {
       PRIMARY KEY (run_id, file_id, io_type),
       FOREIGN KEY (run_id) REFERENCES run (run_id),
       FOREIGN KEY (file_id) REFERENCES file (id)
+    )"
+  )
+
+  # Create run_summary table for Monolix summary statistics
+  DBI::dbExecute(
+    db_conn,
+    "
+    CREATE TABLE IF NOT EXISTS run_summary (
+      run_id INTEGER PRIMARY KEY,
+      exploratory_iterations INTEGER,
+      smoothing_iterations INTEGER,
+      fisher_matrix_estimation BOOLEAN DEFAULT FALSE,
+      eigenvalue_min INTEGER,
+      eigenvalue_max INTEGER,
+      ofv REAL, -- -2 x log-likelihood (OFV)
+      aic REAL, -- Akaike Information Criteria
+      bicc REAL, -- Corrected Bayesian Information Criteria
+      bic REAL, -- Bayesian Information Criteria
+      n_individuals INTEGER,
+      n_doses INTEGER,
+      summary_extracted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (run_id) REFERENCES run (run_id)
+    )"
+  )
+
+  # Create run_observations table for flexible observation counts
+  DBI::dbExecute(
+    db_conn,
+    "
+    CREATE TABLE IF NOT EXISTS run_observations (
+      run_id INTEGER NOT NULL,
+      obs_type TEXT NOT NULL,
+      n_observations INTEGER NOT NULL,
+      PRIMARY KEY (run_id, obs_type),
+      FOREIGN KEY (run_id) REFERENCES run (run_id)
     )"
   )
 }
@@ -318,4 +377,77 @@ get_run_files <- function(run_id, db_conn = default_db_conn()) {
       recorded_at = as.POSIXct(.data[["recorded_at"]], tz = "UTC") |>
         lubridate::with_tz(Sys.timezone())
     )
+}
+
+#' Record summary data in database
+#'
+#' Takes parsed summary data from a FileHandler and records it in the
+#' run_summary and run_observations tables.
+#'
+#' @param run_id Integer scalar. The run_id to associate with this summary.
+#' @param summary_data List. Parsed summary data from FileHandler$parse_summary().
+#' @param db_conn Database connection object.
+#'
+#' @return NULL (invisible). Called for side effects.
+#'
+#' @keywords internal
+record_summary_data <- function(run_id, summary_data, db_conn) {
+  if (is.null(summary_data)) {
+    return(invisible(NULL))
+  }
+
+  tryCatch(
+    {
+      # Record summary statistics
+      if (!is.null(summary_data$summary_stats)) {
+        stats <- summary_data$summary_stats
+        stats$run_id <- run_id
+
+        DBI::dbExecute(
+          db_conn,
+          "INSERT INTO run_summary (run_id, exploratory_iterations, smoothing_iterations, fisher_matrix_estimation, eigenvalue_min, eigenvalue_max, ofv, aic, bicc, bic, n_individuals, n_doses) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          params = unname(stats[c(
+            "run_id",
+            "exploratory_iterations",
+            "smoothing_iterations",
+            "fisher_matrix_estimation",
+            "eigenvalue_min",
+            "eigenvalue_max",
+            "ofv",
+            "aic",
+            "bicc",
+            "bic",
+            "n_individuals",
+            "n_doses"
+          )])
+        )
+      }
+
+      # Record observations
+      if (
+        !is.null(summary_data$observations) &&
+          length(summary_data$observations) > 0
+      ) {
+        for (obs_type in names(summary_data$observations)) {
+          obs_count <- summary_data$observations[[obs_type]]
+
+          DBI::dbExecute(
+            db_conn,
+            "INSERT INTO run_observations (run_id, obs_type, n_observations) VALUES (?, ?, ?)",
+            params = list(run_id, obs_type, obs_count)
+          )
+        }
+      }
+    },
+    error = function(e) {
+      warning(
+        "Failed to record summary data for run_id ",
+        run_id,
+        ": ",
+        e$message
+      )
+    }
+  )
+
+  invisible(NULL)
 }
