@@ -7,7 +7,7 @@
 #' @param cmd Monolix or Simulx command being executed. Defaults to `"mono24"`
 #' @param offer_fix Whether to offer interactive fixes. Defaults to `interactive()`
 #'
-#' @return Invisibly returns TRUE if all settings are present
+#' @return Returns TRUE if all settings are present
 #' @export
 #'
 #' @examples
@@ -102,7 +102,7 @@ check_config_ini <- function(
   }
 
   if (length(missing_settings) == 0 && length(incorrect_settings) == 0) {
-    return(invisible(TRUE))
+    return(TRUE)
   }
 
   # Create error message for missing/incorrect settings
@@ -161,7 +161,7 @@ check_config_ini <- function(
     file.copy(temp_file, ini_path, overwrite = TRUE)
     cat("config.ini file updated.\n")
 
-    return(invisible(TRUE))
+    return(TRUE)
   } else {
     cat("File not modified. You can manually copy from:", temp_file, "\n")
     stop(error_msg, call. = FALSE)

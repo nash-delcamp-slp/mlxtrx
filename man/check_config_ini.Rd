@@ -15,7 +15,7 @@ check_config_ini(
 \item{offer_fix}{Whether to offer interactive fixes. Defaults to \code{interactive()}}
 }
 \value{
-Invisibly returns TRUE if all settings are present
+Returns TRUE if all settings are present
 }
 \description{
 Checks if the relevant config.ini file contains required export settings
