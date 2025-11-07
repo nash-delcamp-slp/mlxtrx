@@ -496,6 +496,13 @@ monitor_jobs <- function(
 
         # Record output files information
         if (dir.exists(current_output_dir)) {
+          # Get submission time for this run
+          submission_time <- DBI::dbGetQuery(
+            db_conn,
+            "SELECT submitted_at FROM run WHERE run_id = ?",
+            params = list(run_id[i])
+          )$submitted_at[1]
+
           output_files <- list.files(
             current_output_dir,
             full.names = TRUE,
@@ -505,6 +512,12 @@ monitor_jobs <- function(
           for (output_file in output_files) {
             if (file.exists(output_file) && !dir.exists(output_file)) {
               output_timestamp <- get_file_timestamp(output_file)
+
+              # Skip files that weren't modified after job submission
+              if (output_timestamp < submission_time) {
+                next
+              }
+
               output_md5 <- calculate_md5(output_file)
 
               # Track the latest modification time
