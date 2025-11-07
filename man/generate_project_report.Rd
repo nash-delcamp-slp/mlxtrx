@@ -8,6 +8,7 @@ generate_project_report(
   directory = ".",
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
+  output_files = NULL,
   db_conn = default_db_conn()
 )
 }
@@ -20,6 +21,10 @@ checks all runs.}
 \item{ext}{Character vector. File extensions to consider as
 project files. Defaults to c("mlxtran", "smlx").}
 
+\item{output_files}{Character vector. Optional output file paths to validate
+alignment with latest runs. If NULL (default), no output file alignment
+check is performed.}
+
 \item{db_conn}{A database connection object inheriting from \code{DBIObject}.
 Defaults to a connection created by \code{default_db_conn()}.}
 }
@@ -31,6 +36,7 @@ A list with components:
 \item \code{project_file_status}: Results from check_project_file_status()
 \item \code{input_file_status}: Results from check_input_file_status()
 \item \code{output_file_status}: Results from check_output_file_status()
+\item \code{output_files_alignment}: Results from check_output_files() (if output_files provided)
 \item \code{timestamp}: When the report was generated
 }
 }

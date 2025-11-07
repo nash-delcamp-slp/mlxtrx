@@ -8,6 +8,7 @@ print_report_summary(
   directory = ".",
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
+  output_files = NULL,
   db_conn = default_db_conn()
 )
 }
@@ -19,6 +20,10 @@ checks all runs.}
 
 \item{ext}{Character vector. File extensions to consider as
 project files. Defaults to c("mlxtran", "smlx").}
+
+\item{output_files}{Character vector. Optional output file paths to validate
+alignment with latest runs. If NULL (default), no output file alignment
+section is included in the report.}
 
 \item{db_conn}{A database connection object inheriting from \code{DBIObject}.
 Defaults to a connection created by \code{default_db_conn()}.}
