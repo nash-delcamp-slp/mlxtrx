@@ -20,7 +20,8 @@ check_config_ini <- function(
 ) {
   required_settings <- list(
     "exportChartsData" = "true",
-    "export-charts-datasets" = "true"
+    "export-charts-datasets" = "true",
+    "exportVPCSimulations" = "true"
   )
 
   cmd_ext <- fs::path_ext(cmd)

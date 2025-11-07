@@ -32,7 +32,8 @@
 #'   Defaults to a connection created by `default_db_conn()`.
 #' @param require_charts_data A logical indicating whether charts data must
 #'   be exported. This requires the relevant config.ini file includes options
-#'   `"exportChartsData" = "true"` and `"export-charts-datasets" = "true"`.
+#'   `exportChartsData=true`, `export-charts-datasets=true`, and
+#'   `exportVPCSimulations=true`.
 #'
 #' @return Integer vector. Returns the run IDs for all submitted jobs.
 #'

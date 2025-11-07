@@ -64,7 +64,8 @@ Defaults to a connection created by \code{default_db_conn()}.}
 
 \item{require_charts_data}{A logical indicating whether charts data must
 be exported. This requires the relevant config.ini file includes options
-\code{"exportChartsData" = "true"} and \code{"export-charts-datasets" = "true"}.}
+\code{exportChartsData=true}, \code{export-charts-datasets=true}, and
+\code{exportVPCSimulations=true}.}
 }
 \value{
 Integer vector. Returns the run IDs for all submitted jobs.
