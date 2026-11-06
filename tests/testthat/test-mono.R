@@ -138,3 +138,43 @@ test_that("mono() writes only to the store", {
   )
   expect_length(found, 0L)
 })
+
+test_that("a failing project stops the batch before it is submitted", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  # A data path that is a folder cannot be hashed.
+  data_b <- file.path(e$substage, "b", "theoph", "data", "theoph.csv")
+  unlink(data_b)
+  dir.create(data_b)
+  expect_error(
+    suppressMessages(mono(e$paths, store = e$store, require_charts_data = FALSE)),
+    "Runs already submitted: "
+  )
+  expect_equal(readLines(file.path(e$fake, "next_job")), "2")
+  runs <- store_read(e$store)$runs
+  expect_equal(nrow(runs), 1L)
+  expect_equal(runs$state, "unrecorded")
+  expect_length(list.files(file.path(e$store, "runs")), 1L)
+})
+
+test_that("a failed completion warns and the other runs are recorded", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  real <- record_completion
+  calls <- 0L
+  local_mocked_bindings(record_completion = function(run_dir, store, ...) {
+    calls <<- calls + 1L
+    if (calls == 1L) stop("disk full")
+    real(run_dir, store, ...)
+  })
+  w <- expect_warning(
+    suppressMessages(
+      ids <- mono(e$paths, store = e$store, require_charts_data = FALSE)
+    ),
+    "disk full"
+  )
+  expect_match(conditionMessage(w), ids[1], fixed = TRUE)
+  runs <- store_read(e$store)$runs
+  expect_equal(runs$state[runs$run_id == ids[1]], "unrecorded")
+  expect_equal(runs$state[runs$run_id == ids[2]], "recorded")
+})

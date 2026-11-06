@@ -41,13 +41,17 @@
 #' @details
 #' Jobs are submitted one at a time. For each job, this function:
 #' \enumerate{
+#'   \item Records the project and input files (path, SHA-256, size,
+#'     modification time) and the settings passed to the command, and creates
+#'     a run folder `<store>/runs/<run_id>/`
 #'   \item Submits the job using `system2()` and extracts the job ID from the
 #'     submission output
-#'   \item Creates a run folder `<store>/runs/<run_id>/` and writes `run.json`
-#'     straight away: the project and input files (path, SHA-256, size,
-#'     modification time), the settings passed to the command, the command,
+#'   \item Writes `run.json` straight away: the records above, the command,
 #'     job ID, software version, submission time and output, user and host
 #' }
+#'
+#' If a step fails, no further jobs are submitted and the error names the
+#' runs already submitted.
 #'
 #' A submission that yields no job ID and no local result is recorded with
 #' `submission.ok = false` and is not monitored.
@@ -129,49 +133,69 @@ mono <- function(
   run_dirs <- character(length(path))
   job_ids <- rep(NA_integer_, length(path))
 
-  for (i in seq_along(path)) {
-    submitted_at <- Sys.time()
-    submission <- execute_job(
-      path = path[i],
-      output_dir = output_dir_recycled[i],
-      thread = thread_recycled[i],
-      tool = tool_recycled[i],
-      mode = mode_recycled[i],
-      config = config_recycled[i],
-      cmd = cmd_recycled[i]
-    )
-    job_ids[i] <- submission$job_id
+  submitted <- 0L
+  tryCatch(
+    for (i in seq_along(path)) {
+      # Everything that reads the project or the store happens before the
+      # submission, so a failure here stops the batch before this job runs.
+      project <- file_record(path[i], root)
+      inputs <- input_records(path[i], root)
+      settings <- list(
+        output_dir = output_dir_recycled[i],
+        thread = thread_recycled[i],
+        tool = tool_recycled[i],
+        mode = mode_recycled[i],
+        config = resolve_config_path(config_recycled[i], path[i])
+      )
+      run <- store_create_run(store)
 
-    run <- store_create_run(store, submitted_at)
-    run_ids[i] <- run$run_id
-    run_dirs[i] <- run$run_dir
+      submitted_at <- Sys.time()
+      submission <- execute_job(
+        path = path[i],
+        output_dir = output_dir_recycled[i],
+        thread = thread_recycled[i],
+        tool = tool_recycled[i],
+        mode = mode_recycled[i],
+        config = config_recycled[i],
+        cmd = cmd_recycled[i]
+      )
+      submitted <- i
+      run_ids[i] <- run$run_id
+      run_dirs[i] <- run$run_dir
+      job_ids[i] <- submission$job_id
 
-    store_write_json(
-      list(
-        schema = 1L,
-        run_id = run$run_id,
-        launcher = "cli",
-        project = file_record(path[i], root),
-        inputs = input_records(path[i], root),
-        settings = list(
-          output_dir = output_dir_recycled[i],
-          thread = thread_recycled[i],
-          tool = tool_recycled[i],
-          mode = mode_recycled[i],
-          config = resolve_config_path(config_recycled[i], path[i])
+      store_write_json(
+        list(
+          schema = 1L,
+          run_id = run$run_id,
+          launcher = "cli",
+          project = project,
+          inputs = inputs,
+          settings = settings,
+          cmd = cmd_recycled[i],
+          job_id = if (is.na(submission$job_id)) NULL else submission$job_id,
+          software_version = na_to_null(cmd_software_version(cmd_recycled[i])),
+          submitted_at = format_utc(submitted_at),
+          submission = list(ok = submission$ok, output = I(submission$output)),
+          user = Sys.info()[["user"]],
+          host = Sys.info()[["nodename"]],
+          mlxtrx_version = as.character(utils::packageVersion("mlxtrx"))
         ),
-        cmd = cmd_recycled[i],
-        job_id = if (is.na(submission$job_id)) NULL else submission$job_id,
-        software_version = na_to_null(cmd_software_version(cmd_recycled[i])),
-        submitted_at = format_utc(submitted_at),
-        submission = list(ok = submission$ok, output = I(submission$output)),
-        user = Sys.info()[["user"]],
-        host = Sys.info()[["nodename"]],
-        mlxtrx_version = as.character(utils::packageVersion("mlxtrx"))
-      ),
-      file.path(run$run_dir, "run.json")
-    )
-  }
+        file.path(run$run_dir, "run.json")
+      )
+    },
+    error = function(e) {
+      if (submitted == 0L) {
+        stop(e)
+      }
+      stop(
+        conditionMessage(e),
+        "\nRuns already submitted: ",
+        paste(run_ids[seq_len(submitted)], collapse = ", "),
+        call. = FALSE
+      )
+    }
+  )
 
   monitor_jobs(
     path = path,
@@ -334,7 +358,8 @@ execute_job <- function(
 #' its completion in the run store with `record_completion()`. A job with a
 #' job ID has finished when it is no longer in the queue; a job without one
 #' has finished when its `summary.txt` exists. Runs whose submission failed
-#' are skipped.
+#' are skipped. A run whose completion cannot be recorded gives a warning
+#' naming it, and the other runs are still monitored and recorded.
 #'
 #' @param path Character vector. Paths to Monolix project files.
 #' @param run_id Character vector. Run IDs.
@@ -415,7 +440,18 @@ monitor_jobs <- function(
     }
 
     for (i in completed_now) {
-      record_completion(run_dir[i], store)
+      tryCatch(
+        record_completion(run_dir[i], store),
+        error = function(e) {
+          warning(
+            "Could not record completion of run ",
+            run_id[i],
+            ": ",
+            conditionMessage(e),
+            call. = FALSE
+          )
+        }
+      )
     }
     running_jobs <- setdiff(running_jobs, completed_now)
 

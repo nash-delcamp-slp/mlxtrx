@@ -78,13 +78,17 @@ records each run in the run store.
 \details{
 Jobs are submitted one at a time. For each job, this function:
 \enumerate{
+\item Records the project and input files (path, SHA-256, size,
+modification time) and the settings passed to the command, and creates
+a run folder \verb{<store>/runs/<run_id>/}
 \item Submits the job using \code{system2()} and extracts the job ID from the
 submission output
-\item Creates a run folder \verb{<store>/runs/<run_id>/} and writes \code{run.json}
-straight away: the project and input files (path, SHA-256, size,
-modification time), the settings passed to the command, the command,
+\item Writes \code{run.json} straight away: the records above, the command,
 job ID, software version, submission time and output, user and host
 }
+
+If a step fails, no further jobs are submitted and the error names the
+runs already submitted.
 
 A submission that yields no job ID and no local result is recorded with
 \code{submission.ok = false} and is not monitored.

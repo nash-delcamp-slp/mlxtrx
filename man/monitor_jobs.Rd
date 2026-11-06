@@ -29,6 +29,7 @@ Polls every 5 seconds until each submitted job has finished, then records
 its completion in the run store with \code{record_completion()}. A job with a
 job ID has finished when it is no longer in the queue; a job without one
 has finished when its \code{summary.txt} exists. Runs whose submission failed
-are skipped.
+are skipped. A run whose completion cannot be recorded gives a warning
+naming it, and the other runs are still monitored and recorded.
 }
 \keyword{internal}
