@@ -51,7 +51,7 @@ read_run_folder <- function(run_dir, root) {
     "unrecorded"
   } else if (!attempt$has_done) {
     "completion_crashed"
-  } else if (attempt$n > 1L || isTRUE(attempt$done$recorded_late)) {
+  } else if (isTRUE(attempt$done$recorded_late)) {
     "recorded_late"
   } else {
     "recorded"
@@ -68,12 +68,16 @@ read_run_folder <- function(run_dir, root) {
     }
     NA_character_
   }
+  if (is.null(project$path)) {
+    stop("run.json has no project path", call. = FALSE)
+  }
   project_path <- path_from_record(project, root)
 
   late_flags <- vapply(
     done$late_flags %||% list(),
-    function(p) path_from_record(list(path = p), root),
-    character(1)
+    path_from_record,
+    character(1),
+    root = root
   )
 
   row <- list(
@@ -105,10 +109,12 @@ read_run_folder <- function(run_dir, root) {
     project_file_sha256 = scalar_chr(project$sha256)
   )
 
+  row <- check_scalars(row, skip = "late_flags")
+
   file_row <- function(io_type, rec) {
     builtin <- isTRUE(rec$builtin)
     path <- path_from_record(rec, root)
-    list(
+    check_scalars(list(
       run_id = run_id,
       io_type = io_type,
       path = path,
@@ -117,7 +123,7 @@ read_run_folder <- function(run_dir, root) {
       sha256 = scalar_chr(rec$sha256),
       size = scalar_dbl(rec$size),
       builtin = builtin
-    )
+    ))
   }
   files <- c(
     list(file_row("project", project)),
@@ -136,7 +142,7 @@ read_run_folder <- function(run_dir, root) {
     if (file.exists(summary_path)) {
       sj <- jsonlite::read_json(summary_path, simplifyVector = FALSE)
       stats <- sj$summary_stats %||% list()
-      summary <- list(
+      summary <- check_scalars(list(
         run_id = run_id,
         exploratory_iterations = scalar_int(stats$exploratory_iterations),
         smoothing_iterations = scalar_int(stats$smoothing_iterations),
@@ -150,13 +156,13 @@ read_run_folder <- function(run_dir, root) {
         n_individuals = scalar_int(stats$n_individuals),
         n_doses = scalar_int(stats$n_doses),
         summary_extracted_at = parse_utc(sj$summary_extracted_at)
-      )
+      ))
       observations <- lapply(names(sj$observations), function(nm) {
-        list(
+        check_scalars(list(
           run_id = run_id,
           obs_type = nm,
           n_observations = scalar_int(sj$observations[[nm]])
-        )
+        ))
       })
     }
   }
@@ -187,6 +193,17 @@ find_completion_attempt <- function(run_dir) {
     }
   }
   list(dir = file.path(run_dir, dirs[[1]]), n = n[[1]], has_done = FALSE, done = NULL)
+}
+
+# Errors unless every value (except those in `skip`) has length 1, so a
+# malformed record is rejected while its own folder is read.
+check_scalars <- function(x, skip = character()) {
+  for (nm in setdiff(names(x), skip)) {
+    if (length(x[[nm]]) != 1L) {
+      stop("field '", nm, "' is not a single value", call. = FALSE)
+    }
+  }
+  x
 }
 
 scalar_chr <- function(x) if (is.null(x)) NA_character_ else as.character(x)

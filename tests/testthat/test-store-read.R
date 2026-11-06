@@ -81,7 +81,7 @@ test_that("each run state is derived from the files present", {
         completion = full_completion(
           fake_done_json(
             recorded_late = TRUE,
-            late_flags = list("out/run001/late.txt")
+            late_flags = list(list(path = "out/run001/late.txt", absolute = FALSE))
           )
         )
       )
@@ -174,7 +174,7 @@ test_that("the highest completion attempt with done.json is used", {
         `completion-2` = list(
           outputs = list(out_rec("new.txt")),
           summary = summary_json(ofv = 7),
-          done = fake_done_json(recorded_late = FALSE)
+          done = fake_done_json(recorded_late = TRUE)
         )
       )
     )
@@ -229,4 +229,24 @@ test_that("summary and observations come from summary.json", {
   expect_identical(res$observations$run_id, c("r1", "r1"))
   expect_identical(res$observations$obs_type, c("y1", "y2"))
   expect_identical(res$observations$n_observations, c(132L, 40L))
+})
+
+test_that("a parseable run.json that is malformed warns for its folder only", {
+  bad <- fake_run_json("nopro")
+  bad$project <- NULL
+  multi <- fake_run_json("multi", cmd = list("a", "b"))
+  s <- local_store_with_runs(list(
+    list(id = "good"),
+    list(id = "nopro", run = bad),
+    list(id = "multi", run = multi)
+  ))
+  res <- NULL
+  expect_warning(
+    expect_warning(
+      res <- store_read(s$store),
+      "Skipping unreadable run folder nopro"
+    ),
+    "Skipping unreadable run folder multi"
+  )
+  expect_identical(res$runs$run_id, "good")
 })
