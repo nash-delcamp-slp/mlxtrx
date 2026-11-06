@@ -43,14 +43,17 @@ record_completion <- function(
     all.files = TRUE,
     no.. = TRUE
   )
-  mtimes <- file.info(files)$mtime
-  keep <- !is.na(mtimes) & mtimes >= submitted_at
-  files <- files[keep]
-  mtimes <- mtimes[keep]
+  listed_mtimes <- file.info(files)$mtime
+  files <- files[!is.na(listed_mtimes) & listed_mtimes >= submitted_at]
   outputs <- lapply(files, file_record, root = root)
   store_write_json(outputs, file.path(completion_dir, "outputs.json"))
+  mtimes <- as.POSIXct(
+    vapply(outputs, function(rec) rec$mtime, character(1)),
+    format = "%Y-%m-%dT%H:%M:%OSZ",
+    tz = "UTC"
+  )
 
-  if (file.exists(summary_path)) {
+  if (summary_is_output(files, summary_path)) {
     parsed <- handler$parse_summary(summary_path)
     if (!is.null(parsed)) {
       parsed$summary_extracted_at <- format_utc(Sys.time())
@@ -68,7 +71,7 @@ record_completion <- function(
       recorded_late = late,
       late_flags = if (late) {
         lapply(
-          late_output_files(files, mtimes, summary_path, late_tolerance),
+          late_output_files(files, mtimes, late_tolerance),
           path_to_record,
           root = root
         )
@@ -81,17 +84,16 @@ record_completion <- function(
   "recorded"
 }
 
-# Outputs written more than `tolerance` seconds after the reference time: the
-# summary.txt mtime when it is an output, else the median output mtime.
-late_output_files <- function(files, mtimes, summary_path, tolerance) {
+# Whether summary.txt is among the recorded outputs.
+summary_is_output <- function(files, summary_path) {
+  any(fs::path_norm(files) == fs::path_norm(summary_path))
+}
+
+# Outputs written more than `tolerance` seconds after the median output mtime.
+late_output_files <- function(files, mtimes, tolerance) {
   if (length(files) == 0L) {
     return(character())
   }
-  is_summary <- fs::path_norm(files) == fs::path_norm(summary_path)
-  reference <- if (any(is_summary)) {
-    mtimes[is_summary][[1]]
-  } else {
-    stats::median(mtimes)
-  }
+  reference <- stats::median(mtimes)
   files[as.numeric(difftime(mtimes, reference, units = "secs")) > tolerance]
 }

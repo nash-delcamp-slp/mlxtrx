@@ -97,3 +97,27 @@ test_that("retry records into completion-2 and is always late", {
   expect_true(file.exists(file.path(s$run_dir, "completion-2", "done.json")))
   expect_equal(run_state(s)$state, "recorded_late")
 })
+
+test_that("a summary.txt older than submitted_at is not parsed or recorded", {
+  s <- local_theoph_run()
+  Sys.setFileTime(file.path(s$out_dir, "summary.txt"), Sys.time() - 7200)
+  expect_equal(record_completion(s$run_dir, s$store), "recorded")
+  expect_false(file.exists(file.path(s$run_dir, "completion", "summary.json")))
+  expect_true(file.exists(file.path(s$run_dir, "completion", "done.json")))
+  res <- store_read(s$store)
+  expect_equal(nrow(res$summary), 0L)
+})
+
+test_that("an edited summary.txt is flagged against the median mtime", {
+  s <- local_theoph_run()
+  t0 <- Sys.time() - 1800
+  for (nm in c("a.txt", "b.txt", "c.txt")) {
+    f <- file.path(s$out_dir, nm)
+    writeLines("x", f)
+    Sys.setFileTime(f, t0)
+  }
+  Sys.setFileTime(file.path(s$out_dir, "summary.txt"), t0 + 3600)
+  record_completion(s$run_dir, s$store, late = TRUE)
+  flags <- store_read(s$store)$runs$late_flags[[1]]
+  expect_equal(basename(flags), "summary.txt")
+})
