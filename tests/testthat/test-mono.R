@@ -1,0 +1,140 @@
+# A substage with two copies of the theoph fixture, a store path, and the fake
+# `mono24`/`sq` scripts on PATH driven by a fresh MLXTRX_FAKE_DIR.
+local_mono_env <- function(.env = parent.frame()) {
+  substage <- withr::local_tempdir(.local_envir = .env)
+  for (sub in c("a", "b")) {
+    dir.create(file.path(substage, sub))
+    file.copy(test_path("fixtures", "theoph"), file.path(substage, sub), recursive = TRUE)
+    unlink(file.path(substage, sub, "theoph", "theoph"), recursive = TRUE)
+  }
+  fake <- withr::local_tempdir(.local_envir = .env)
+  file.copy(
+    test_path("fixtures", "theoph", "theoph", "summary.txt"),
+    file.path(fake, "summary.txt")
+  )
+  # A shared grid queue is rarely empty: an unrelated job keeps `sq` output to
+  # a header plus rows.
+  writeLines("999999", file.path(fake, "queue"))
+  withr::local_path(
+    normalizePath(test_path("fixtures", "bin")),
+    .local_envir = .env
+  )
+  withr::local_envvar(MLXTRX_FAKE_DIR = fake, .local_envir = .env)
+  list(
+    substage = substage,
+    store = file.path(substage, ".mlxtrx"),
+    fake = fake,
+    paths = file.path(substage, c("a", "b"), "theoph", "theoph.mlxtran")
+  )
+}
+
+read_run_json <- function(store, run_id) {
+  jsonlite::read_json(file.path(store, "runs", run_id, "run.json"))
+}
+
+test_that("mono() records launch and completion of each job", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  suppressMessages(
+    ids <- mono(e$paths, store = e$store, require_charts_data = FALSE)
+  )
+  expect_type(ids, "character")
+  expect_length(ids, 2L)
+  for (i in seq_along(ids)) {
+    run <- read_run_json(e$store, ids[i])
+    expect_equal(run$schema, 1L)
+    expect_equal(run$run_id, ids[i])
+    expect_equal(run$launcher, "cli")
+    expect_equal(run$cmd, "mono24")
+    expect_equal(run$job_id, i)
+    expect_equal(run$software_version, "2024R1")
+    expect_true(run$submission$ok)
+    expect_equal(unlist(run$submission$output), paste("Submitted batch job", i))
+    expect_equal(run$user, Sys.info()[["user"]])
+    expect_equal(run$host, Sys.info()[["nodename"]])
+    expect_equal(run$mlxtrx_version, as.character(utils::packageVersion("mlxtrx")))
+    expect_equal(
+      run$project$path,
+      file.path(c("a", "b")[i], "theoph", "theoph.mlxtran")
+    )
+    expect_equal(run$project$sha256, calculate_sha256(e$paths[i]))
+    roles <- vapply(run$inputs, function(x) x$role, character(1))
+    expect_equal(roles, c("data", "model"))
+    expect_equal(run$inputs[[2]]$path, "lib:oral1_1cpt_kaVCl.txt")
+    expect_true(run$inputs[[2]]$builtin)
+    expect_named(
+      run$settings,
+      c("output_dir", "thread", "tool", "mode", "config")
+    )
+    expect_true(all(vapply(run$settings, is.null, logical(1))))
+    expect_match(run$submitted_at, "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$")
+  }
+  runs <- store_read(e$store)$runs
+  expect_setequal(runs$run_id, ids)
+  expect_equal(runs$state, c("recorded", "recorded"))
+})
+
+test_that("settings given to mono() are recorded", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  suppressMessages(
+    id <- mono(
+      e$paths[1],
+      thread = 4L,
+      mode = "none",
+      store = e$store,
+      require_charts_data = FALSE
+    )
+  )
+  run <- read_run_json(e$store, id)
+  expect_equal(run$settings$thread, 4L)
+  expect_equal(run$settings$mode, "none")
+  expect_null(run$settings$tool)
+  expect_null(run$settings$output_dir)
+  expect_null(run$settings$config)
+})
+
+test_that("run.json is written before monitoring starts", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  local_mocked_bindings(monitor_jobs = function(...) stop("boom"))
+  expect_error(
+    suppressMessages(mono(e$paths, store = e$store, require_charts_data = FALSE)),
+    "boom"
+  )
+  runs <- store_read(e$store)$runs
+  expect_equal(nrow(runs), 2L)
+  expect_equal(runs$state, c("unrecorded", "unrecorded"))
+})
+
+test_that("a failed submission is recorded and not monitored", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  file.create(file.path(e$fake, "garbage"))
+  expect_warning(
+    id <- mono(e$paths[1], store = e$store, require_charts_data = FALSE),
+    "Could not extract job ID"
+  )
+  run <- read_run_json(e$store, id)
+  expect_false(run$submission$ok)
+  expect_equal(unlist(run$submission$output), "nope")
+  expect_null(run$job_id)
+  expect_equal(store_read(e$store)$runs$state, "submit_failed")
+})
+
+test_that("mono() writes only to the store", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  suppressMessages(
+    mono(e$paths, store = e$store, require_charts_data = FALSE)
+  )
+  expect_true(dir.exists(e$store))
+  found <- list.files(
+    file.path(e$substage, c("a", "b")),
+    pattern = "^\\.mlxtrx$",
+    recursive = TRUE,
+    all.files = TRUE,
+    include.dirs = TRUE
+  )
+  expect_length(found, 0L)
+})

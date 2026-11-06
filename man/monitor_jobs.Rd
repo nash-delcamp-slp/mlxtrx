@@ -4,12 +4,14 @@
 \alias{monitor_jobs}
 \title{Monitor multiple jobs and record completed ones}
 \usage{
-monitor_jobs(path, run_id, job_id, output_dir = NULL, cmd, db_conn)
+monitor_jobs(path, run_id, run_dir, job_id, output_dir = NULL, cmd, store)
 }
 \arguments{
 \item{path}{Character vector. Paths to Monolix project files.}
 
-\item{run_id}{Integer vector. Database run IDs.}
+\item{run_id}{Character vector. Run IDs.}
+
+\item{run_dir}{Character vector. Run folders in the store.}
 
 \item{job_id}{Integer vector. External job IDs (from job scheduler).}
 
@@ -17,12 +19,16 @@ monitor_jobs(path, run_id, job_id, output_dir = NULL, cmd, db_conn)
 
 \item{cmd}{Character vector. The commands used for each job.}
 
-\item{db_conn}{Database connection object.}
+\item{store}{Character scalar. Path to the run store.}
 }
 \value{
 NULL (invisible). Called for side effects.
 }
 \description{
-Monitor multiple jobs and record completed ones
+Polls every 5 seconds until each submitted job has finished, then records
+its completion in the run store with \code{record_completion()}. A job with a
+job ID has finished when it is no longer in the queue; a job without one
+has finished when its \code{summary.txt} exists. Runs whose submission failed
+are skipped.
 }
 \keyword{internal}

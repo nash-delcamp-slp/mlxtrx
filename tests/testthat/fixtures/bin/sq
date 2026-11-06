@@ -1,0 +1,12 @@
+#!/bin/sh
+# Test stand-in for the grid queue listing: a JOBID header plus the lines of
+# $MLXTRX_FAKE_DIR/queue. Exits 1 when $MLXTRX_FAKE_DIR/sq_fail exists.
+fake="$MLXTRX_FAKE_DIR"
+if [ -e "$fake/sq_fail" ]; then
+  echo "sq: failed" >&2
+  exit 1
+fi
+echo "JOBID"
+if [ -e "$fake/queue" ]; then
+  cat "$fake/queue"
+fi

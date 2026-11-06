@@ -3,7 +3,7 @@
 \name{mono}
 \alias{mono}
 \alias{sim}
-\title{Submit Monolix and Simulx jobs to grid and record runs in database}
+\title{Submit Monolix and Simulx jobs to grid and record runs in the run store}
 \usage{
 mono(
   path,
@@ -13,7 +13,7 @@ mono(
   mode = NULL,
   config = NULL,
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
-  db_conn = default_db_conn(db = default_db(path)),
+  store = default_store(path),
   require_charts_data = TRUE
 )
 
@@ -22,7 +22,7 @@ sim(
   thread = NULL,
   mode = NULL,
   cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
-  db_conn = default_db_conn(db = default_db(path)),
+  store = default_store(path),
   require_charts_data = FALSE
 )
 }
@@ -59,8 +59,9 @@ Should be same length as \code{path}, length 1, or \code{NULL}.}
 identifiable by \code{Sys.which()} and contain "mono" or "sim" in the name.
 Default is "mono24". Should be same length as \code{path} or length 1.}
 
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. Path to the run store directory.
+Defaults to \code{default_store(path)}, the \code{.mlxtrx} directory of the
+projects' substage. Created when the first run is recorded.}
 
 \item{require_charts_data}{A logical indicating whether charts data must
 be exported. This requires the relevant config.ini file includes options
@@ -68,32 +69,34 @@ be exported. This requires the relevant config.ini file includes options
 \code{exportVPCSimulations=true}.}
 }
 \value{
-Integer vector. Returns the run IDs for all submitted jobs.
+Character vector. The run IDs of all jobs, in the order of \code{path}.
 }
 \description{
 Executes one or more commands that submit Monolix/Simulx jobs to the grid and
-stores a record of the runs in a database.
+records each run in the run store.
 }
 \details{
-This function performs the following operations for each job:
+Jobs are submitted one at a time. For each job, this function:
 \enumerate{
-\item Validates inputs and submits the job using \code{system2()}
-\item Extracts the job ID from the submission output
-\item Monitors job completion by checking the job queue
-\item Records job information in the \code{runs} table
-\item Tracks input file metadata in the \code{input_files} table
-\item Records all output files with timestamps and checksums in the \code{output_files} table
+\item Submits the job using \code{system2()} and extracts the job ID from the
+submission output
+\item Creates a run folder \verb{<store>/runs/<run_id>/} and writes \code{run.json}
+straight away: the project and input files (path, SHA-256, size,
+modification time), the settings passed to the command, the command,
+job ID, software version, submission time and output, user and host
 }
 
-The database schema includes three tables:
-\itemize{
-\item \code{runs}: Job metadata (ID, path, command, submission time)
-\item \code{input_files}: Input file tracking with timestamps and MD5 checksums
-\item \code{output_files}: Output file tracking with timestamps and MD5 checksums
-}
+A submission that yields no job ID and no local result is recorded with
+\code{submission.ok = false} and is not monitored.
 
-The function automatically creates database tables if they don't exist and
-closes the database connection on exit.
+Once all jobs are submitted, the function polls the job queue until every
+submitted job has finished, then records each run's completion in a
+\verb{completion/} folder of the run: the output files written since submission
+(\code{outputs.json}), the parsed \code{summary.txt} (\code{summary.json}) and, last,
+\code{done.json}.
+
+Paths inside the store are relative to the substage that holds the store
+when the file is inside it, and absolute otherwise.
 }
 \examples{
 \dontrun{
@@ -110,9 +113,8 @@ mono(
   thread = 4
 )
 
-# Use custom database connection
-conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
-mono("project.mlxtran", db_conn = conn)
+# Record runs in a specific store
+mono("project.mlxtran", store = "path/to/substage/.mlxtrx")
 }
 
 }
