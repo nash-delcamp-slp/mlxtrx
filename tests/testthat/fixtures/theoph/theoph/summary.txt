@@ -1,0 +1,12 @@
+# Synthetic fixture for mlxtrx tests; not Monolix output.
+Exploratory phase iterations : 200
+Smoothing phase iterations : 100
+ESTIMATION OF THE FISHER INFORMATION MATRIX
+Eigen values (min, max, max/min): 0.01 5
+-2 x log-likelihood (OFV) : 300.5
+Akaike Information Criteria (AIC) : 316.5
+Corrected Bayesian Information Criteria (BICc) : 320.1
+Bayesian Information Criteria (BIC) : 318.2
+Number of individuals : 12
+Number of doses : 12
+Number of observations (CONC): 132

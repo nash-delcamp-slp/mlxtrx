@@ -266,7 +266,7 @@ mono <- function(
         project_file_id,
         "project",
         get_file_timestamp(path[i]),
-        calculate_md5(path[i])
+        calculate_sha256(path[i])
       )
     )
 
@@ -280,7 +280,7 @@ mono <- function(
           data_file_id,
           "input",
           get_file_timestamp(data_file),
-          calculate_md5(data_file)
+          calculate_sha256(data_file)
         )
       )
     }
@@ -295,7 +295,7 @@ mono <- function(
           model_file_id,
           "input",
           get_file_timestamp(model_file),
-          calculate_md5(model_file)
+          calculate_sha256(model_file)
         )
       )
     }
@@ -519,7 +519,7 @@ monitor_jobs <- function(
                 next
               }
 
-              output_md5 <- calculate_md5(output_file)
+              output_md5 <- calculate_sha256(output_file)
 
               # Track the latest modification time
               if (

@@ -1,0 +1,15 @@
+<DATAFILE>
+
+[FILEINFO]
+file = 'data/theoph.csv'
+
+<MODEL>
+
+[LONGITUDINAL]
+file = 'lib:oral1_1cpt_kaVCl.txt'
+
+<MONOLIX>
+
+[SETTINGS]
+GLOBAL:
+exportpath = 'theoph'

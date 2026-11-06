@@ -242,7 +242,7 @@ check_input_file_status <- function(
       } else {
         as.POSIXct(NA)
       },
-      current_checksum = calculate_md5(.data[["path"]])
+      current_checksum = calculate_sha256(.data[["path"]])
     ) |>
     dplyr::ungroup() |>
     dplyr::mutate(
@@ -409,7 +409,7 @@ check_project_file_status <- function(
       } else {
         as.POSIXct(NA)
       },
-      current_checksum = calculate_md5(.data[["project_file"]])
+      current_checksum = calculate_sha256(.data[["project_file"]])
     ) |>
     dplyr::ungroup() |>
     dplyr::mutate(
@@ -579,7 +579,7 @@ check_output_file_status <- function(
       } else {
         as.POSIXct(NA)
       },
-      current_checksum = calculate_md5(.data[["path"]])
+      current_checksum = calculate_sha256(.data[["path"]])
     ) |>
     dplyr::ungroup() |>
     dplyr::mutate(
@@ -753,7 +753,7 @@ check_output_files <- function(
       } else {
         as.POSIXct(NA)
       },
-      current_checksum = calculate_md5(.data[["file_path"]])
+      current_checksum = calculate_sha256(.data[["file_path"]])
     ) |>
     dplyr::ungroup() |>
     dplyr::mutate(
