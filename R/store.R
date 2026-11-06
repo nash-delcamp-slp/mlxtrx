@@ -165,15 +165,26 @@ file_record <- function(path, root) {
 # Claims the right to record completion by creating the folder. Returns the
 # folder path, or NULL when another process already holds the claim. With
 # `retry = TRUE` the next free `completion-<n>` (n >= 2) is claimed instead.
+# A failed dir.create() counts as "taken" only when the folder exists;
+# any other failure is an error.
 claim_completion <- function(run_dir, retry = FALSE) {
+  try_claim <- function(path) {
+    if (dir.create(path, showWarnings = FALSE)) {
+      return(TRUE)
+    }
+    if (!dir.exists(path)) {
+      stop("Could not create completion folder: ", path, call. = FALSE)
+    }
+    FALSE
+  }
   if (!retry) {
     path <- file.path(run_dir, "completion")
-    return(if (dir.create(path, showWarnings = FALSE)) path else NULL)
+    return(if (try_claim(path)) path else NULL)
   }
   n <- 2L
   repeat {
     path <- file.path(run_dir, paste0("completion-", n))
-    if (dir.create(path, showWarnings = FALSE)) {
+    if (try_claim(path)) {
       return(path)
     }
     n <- n + 1L

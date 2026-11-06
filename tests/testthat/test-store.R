@@ -105,3 +105,12 @@ test_that("default_store is <substage>/.mlxtrx", {
   local_mocked_bindings(path_substage = function(path) tmp, .package = "utilscognigen")
   expect_identical(default_store(tmp), file.path(tmp, ".mlxtrx"))
 })
+
+test_that("claim_completion errors on I/O failure instead of reporting a lost claim", {
+  missing <- file.path(withr::local_tempdir(), "no-such-run")
+  expect_error(claim_completion(missing), "Could not create completion folder")
+  expect_error(
+    claim_completion(missing, retry = TRUE),
+    "Could not create completion folder"
+  )
+})
