@@ -24,39 +24,9 @@ check_config_ini <- function(
     "exportVPCSimulations" = "true"
   )
 
-  cmd_ext <- fs::path_ext(cmd)
-
-  if (cmd_ext == "") {
-    version_dir <- switch(
-      basename(cmd),
-      mono24 = "monolix/monolix2024R1",
-      sim24 = "simulx/simulx2024R1",
-      mono23 = "monolix/monolix2023R1",
-      sim23 = "simulx/simulx2023R1",
-      mono21 = "monolix/monolix2021R1",
-      sim21 = "simulx/simulx2021R1",
-      mono20 = "monolix/monolix2020R1",
-      sim20 = "simulx/simulx2020R1",
-      ""
-    )
-  } else if (basename(cmd) == "monolix.sh") {
-    version_dir <- file.path(
-      "monolix",
-      stringr::str_replace(
-        cmd,
-        ".*M(onolix)Suite(20\\d\\dR\\d)/.*",
-        "m\\1\\2"
-      )
-    )
-  } else if (basename(cmd) == "simulx.sh") {
-    version_dir <- file.path(
-      "simulx",
-      stringr::str_replace(
-        cmd,
-        ".*MonolixSuite(20\\d\\dR\\d)/.*",
-        "simulx\\1"
-      )
-    )
+  version_dir <- cmd_version_dir(cmd)
+  if (is.na(version_dir)) {
+    version_dir <- ""
   }
 
   ini_path <- file.path(
@@ -313,4 +283,54 @@ show_ini_diff <- function(
       }
     }
   }
+}
+
+#' Lixoft version directory for a command
+#'
+#' Maps a Monolix or Simulx command (grid wrapper such as `mono24`, or a
+#' `monolix.sh`/`simulx.sh` path) to its directory under `~/lixoft`, e.g.
+#' `"monolix/monolix2024R1"`.
+#'
+#' @param cmd Command name or path.
+#' @return Character scalar, or `NA` when the command is not recognised.
+#' @keywords internal
+#' @noRd
+cmd_version_dir <- function(cmd) {
+  cmd_ext <- fs::path_ext(cmd)
+
+  if (cmd_ext == "") {
+    version_dir <- switch(
+      basename(cmd),
+      mono24 = "monolix/monolix2024R1",
+      sim24 = "simulx/simulx2024R1",
+      mono23 = "monolix/monolix2023R1",
+      sim23 = "simulx/simulx2023R1",
+      mono21 = "monolix/monolix2021R1",
+      sim21 = "simulx/simulx2021R1",
+      mono20 = "monolix/monolix2020R1",
+      sim20 = "simulx/simulx2020R1",
+      NA_character_
+    )
+  } else if (basename(cmd) == "monolix.sh") {
+    version_dir <- file.path(
+      "monolix",
+      stringr::str_replace(
+        cmd,
+        ".*M(onolix)Suite(20\\d\\dR\\d)/.*",
+        "m\\1\\2"
+      )
+    )
+  } else if (basename(cmd) == "simulx.sh") {
+    version_dir <- file.path(
+      "simulx",
+      stringr::str_replace(
+        cmd,
+        ".*MonolixSuite(20\\d\\dR\\d)/.*",
+        "simulx\\1"
+      )
+    )
+  } else {
+    version_dir <- NA_character_
+  }
+  version_dir
 }
