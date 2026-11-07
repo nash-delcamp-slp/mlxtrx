@@ -6,7 +6,7 @@
 #'
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
-#'   project files. Defaults to c("mlxtran", "smlx").
+#'   project files. Defaults to c("mlxtran", "smlx", "pkx").
 #' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
@@ -27,7 +27,7 @@
 #' @export
 check_completion_status <- function(
   directory = ".",
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   store = default_store()
 ) {
   project_files <- find_project_files(directory, ext)
@@ -128,7 +128,7 @@ check_input_file_status <- function(
 #'
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
-#'   project files. Defaults to c("mlxtran", "smlx").
+#'   project files. Defaults to c("mlxtran", "smlx", "pkx").
 #' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
@@ -150,7 +150,7 @@ check_input_file_status <- function(
 #' @export
 check_project_file_status <- function(
   directory = ".",
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   store = default_store()
 ) {
   project_files <- find_project_files(directory, ext)

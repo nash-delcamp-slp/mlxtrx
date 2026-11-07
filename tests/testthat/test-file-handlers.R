@@ -120,3 +120,33 @@ test_that("each confidence interval file gives its formulation", {
   expect_setequal(formulations, c("Test", "Test 2"))
   expect_length(formulations, 4L)
 })
+
+test_that("empty or non-numeric PKanalix cells parse to NA without a warning", {
+  dir <- local_pkx_root()
+  results <- pkx_results_dir(dir)
+  ci <- file.path(results, "be", "confidenceInterval_Test.txt")
+  lines <- readLines(ci, warn = FALSE)
+  lines[2] <- "AUC_TAU,500.5,3,480.25,3,0.0413,-0.02,0.1,-nan(ind),,,-nan(ind)"
+  writeLines(lines, ci)
+  writeLines(c("Cost,-2LL,AIC,BIC", "-nan(ind),120.25,,135.75"), file.path(results, "ca", "cost.txt"))
+  handler <- PkanalixHandler$new()
+  expect_no_warning(
+    parsed <- handler$parse_results(handler$result_files(file.path(dir, "pk")))
+  )
+  be <- parsed$bioequivalence[[1]]
+  expect_identical(be$ratio, NA_real_)
+  expect_identical(be$ci_lower, NA_real_)
+  expect_identical(be$ci_upper, NA_real_)
+  expect_identical(be$bioequivalent, NA)
+  expect_identical(parsed$summary_stats$ca_cost, NA_real_)
+  expect_identical(parsed$summary_stats$aic, NA_real_)
+  expect_equal(parsed$bioequivalence[[2]]$ratio, 133.9)
+})
+
+test_that("only confidence interval files directly in be/ are result files", {
+  dir <- local_pkx_root()
+  out <- file.path(dir, "pk")
+  nested <- file.path(pkx_results_dir(dir), "be", "confidenceInterval_X", "copy.txt")
+  handler <- PkanalixHandler$new()
+  expect_length(handler$result_files(out, nested), 0L)
+})

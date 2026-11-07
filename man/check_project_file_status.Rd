@@ -6,7 +6,7 @@
 \usage{
 check_project_file_status(
   directory = ".",
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   store = default_store()
 )
 }
@@ -14,7 +14,7 @@ check_project_file_status(
 \item{directory}{Character scalar. Directory path to check for project files.}
 
 \item{ext}{Character vector. File extensions to consider as
-project files. Defaults to c("mlxtran", "smlx").}
+project files. Defaults to c("mlxtran", "smlx", "pkx").}
 
 \item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}

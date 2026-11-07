@@ -7,7 +7,7 @@
 print_report_summary(
   directory = ".",
   run_ids = NULL,
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   output_files = NULL,
   store = default_store()
 )
@@ -19,7 +19,7 @@ print_report_summary(
 checks all runs.}
 
 \item{ext}{Character vector. File extensions to consider as
-project files. Defaults to c("mlxtran", "smlx").}
+project files. Defaults to c("mlxtran", "smlx", "pkx").}
 
 \item{output_files}{Character vector. Optional output file paths to validate
 alignment with latest runs. If NULL (default), no output file alignment

@@ -485,7 +485,7 @@ PkanalixHandler <- R6::R6Class(
       files[grepl(
         paste0(
           "^(nca/ncaIndividualParameters|ca/caIndividualParameters|ca/cost)",
-          "\\.txt$|^be/confidenceInterval_.+\\.txt$"
+          "\\.txt$|^be/confidenceInterval_[^/]+\\.txt$"
         ),
         rel
       )]
@@ -527,10 +527,10 @@ PkanalixHandler <- R6::R6Class(
           cost_file <- find("ca", "cost.txt")
           if (length(cost_file) > 0L) {
             cost <- read_pkanalix_table(cost_file[[1]])
-            stats$ofv <- as.numeric(cost[["-2LL"]][1])
-            stats$aic <- as.numeric(cost[["AIC"]][1])
-            stats$bic <- as.numeric(cost[["BIC"]][1])
-            stats$ca_cost <- as.numeric(cost[["Cost"]][1])
+            stats$ofv <- as_number(cost[["-2LL"]][1])
+            stats$aic <- as_number(cost[["AIC"]][1])
+            stats$bic <- as_number(cost[["BIC"]][1])
+            stats$ca_cost <- as_number(cost[["Cost"]][1])
           }
 
           ci_files <- files[
@@ -544,10 +544,10 @@ PkanalixHandler <- R6::R6Class(
               bioequivalence[[length(bioequivalence) + 1L]] <- list(
                 formulation = formulation,
                 parameter = ci[["Parameter"]][i],
-                ratio = as.numeric(ci[["Ratio"]][i]),
-                ci_lower = as.numeric(ci[["CILower"]][i]),
-                ci_upper = as.numeric(ci[["CIUpper"]][i]),
-                bioequivalent = as.logical(as.integer(ci[["Bioequivalence"]][i]))
+                ratio = as_number(ci[["Ratio"]][i]),
+                ci_lower = as_number(ci[["CILower"]][i]),
+                ci_upper = as_number(ci[["CIUpper"]][i]),
+                bioequivalent = as.logical(as_number(ci[["Bioequivalence"]][i]))
               )
             }
           }
@@ -583,6 +583,12 @@ read_pkanalix_table <- function(path) {
     encoding = "UTF-8",
     strip.white = TRUE
   )
+}
+
+# A PKanalix table cell as a number. Cells that are not numbers, such as an
+# empty cell or "-nan(ind)", are NA without a coercion warning.
+as_number <- function(x) {
+  suppressWarnings(as.numeric(x))
 }
 
 # Number of unique individuals in a PKanalix individual parameters table.
