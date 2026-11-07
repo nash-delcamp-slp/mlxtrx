@@ -7,17 +7,17 @@
 #' If `sq` is missing or fails the function stops, because a running job would
 #' otherwise be recorded as finished.
 #'
+#' Only runs whose `run.json` user is the current user are recorded, because
+#' `sq` may list only the current user's jobs and another user's running job
+#' would then look finished. Other users' runs are reported as `"other_user"`
+#' and must be finalized by their owner.
+#'
 #' @param store Character scalar. The run store directory (see [default_store()]). Defaults to
 #'   [default_store()].
 #' @param run_id Character vector. Limit finalization to these run IDs.
 #'   `NULL` (default) considers every run in the store.
 #' @param retry_crashed Logical. Record runs whose earlier completion attempt
 #'   crashed into a fresh attempt folder. Otherwise they are only reported.
-#' @param all_users Logical. Also record runs launched by other users. By
-#'   default only runs whose `run.json` user is the current user are recorded,
-#'   because `sq` may list only the current user's jobs and another user's
-#'   running job would then look finished. Other users' runs are reported as
-#'   `"other_user"`.
 #'
 #' @return A data frame with columns `run_id` and `action`, one row per run
 #'   that was considered. `action` is `"recorded_late"`, `"still_queued"`,
@@ -30,15 +30,13 @@
 #' \dontrun{
 #' finalize_runs()
 #' finalize_runs(retry_crashed = TRUE)
-#' finalize_runs(all_users = TRUE)
 #' }
 #'
 #' @export
 finalize_runs <- function(
   store = default_store(),
   run_id = NULL,
-  retry_crashed = FALSE,
-  all_users = FALSE
+  retry_crashed = FALSE
 ) {
   all_runs <- store_read(store)$runs
   runs <- all_runs
@@ -53,12 +51,9 @@ finalize_runs <- function(
   )
   shown <- runs[runs$state %in% shown_states, , drop = FALSE]
   candidates <- runs[runs$state %in% candidate_states, , drop = FALSE]
-  others <- candidates[0, , drop = FALSE]
-  if (!all_users) {
-    mine <- candidates$user %in% Sys.info()[["user"]]
-    others <- candidates[!mine, , drop = FALSE]
-    candidates <- candidates[mine, , drop = FALSE]
-  }
+  mine <- candidates$user %in% Sys.info()[["user"]]
+  others <- candidates[!mine, , drop = FALSE]
+  candidates <- candidates[mine, , drop = FALSE]
 
   queued <- character()
   if (any(!is.na(candidates$job_id))) {
@@ -161,4 +156,11 @@ report_finalize_counts <- function(result) {
     "finalize_runs: ",
     paste0(names(counts), " = ", as.integer(counts), collapse = ", ")
   )
+  others <- result$run_id[result$action == "other_user"]
+  if (length(others) > 0L) {
+    message(
+      "Runs launched by other users must be finalized by their owner: ",
+      paste(others, collapse = ", ")
+    )
+  }
 }

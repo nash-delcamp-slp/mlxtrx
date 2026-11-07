@@ -4,12 +4,7 @@
 \alias{finalize_runs}
 \title{Record completion of runs whose launching session ended}
 \usage{
-finalize_runs(
-  store = default_store(),
-  run_id = NULL,
-  retry_crashed = FALSE,
-  all_users = FALSE
-)
+finalize_runs(store = default_store(), run_id = NULL, retry_crashed = FALSE)
 }
 \arguments{
 \item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}). Defaults to
@@ -20,12 +15,6 @@ finalize_runs(
 
 \item{retry_crashed}{Logical. Record runs whose earlier completion attempt
 crashed into a fresh attempt folder. Otherwise they are only reported.}
-
-\item{all_users}{Logical. Also record runs launched by other users. By
-default only runs whose \code{run.json} user is the current user are recorded,
-because \code{sq} may list only the current user's jobs and another user's
-running job would then look finished. Other users' runs are reported as
-\code{"other_user"}.}
 }
 \value{
 A data frame with columns \code{run_id} and \code{action}, one row per run
@@ -43,11 +32,16 @@ run without a job ID is recorded once its output folder holds \code{summary.txt}
 If \code{sq} is missing or fails the function stops, because a running job would
 otherwise be recorded as finished.
 }
+\details{
+Only runs whose \code{run.json} user is the current user are recorded, because
+\code{sq} may list only the current user's jobs and another user's running job
+would then look finished. Other users' runs are reported as \code{"other_user"}
+and must be finalized by their owner.
+}
 \examples{
 \dontrun{
 finalize_runs()
 finalize_runs(retry_crashed = TRUE)
-finalize_runs(all_users = TRUE)
 }
 
 }

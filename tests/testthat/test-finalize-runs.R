@@ -183,13 +183,20 @@ test_that("a late recording does not take a later run's outputs", {
   expect_false("r1" %in% res$summary$run_id)
 })
 
-test_that("another user's runs are left alone unless all_users = TRUE", {
+test_that("another user's runs are left for their owner to finalize", {
   skip_on_os("windows")
   e <- local_finalize_env(queue = "999999", user = "someone_else")
-  expect_message(res <- finalize_runs(e$store), "other_user = 1")
+  msgs <- character()
+  withCallingHandlers(
+    res <- finalize_runs(e$store),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
   expect_equal(res, data.frame(run_id = "r1", action = "other_user"))
+  expect_true(any(grepl("other_user = 1", msgs, fixed = TRUE)))
+  expect_true(any(grepl("finalized by their owner: r1", msgs, fixed = TRUE)))
   expect_false(dir.exists(file.path(e$run_dir, "completion")))
-  suppressMessages(res <- finalize_runs(e$store, all_users = TRUE))
-  expect_equal(res$action, "recorded_late")
-  expect_equal(store_read(e$store)$runs$state, "recorded_late")
+  expect_false("all_users" %in% names(formals(finalize_runs)))
 })
