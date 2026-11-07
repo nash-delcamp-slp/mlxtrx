@@ -34,6 +34,11 @@ FileHandler <- R6::R6Class(
       NULL
     },
 
+    #' @description Whether a finished run of this project type produces a summary
+    expects_summary = function() {
+      FALSE
+    },
+
     #' @description Get path to summary file
     #' @param project_path Path to project file
     #' @param output_dir Optional output directory override
@@ -142,6 +147,11 @@ MonolixHandler <- R6::R6Class(
       resolve_output_dir(path = path, output_dir = current_output_dir)
     },
 
+    #' @description Monolix runs produce a summary
+    expects_summary = function() {
+      TRUE
+    },
+
     #' @description Parse Monolix summary file
     #' @param summary_file_path Path to summary.txt file
     parse_summary = function(summary_file_path) {
@@ -206,17 +216,15 @@ MonolixHandler <- R6::R6Class(
               "Eigen values"
             )]
             if (length(eigen_lines) > 0) {
-              eigen_numbers <- stringr::str_extract_all(
-                eigen_lines[1],
-                "\\d+\\.?\\d*"
-              )[[1]]
-              if (length(eigen_numbers) >= 2) {
-                summary_data$summary_stats$eigenvalue_min <- as.numeric(eigen_numbers[
-                  1
-                ])
-                summary_data$summary_stats$eigenvalue_max <- as.numeric(eigen_numbers[
-                  2
-                ])
+              # Numbers after the first colon: signed, decimal, optional exponent
+              eigen_text <- sub("^[^:]*:", "", eigen_lines[1])
+              eigen_numbers <- as.numeric(stringr::str_extract_all(
+                eigen_text,
+                "[-+]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][-+]?\\d+)?"
+              )[[1]])
+              if (length(eigen_numbers) >= 1) {
+                summary_data$summary_stats$eigenvalue_min <- min(eigen_numbers)
+                summary_data$summary_stats$eigenvalue_max <- max(eigen_numbers)
               }
             }
           }

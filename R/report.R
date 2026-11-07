@@ -80,8 +80,14 @@ generate_project_report <- function(
       completion_status$status == "completed_late",
       na.rm = TRUE
     ),
+    project_files_no_results = sum(
+      completion_status$status == "no_results",
+      na.rm = TRUE
+    ),
     project_files_incomplete = sum(
-      !completion_status$has_successful_run & completion_status$has_run,
+      !completion_status$has_successful_run &
+        completion_status$has_run &
+        completion_status$status != "no_results",
       na.rm = TRUE
     ),
     project_files_no_runs = sum(!completion_status$has_run, na.rm = TRUE),
@@ -204,6 +210,11 @@ print_report_summary <- function(
     report$summary$project_files_completed_late,
     "\n"
   )
+  cat(
+    "  Finished without results:",
+    report$summary$project_files_no_results,
+    "\n"
+  )
   cat("  Incomplete runs:", report$summary$project_files_incomplete, "\n")
   cat("  No runs recorded:", report$summary$project_files_no_runs, "\n\n")
 
@@ -268,6 +279,15 @@ print_report_summary <- function(
       paste(
         report$summary$project_files_no_runs,
         "project files have no run records"
+      )
+    )
+  }
+  if (report$summary$project_files_no_results > 0) {
+    issues <- c(
+      issues,
+      paste(
+        report$summary$project_files_no_results,
+        "project files have runs that finished without results"
       )
     )
   }

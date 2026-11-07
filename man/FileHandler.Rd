@@ -17,6 +17,7 @@ Base file handler class
 \item \href{#method-FileHandler-get_output_dir}{\code{FileHandler$get_output_dir()}}
 \item \href{#method-FileHandler-can_monitor}{\code{FileHandler$can_monitor()}}
 \item \href{#method-FileHandler-parse_summary}{\code{FileHandler$parse_summary()}}
+\item \href{#method-FileHandler-expects_summary}{\code{FileHandler$expects_summary()}}
 \item \href{#method-FileHandler-get_summary_file_path}{\code{FileHandler$get_summary_file_path()}}
 \item \href{#method-FileHandler-clone}{\code{FileHandler$clone()}}
 }
@@ -102,6 +103,16 @@ Parse summary file
 }
 \if{html}{\out{</div>}}
 }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-FileHandler-expects_summary"></a>}}
+\if{latex}{\out{\hypertarget{method-FileHandler-expects_summary}{}}}
+\subsection{Method \code{expects_summary()}}{
+Whether a finished run of this project type produces a summary
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{FileHandler$expects_summary()}\if{html}{\out{</div>}}
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FileHandler-get_summary_file_path"></a>}}

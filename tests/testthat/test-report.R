@@ -54,3 +54,19 @@ test_that("print_report_summary prints late recordings", {
     fixed = TRUE
   )
 })
+
+test_that("a run without results is counted and printed apart from incomplete", {
+  root <- local_theoph_root()
+  spec <- theoph_run_spec(root, "r1")
+  spec$completions$completion$summary <- NULL
+  s <- local_store_with_runs(list(spec), root = root)
+  report <- generate_project_report(root, store = s$store)
+  expect_equal(report$summary$project_files_no_results, 1L)
+  expect_equal(report$summary$project_files_incomplete, 0L)
+  expect_equal(report$summary$project_files_completed, 0L)
+  expect_output(
+    print_report_summary(root, store = s$store),
+    "Finished without results: 1",
+    fixed = TRUE
+  )
+})

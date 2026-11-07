@@ -9,7 +9,8 @@
 #' @param include_files Logical scalar. Whether to include details about input and
 #'   output files in the data. Default is `FALSE`.
 #' @param ignore_failed_runs Logical scalar. Whether to exclude runs where
-#'   `completed_at` is missing (i.e., failed or incomplete runs). Default is `FALSE`.
+#'   `completed_at` is missing or the run finished without results (i.e., failed,
+#'   incomplete or `"no_results"` runs). Default is `FALSE`.
 #' @param latest_only Logical scalar. Whether to return only the latest run
 #'   (by `submitted_at`) for each project file. Default is `FALSE`.
 #' @param include_summary Logical scalar. Whether to include information from the
@@ -19,12 +20,16 @@
 #'   columns: `run_id` (character), `job_id`, `project_name`, `project_path`,
 #'   `data_file`, `model_file`, `thread`, `tool`, `mode`, `config`,
 #'   `project_file_timestamp`, `project_file_sha256`, `cmd`, `submitted_at`,
-#'   `completed_at`, `state`, `recorded_late`.
+#'   `completed_at`, `state`, `recorded_late`. `state` is one of `"submit_failed"`,
+#'   `"unrecorded"`, `"completion_crashed"`, `"recorded"`, `"recorded_late"` or
+#'   `"no_results"` (recorded, but a Monolix run without a summary).
 #'   When `include_files = TRUE`, additionally contains one row per input and
 #'   output file with `io_type`, `file_name`, `file_path`, `file_timestamp` and
 #'   `sha256`.
 #'   When `include_summary = TRUE`, additionally contains run summary from
-#'   summary.txt and one `n_obs_<type>` column per observation type.
+#'   summary.txt and one `n_obs_<type>` column per observation type. Characters in
+#'   `<type>` other than letters, digits and `_` are replaced by `_`, so
+#'   `"obsid 1"` gives `n_obs_obsid_1`.
 #'   Timestamps are in the session time zone. Returns `NULL` invisibly, with a
 #'   message, when there are no runs.
 #'
@@ -60,7 +65,11 @@ runs_data <- function(
   data <- store_read(store)
   runs <- data$runs
   if (ignore_failed_runs) {
-    runs <- runs[!is.na(runs$completed_at), , drop = FALSE]
+    runs <- runs[
+      !is.na(runs$completed_at) & runs$state != "no_results",
+      ,
+      drop = FALSE
+    ]
   }
   if (latest_only) {
     runs <- latest_by(runs, runs$project_path, runs$submitted_at)
@@ -175,7 +184,9 @@ runs_data <- function(
 }
 
 # Observation counts as one row per run with an `n_obs_<type>` column per
-# observation type; NULL when there are none.
+# observation type; NULL when there are none. Each run of characters outside
+# [A-Za-z0-9_] in a type becomes "_" (leading and trailing "_" dropped), and
+# types that end up with the same name are made unique with a "_<n>" suffix.
 pivot_observations <- function(observations) {
   if (nrow(observations) == 0) {
     return(NULL)
@@ -184,9 +195,15 @@ pivot_observations <- function(observations) {
     run_id = unique(observations$run_id),
     stringsAsFactors = FALSE
   )
-  for (type in unique(observations$obs_type)) {
+  types <- unique(observations$obs_type)
+  col_names <- make.unique(
+    paste0("n_obs_", gsub("^_+|_+$", "", gsub("[^A-Za-z0-9_]+", "_", types))),
+    sep = "_"
+  )
+  for (i in seq_along(types)) {
+    type <- types[[i]]
     of_type <- observations[observations$obs_type == type, , drop = FALSE]
-    wide[[paste0("n_obs_", type)]] <-
+    wide[[col_names[[i]]]] <-
       of_type$n_observations[match(wide$run_id, of_type$run_id)]
   }
   wide
@@ -214,7 +231,8 @@ latest_by <- function(df, key, time) {
 #' @param include_files Logical scalar. Whether to include details about input and
 #'   output files in the table. Default is `FALSE`.
 #' @param ignore_failed_runs Logical scalar. Whether to exclude runs where
-#'   `completed_at` is missing (i.e., failed or incomplete runs). Default is `FALSE`.
+#'   `completed_at` is missing or the run finished without results (i.e., failed,
+#'   incomplete or `"no_results"` runs). Default is `FALSE`.
 #' @param latest_only Logical scalar. Whether to return only the latest run
 #'   (by `submitted_at`) for each project file. Default is `FALSE`.
 #' @param include_summary Logical scalar. Whether to include information from the

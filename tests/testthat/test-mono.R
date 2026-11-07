@@ -288,7 +288,7 @@ test_that("a local runner that writes no summary.txt is recorded when it exits",
     id <- mono(e$paths[1], cmd = cmd, store = e$store, require_charts_data = FALSE)
   )
   res <- store_read(e$store)
-  expect_equal(res$runs$state, "recorded")
+  expect_equal(res$runs$state, "no_results")
   expect_equal(nrow(res$summary), 0L)
 })
 
