@@ -4,7 +4,12 @@
 \alias{finalize_runs}
 \title{Record completion of runs whose launching session ended}
 \usage{
-finalize_runs(store = default_store(), run_id = NULL, retry_crashed = FALSE)
+finalize_runs(
+  store = default_store(),
+  run_id = NULL,
+  retry_crashed = FALSE,
+  all_users = FALSE
+)
 }
 \arguments{
 \item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}). Defaults to
@@ -15,12 +20,19 @@ finalize_runs(store = default_store(), run_id = NULL, retry_crashed = FALSE)
 
 \item{retry_crashed}{Logical. Record runs whose earlier completion attempt
 crashed into a fresh attempt folder. Otherwise they are only reported.}
+
+\item{all_users}{Logical. Also record runs launched by other users. By
+default only runs whose \code{run.json} user is the current user are recorded,
+because \code{sq} may list only the current user's jobs and another user's
+running job would then look finished. Other users' runs are reported as
+\code{"other_user"}.}
 }
 \value{
 A data frame with columns \code{run_id} and \code{action}, one row per run
 that was considered. \code{action} is \code{"recorded_late"}, \code{"still_queued"},
-\code{"no_summary_yet"}, \code{"claimed_elsewhere"}, \code{"completion_crashed"} or
-\code{"skipped_submit_failed"} (only for runs named in \code{run_id}). Recorded runs
+\code{"no_summary_yet"}, \code{"claimed_elsewhere"}, \code{"completion_crashed"},
+\code{"other_user"} or \code{"skipped_submit_failed"} (only for runs named in
+\code{run_id}). Recorded runs
 are not listed.
 }
 \description{
@@ -35,6 +47,7 @@ otherwise be recorded as finished.
 \dontrun{
 finalize_runs()
 finalize_runs(retry_crashed = TRUE)
+finalize_runs(all_users = TRUE)
 }
 
 }

@@ -88,7 +88,8 @@ job ID, software version, submission time and output, user and host
 }
 
 If a step fails, no further jobs are submitted and the error names the
-runs already submitted.
+runs already submitted, which \code{\link[=finalize_runs]{finalize_runs()}} can record once they
+finish.
 
 A submission that yields no job ID and no local result is recorded with
 \code{submission.ok = false} and is not monitored.
