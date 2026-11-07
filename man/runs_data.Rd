@@ -13,7 +13,7 @@ runs_data(
 )
 }
 \arguments{
-\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}
 
 \item{include_files}{Logical scalar. Whether to include details about input and

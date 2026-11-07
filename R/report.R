@@ -10,8 +10,8 @@
 #' @param output_files Character vector. Optional output file paths to validate
 #'   alignment with latest runs. If NULL (default), no output file alignment
 #'   check is performed.
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
-#'   Defaults to `default_store(directory)`. Nothing is written to it.
+#' @param store Character scalar. The run store directory (see [default_store()]).
+#'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return A list with components:
 #'   \itemize{
@@ -30,7 +30,7 @@ generate_project_report <- function(
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
   output_files = NULL,
-  store = default_store(directory)
+  store = default_store()
 ) {
   directory <- normalizePath(directory)
 
@@ -167,8 +167,8 @@ generate_project_report <- function(
 #' @param output_files Character vector. Optional output file paths to validate
 #'   alignment with latest runs. If NULL (default), no output file alignment
 #'   section is included in the report.
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
-#'   Defaults to `default_store(directory)`. Nothing is written to it.
+#' @param store Character scalar. The run store directory (see [default_store()]).
+#'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return NULL (invisible). Called for side effects (printing).
 #'
@@ -178,7 +178,7 @@ print_report_summary <- function(
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
   output_files = NULL,
-  store = default_store(directory)
+  store = default_store()
 ) {
   report <- generate_project_report(
     directory = directory,

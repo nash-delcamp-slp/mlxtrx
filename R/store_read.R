@@ -2,7 +2,7 @@
 #
 # Returns list(runs, files, summary, observations). Run folders that cannot be
 # read are skipped with one warning each. Timestamps are POSIXct in the
-# session time zone; paths are absolute, resolved against the store's substage.
+# session time zone; paths are absolute, resolved against the folder that holds the store.
 store_read <- function(store) {
   root <- store_root_dir(store)
   runs_dir <- file.path(store, "runs")

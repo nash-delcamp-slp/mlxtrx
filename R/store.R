@@ -1,37 +1,46 @@
-#' Get default run store path
+#' Get the run store path
 #'
-#' Determines the run store directory from the project structure. Uses the
-#' substage directory identified by `utilscognigen::path_substage()` and
-#' returns the `.mlxtrx` directory within it. The directory is created when the
-#' first run is recorded, not when it is read.
+#' Returns the run store directory from the `mlxtrx.store` option. The value is
+#' the store directory itself, conventionally the `.mlxtrx` folder inside the
+#' folder that holds the Monolix projects. A relative value resolves against
+#' the working directory at call time. The directory is created when the first
+#' run is recorded, not when it is read.
 #'
-#' @param path Character vector. Starting path for substage identification.
-#'   Defaults to the current working directory.
+#' Set the option once per session with
+#' `options(mlxtrx.store = "/path/to/monolix/.mlxtrx")`. Put that line in the
+#' project's `.Rprofile` to set it for every session.
 #'
-#' @return Character scalar. Path to the run store (`<substage>/.mlxtrx`).
-#'
-#' @details
-#' If multiple unique stages are identified, the function throws an error.
+#' @return Character scalar. Absolute path to the run store.
 #'
 #' @examples
 #' \dontrun{
+#' options(mlxtrx.store = "/path/to/monolix/.mlxtrx")
 #' default_store()
-#' default_store("/path/to/project")
 #' }
 #'
 #' @export
-default_store <- function(path = getwd()) {
-  substage <- unique(utilscognigen::path_substage(path = path))
-  if (length(substage) > 1) {
+default_store <- function() {
+  store <- getOption("mlxtrx.store")
+  if (is.null(store)) {
     stop(
-      "More than 1 unique stage identified: ",
-      paste0(substage, collapse = ", ")
+      "No run store set. Pass `store = ` or set the option, e.g.\n",
+      "  options(mlxtrx.store = \"/path/to/monolix/.mlxtrx\")\n",
+      "Put that line in the project's .Rprofile to set it for every session.",
+      call. = FALSE
     )
   }
-  file.path(substage, ".mlxtrx")
+  if (!is.character(store) || length(store) != 1L || is.na(store) ||
+    !nzchar(store)) {
+    stop(
+      "Option mlxtrx.store must be a single path, e.g. ",
+      "\"/path/to/monolix/.mlxtrx\".",
+      call. = FALSE
+    )
+  }
+  as.character(fs::path_abs(fs::path_expand(store)))
 }
 
-# The substage directory that a store lives in; stored paths are relative to it.
+# The folder that holds the store; stored paths are relative to it.
 store_root_dir <- function(store) {
   dirname(store)
 }

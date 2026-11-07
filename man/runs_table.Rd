@@ -15,7 +15,7 @@ runs_table(
 )
 }
 \arguments{
-\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}
 
 \item{format}{Character scalar. Output format for the table.
@@ -66,8 +66,8 @@ runs_table(include_summary = TRUE)
 # Export to CSV
 runs_table(format = "csv", output_file = "runs_summary.csv")
 
-# Read the store of another substage
-runs_table(store = default_store("/path/to/substage"))
+# Read the store of another folder
+runs_table(store = "/path/to/monolix/.mlxtrx")
 }
 
 }

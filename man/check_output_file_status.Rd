@@ -10,7 +10,7 @@ check_output_file_status(run_ids = NULL, store = default_store())
 \item{run_ids}{Character vector. Specific run IDs to check. If NULL (default),
 checks all runs.}
 
-\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{

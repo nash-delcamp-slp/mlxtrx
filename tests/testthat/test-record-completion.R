@@ -1,25 +1,25 @@
-# A substage holding a copy of the theoph fixture and one run whose run.json
+# A root holding a copy of the theoph fixture and one run whose run.json
 # points at it. `submitted_at` is one hour before now.
 local_theoph_run <- function(.env = parent.frame()) {
-  substage <- withr::local_tempdir(.local_envir = .env)
+  root <- withr::local_tempdir(.local_envir = .env)
   file.copy(
     test_path("fixtures", "theoph"),
-    substage,
+    root,
     recursive = TRUE
   )
-  project <- file.path(substage, "theoph", "theoph.mlxtran")
-  out_dir <- file.path(substage, "theoph", "theoph")
+  project <- file.path(root, "theoph", "theoph.mlxtran")
+  out_dir <- file.path(root, "theoph", "theoph")
   submitted <- Sys.time() - 3600
   # Fixture files predate the run; make the summary a fresh output.
   Sys.setFileTime(file.path(out_dir, "summary.txt"), Sys.time() - 1800)
   run <- fake_run_json(
     "r1",
-    project = file_record(project, substage),
+    project = file_record(project, root),
     submitted_at = format_utc(submitted)
   )
   s <- local_store_with_runs(
     list(list(id = "r1", run = run)),
-    substage = substage,
+    root = root,
     .env = .env
   )
   c(s, list(out_dir = out_dir, run_dir = s$run_dirs[["r1"]]))

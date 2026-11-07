@@ -24,7 +24,7 @@ test_that("store_create_run gives distinct directories for the same time", {
   expect_identical(dirname(a$run_dir), file.path(store, "runs"))
 })
 
-test_that("store_root_dir is the substage", {
+test_that("store_root_dir is the folder holding the store", {
   expect_identical(store_root_dir("/a/b/.mlxtrx"), "/a/b")
 })
 
@@ -100,10 +100,46 @@ test_that("cmd_software_version maps commands", {
   expect_true(is.na(cmd_software_version("foo")))
 })
 
-test_that("default_store is <substage>/.mlxtrx", {
+test_that("default_store errors with setup help when the option is unset", {
+  withr::local_options(mlxtrx.store = NULL)
+  err <- expect_error(default_store(), "No run store set")
+  expect_match(conditionMessage(err), "options(mlxtrx.store = ", fixed = TRUE)
+  expect_match(conditionMessage(err), ".Rprofile", fixed = TRUE)
+})
+
+test_that("default_store returns the option as an absolute path", {
   tmp <- withr::local_tempdir()
-  local_mocked_bindings(path_substage = function(path) tmp, .package = "utilscognigen")
-  expect_identical(default_store(tmp), file.path(tmp, ".mlxtrx"))
+  withr::local_options(mlxtrx.store = file.path(tmp, ".mlxtrx"))
+  expect_identical(default_store(), file.path(tmp, ".mlxtrx"))
+})
+
+test_that("default_store resolves a relative option against the working directory", {
+  tmp <- withr::local_tempdir()
+  withr::local_dir(tmp)
+  withr::local_options(mlxtrx.store = ".mlxtrx")
+  expect_identical(
+    default_store(),
+    file.path(as.character(fs::path_real(tmp)), ".mlxtrx")
+  )
+})
+
+test_that("default_store rejects an option that is not a single path", {
+  withr::local_options(mlxtrx.store = c("a", "b"))
+  expect_error(default_store(), "must be a single path")
+  withr::local_options(mlxtrx.store = "")
+  expect_error(default_store(), "must be a single path")
+  withr::local_options(mlxtrx.store = NA_character_)
+  expect_error(default_store(), "must be a single path")
+  withr::local_options(mlxtrx.store = 1)
+  expect_error(default_store(), "must be a single path")
+})
+
+test_that("reads without a store or option error and create nothing", {
+  tmp <- withr::local_tempdir()
+  withr::local_dir(tmp)
+  withr::local_options(mlxtrx.store = NULL)
+  expect_error(runs_data(), "No run store set")
+  expect_length(list.files(tmp, all.files = TRUE, no.. = TRUE), 0)
 })
 
 test_that("claim_completion errors on I/O failure instead of reporting a lost claim", {

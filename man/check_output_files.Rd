@@ -9,7 +9,7 @@ check_output_files(output_files, store = default_store())
 \arguments{
 \item{output_files}{Character vector. Paths to output files to validate.}
 
-\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{

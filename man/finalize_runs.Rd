@@ -7,7 +7,7 @@
 finalize_runs(store = default_store(), run_id = NULL, retry_crashed = FALSE)
 }
 \arguments{
-\item{store}{Character scalar. Path to the run store. Defaults to
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}). Defaults to
 \code{\link[=default_store]{default_store()}}.}
 
 \item{run_id}{Character vector. Limit finalization to these run IDs.

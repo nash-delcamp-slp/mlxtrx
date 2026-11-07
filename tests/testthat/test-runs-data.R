@@ -26,14 +26,14 @@ test_that("include_summary adds summary stats and n_obs_ columns", {
 })
 
 test_that("latest_only keeps one row per project; ignore_failed_runs drops unfinished", {
-  substage <- local_theoph_substage()
+  root <- local_theoph_root()
   s <- local_store_with_runs(
     list(
-      theoph_run_spec(substage, "r1", submitted_at = Sys.time() - 7200),
-      theoph_run_spec(substage, "r2", submitted_at = Sys.time() - 3600),
+      theoph_run_spec(root, "r1", submitted_at = Sys.time() - 7200),
+      theoph_run_spec(root, "r2", submitted_at = Sys.time() - 3600),
       list(id = "r3")
     ),
-    substage = substage
+    root = root
   )
   all <- runs_data(s$store)
   expect_setequal(all$run_id, c("r1", "r2", "r3"))
@@ -64,10 +64,10 @@ test_that("runs_table returns a gt table", {
 })
 
 test_that("get_run_files returns the files of the given runs", {
-  substage <- local_theoph_substage()
+  root <- local_theoph_root()
   s <- local_store_with_runs(
-    list(theoph_run_spec(substage, "r1"), theoph_run_spec(substage, "r2")),
-    substage = substage
+    list(theoph_run_spec(root, "r1"), theoph_run_spec(root, "r2")),
+    root = root
   )
   f <- get_run_files("r1", s$store)
   expect_true(all(f$run_id == "r1"))

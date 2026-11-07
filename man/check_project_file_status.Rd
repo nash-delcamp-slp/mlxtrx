@@ -16,7 +16,7 @@ check_project_file_status(
 \item{ext}{Character vector. File extensions to consider as
 project files. Defaults to c("mlxtran", "smlx").}
 
-\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{

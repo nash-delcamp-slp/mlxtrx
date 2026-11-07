@@ -13,7 +13,7 @@ mono(
   mode = NULL,
   config = NULL,
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
-  store = default_store(path),
+  store = default_store(),
   require_charts_data = TRUE
 )
 
@@ -22,7 +22,7 @@ sim(
   thread = NULL,
   mode = NULL,
   cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
-  store = default_store(path),
+  store = default_store(),
   require_charts_data = FALSE
 )
 }
@@ -59,9 +59,9 @@ Should be same length as \code{path}, length 1, or \code{NULL}.}
 identifiable by \code{Sys.which()} and contain "mono" or "sim" in the name.
 Default is "mono24". Should be same length as \code{path} or length 1.}
 
-\item{store}{Character scalar. Path to the run store directory.
-Defaults to \code{default_store(path)}, the \code{.mlxtrx} directory of the
-projects' substage. Created when the first run is recorded.}
+\item{store}{Character scalar. The run store directory (see
+\code{\link[=default_store]{default_store()}}). Defaults to \code{default_store()}. Created when the first
+run is recorded.}
 
 \item{require_charts_data}{A logical indicating whether charts data must
 be exported. This requires the relevant config.ini file includes options
@@ -99,7 +99,7 @@ submitted job has finished, then records each run's completion in a
 (\code{outputs.json}), the parsed \code{summary.txt} (\code{summary.json}) and, last,
 \code{done.json}.
 
-Paths inside the store are relative to the substage that holds the store
+Paths inside the store are relative to the folder that holds the store
 when the file is inside it, and absolute otherwise.
 }
 \examples{
@@ -118,7 +118,7 @@ mono(
 )
 
 # Record runs in a specific store
-mono("project.mlxtran", store = "path/to/substage/.mlxtrx")
+mono("project.mlxtran", store = "path/to/monolix/.mlxtrx")
 }
 
 }

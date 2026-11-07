@@ -7,7 +7,7 @@
 #' If `sq` is missing or fails the function stops, because a running job would
 #' otherwise be recorded as finished.
 #'
-#' @param store Character scalar. Path to the run store. Defaults to
+#' @param store Character scalar. The run store directory (see [default_store()]). Defaults to
 #'   [default_store()].
 #' @param run_id Character vector. Limit finalization to these run IDs.
 #'   `NULL` (default) considers every run in the store.

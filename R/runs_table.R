@@ -4,7 +4,7 @@
 #' Returns a data frame with basic job information or detailed file tracking
 #' data.
 #'
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #' @param include_files Logical scalar. Whether to include details about input and
 #'   output files in the data. Default is `FALSE`.
@@ -206,7 +206,7 @@ latest_by <- function(df, key, time) {
 #' been submitted and recorded in the run store. The table can include basic job
 #' information or detailed file tracking data.
 #'
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #' @param format Character scalar. Output format for the table.
 #'   Either `"gt"` for a formatted gt table (default) or `"csv"` for a data frame.
@@ -245,8 +245,8 @@ latest_by <- function(df, key, time) {
 #' # Export to CSV
 #' runs_table(format = "csv", output_file = "runs_summary.csv")
 #'
-#' # Read the store of another substage
-#' runs_table(store = default_store("/path/to/substage"))
+#' # Read the store of another folder
+#' runs_table(store = "/path/to/monolix/.mlxtrx")
 #' }
 #'
 #' @seealso
@@ -402,7 +402,7 @@ runs_table <- function(
 #' the run store.
 #'
 #' @param run_id Character vector. The run ID(s) to return file records for.
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return A data frame with columns: `run_id`, `io_type` (`"project"`,

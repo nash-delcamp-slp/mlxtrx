@@ -19,7 +19,7 @@ monitor_jobs(path, run_id, run_dir, job_id, output_dir = NULL, cmd, store)
 
 \item{cmd}{Character vector. The commands used for each job.}
 
-\item{store}{Character scalar. Path to the run store.}
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).}
 }
 \value{
 NULL (invisible). Called for side effects.

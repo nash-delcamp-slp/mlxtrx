@@ -5,20 +5,20 @@ local_finalize_env <- function(
   job_id = 7L,
   .env = parent.frame()
 ) {
-  substage <- withr::local_tempdir(.local_envir = .env)
-  file.copy(test_path("fixtures", "theoph"), substage, recursive = TRUE)
-  project <- file.path(substage, "theoph", "theoph.mlxtran")
-  out_dir <- file.path(substage, "theoph", "theoph")
+  root <- withr::local_tempdir(.local_envir = .env)
+  file.copy(test_path("fixtures", "theoph"), root, recursive = TRUE)
+  project <- file.path(root, "theoph", "theoph.mlxtran")
+  out_dir <- file.path(root, "theoph", "theoph")
   Sys.setFileTime(file.path(out_dir, "summary.txt"), Sys.time() - 1800)
   run <- fake_run_json(
     "r1",
-    project = file_record(project, substage),
+    project = file_record(project, root),
     submitted_at = format_utc(Sys.time() - 3600),
     job_id = job_id
   )
   s <- local_store_with_runs(
     list(list(id = "r1", run = run)),
-    substage = substage,
+    root = root,
     .env = .env
   )
   fake <- withr::local_tempdir(.local_envir = .env)

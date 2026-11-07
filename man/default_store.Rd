@@ -2,30 +2,29 @@
 % Please edit documentation in R/store.R
 \name{default_store}
 \alias{default_store}
-\title{Get default run store path}
+\title{Get the run store path}
 \usage{
-default_store(path = getwd())
-}
-\arguments{
-\item{path}{Character vector. Starting path for substage identification.
-Defaults to the current working directory.}
+default_store()
 }
 \value{
-Character scalar. Path to the run store (\verb{<substage>/.mlxtrx}).
+Character scalar. Absolute path to the run store.
 }
 \description{
-Determines the run store directory from the project structure. Uses the
-substage directory identified by \code{utilscognigen::path_substage()} and
-returns the \code{.mlxtrx} directory within it. The directory is created when the
-first run is recorded, not when it is read.
+Returns the run store directory from the \code{mlxtrx.store} option. The value is
+the store directory itself, conventionally the \code{.mlxtrx} folder inside the
+folder that holds the Monolix projects. A relative value resolves against
+the working directory at call time. The directory is created when the first
+run is recorded, not when it is read.
 }
 \details{
-If multiple unique stages are identified, the function throws an error.
+Set the option once per session with
+\code{options(mlxtrx.store = "/path/to/monolix/.mlxtrx")}. Put that line in the
+project's \code{.Rprofile} to set it for every session.
 }
 \examples{
 \dontrun{
+options(mlxtrx.store = "/path/to/monolix/.mlxtrx")
 default_store()
-default_store("/path/to/project")
 }
 
 }

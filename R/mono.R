@@ -28,9 +28,9 @@
 #' @param cmd Character vector. The Monolix or Simulx command to execute. Must be
 #'   identifiable by `Sys.which()` and contain "mono" or "sim" in the name.
 #'   Default is "mono24". Should be same length as `path` or length 1.
-#' @param store Character scalar. Path to the run store directory.
-#'   Defaults to `default_store(path)`, the `.mlxtrx` directory of the
-#'   projects' substage. Created when the first run is recorded.
+#' @param store Character scalar. The run store directory (see
+#'   [default_store()]). Defaults to `default_store()`. Created when the first
+#'   run is recorded.
 #' @param require_charts_data A logical indicating whether charts data must
 #'   be exported. This requires the relevant config.ini file includes options
 #'   `exportChartsData=true`, `export-charts-datasets=true`, and
@@ -62,7 +62,7 @@
 #' (`outputs.json`), the parsed `summary.txt` (`summary.json`) and, last,
 #' `done.json`.
 #'
-#' Paths inside the store are relative to the substage that holds the store
+#' Paths inside the store are relative to the folder that holds the store
 #' when the file is inside it, and absolute otherwise.
 #'
 #' @examples
@@ -81,7 +81,7 @@
 #' )
 #'
 #' # Record runs in a specific store
-#' mono("project.mlxtran", store = "path/to/substage/.mlxtrx")
+#' mono("project.mlxtran", store = "path/to/monolix/.mlxtrx")
 #' }
 #'
 #' @export
@@ -93,7 +93,7 @@ mono <- function(
   mode = NULL,
   config = NULL,
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
-  store = default_store(path),
+  store = default_store(),
   require_charts_data = TRUE
 ) {
   assertthat::assert_that(
@@ -217,7 +217,7 @@ sim <- function(
   thread = NULL,
   mode = NULL,
   cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
-  store = default_store(path),
+  store = default_store(),
   require_charts_data = FALSE
 ) {
   mono(
@@ -390,7 +390,7 @@ execute_job <- function(
 #' @param job_id Integer vector. External job IDs (from job scheduler).
 #' @param output_dir Character vector or `NULL`. Output directories.
 #' @param cmd Character vector. The commands used for each job.
-#' @param store Character scalar. Path to the run store.
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'
 #' @return NULL (invisible). Called for side effects.
 #'

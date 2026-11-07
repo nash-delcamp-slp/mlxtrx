@@ -100,7 +100,7 @@ test_that("each run state is derived from the files present", {
   expect_s3_class(runs$completed_at, "POSIXct")
   expect_identical(
     runs$late_flags[[5]],
-    file.path(s$substage, "out/run001/late.txt")
+    file.path(s$root, "out/run001/late.txt")
   )
   expect_identical(runs$late_flags[[4]], character(0))
 })
@@ -112,9 +112,9 @@ test_that("run.json fields are mapped to columns", {
   r <- store_read(s$store)$runs
   expect_identical(r$launcher, "cli")
   expect_identical(r$job_id, 123456L)
-  expect_identical(r$project_path, file.path(s$substage, "models/run001.mlxtran"))
+  expect_identical(r$project_path, file.path(s$root, "models/run001.mlxtran"))
   expect_identical(r$project_name, "run001.mlxtran")
-  expect_identical(r$data_file, file.path(s$substage, "data/pk.csv"))
+  expect_identical(r$data_file, file.path(s$root, "data/pk.csv"))
   expect_identical(r$model_file, "lib:oral1_1cpt_kaVCl.txt")
   expect_identical(r$thread, 4L)
   expect_true(is.na(r$tool))
@@ -150,10 +150,10 @@ test_that("files frame lists project, inputs and outputs of the used attempt", {
   expect_identical(
     f$path,
     c(
-      file.path(s$substage, "models/run001.mlxtran"),
-      file.path(s$substage, "data/pk.csv"),
+      file.path(s$root, "models/run001.mlxtran"),
+      file.path(s$root, "data/pk.csv"),
       "lib:oral1_1cpt_kaVCl.txt",
-      file.path(s$substage, "out/run001/summary.txt"),
+      file.path(s$root, "out/run001/summary.txt"),
       "/abs/x.csv"
     )
   )
@@ -203,12 +203,12 @@ test_that("unreadable run folders warn once each and the rest are returned", {
   expect_identical(res$runs$run_id, "good")
 })
 
-test_that("relative paths resolve against the substage", {
+test_that("relative paths resolve against the root", {
   s <- local_store_with_runs(list(
     list(id = "r1", completions = list(completion = full_completion()))
   ))
   copy <- withr::local_tempdir()
-  file.copy(list.files(s$substage, all.files = TRUE, full.names = TRUE, no.. = TRUE),
+  file.copy(list.files(s$root, all.files = TRUE, full.names = TRUE, no.. = TRUE),
             copy, recursive = TRUE)
   res <- store_read(file.path(copy, ".mlxtrx"))
   expect_identical(res$runs$project_path, file.path(copy, "models/run001.mlxtran"))

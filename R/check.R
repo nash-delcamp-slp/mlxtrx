@@ -7,7 +7,7 @@
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
 #'   project files. Defaults to c("mlxtran", "smlx").
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return A data frame with columns:
@@ -63,7 +63,7 @@ check_completion_status <- function(
 #'
 #' @param run_ids Character vector. Specific run IDs to check. If NULL (default),
 #'   checks all runs.
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return A data frame with columns:
@@ -126,7 +126,7 @@ check_input_file_status <- function(
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
 #'   project files. Defaults to c("mlxtran", "smlx").
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return A data frame with columns:
@@ -191,7 +191,7 @@ check_project_file_status <- function(
 #'
 #' @param run_ids Character vector. Specific run IDs to check. If NULL (default),
 #'   checks all runs.
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return A data frame with columns:
@@ -250,7 +250,7 @@ check_output_file_status <- function(
 #' haven't been modified since generation.
 #'
 #' @param output_files Character vector. Paths to output files to validate.
-#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
 #' @return A data frame with columns:

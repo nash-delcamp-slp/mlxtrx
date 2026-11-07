@@ -1,11 +1,11 @@
-# A substage with two copies of the theoph fixture, a store path, and the fake
+# A root with two copies of the theoph fixture, a store path, and the fake
 # `mono24`/`sq` scripts on PATH driven by a fresh MLXTRX_FAKE_DIR.
 local_mono_env <- function(.env = parent.frame()) {
-  substage <- withr::local_tempdir(.local_envir = .env)
+  root <- withr::local_tempdir(.local_envir = .env)
   for (sub in c("a", "b")) {
-    dir.create(file.path(substage, sub))
-    file.copy(test_path("fixtures", "theoph"), file.path(substage, sub), recursive = TRUE)
-    unlink(file.path(substage, sub, "theoph", "theoph"), recursive = TRUE)
+    dir.create(file.path(root, sub))
+    file.copy(test_path("fixtures", "theoph"), file.path(root, sub), recursive = TRUE)
+    unlink(file.path(root, sub, "theoph", "theoph"), recursive = TRUE)
   }
   fake <- withr::local_tempdir(.local_envir = .env)
   file.copy(
@@ -21,10 +21,10 @@ local_mono_env <- function(.env = parent.frame()) {
   )
   withr::local_envvar(MLXTRX_FAKE_DIR = fake, .local_envir = .env)
   list(
-    substage = substage,
-    store = file.path(substage, ".mlxtrx"),
+    root = root,
+    store = file.path(root, ".mlxtrx"),
     fake = fake,
-    paths = file.path(substage, c("a", "b"), "theoph", "theoph.mlxtran")
+    paths = file.path(root, c("a", "b"), "theoph", "theoph.mlxtran")
   )
 }
 
@@ -130,7 +130,7 @@ test_that("mono() writes only to the store", {
   )
   expect_true(dir.exists(e$store))
   found <- list.files(
-    file.path(e$substage, c("a", "b")),
+    file.path(e$root, c("a", "b")),
     pattern = "^\\.mlxtrx$",
     recursive = TRUE,
     all.files = TRUE,
@@ -143,7 +143,7 @@ test_that("a failing project stops the batch before it is submitted", {
   skip_on_os("windows")
   e <- local_mono_env()
   # A data path that is a folder cannot be hashed.
-  data_b <- file.path(e$substage, "b", "theoph", "data", "theoph.csv")
+  data_b <- file.path(e$root, "b", "theoph", "data", "theoph.csv")
   unlink(data_b)
   dir.create(data_b)
   expect_error(

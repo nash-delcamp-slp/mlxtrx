@@ -9,7 +9,7 @@ generate_project_report(
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
   output_files = NULL,
-  store = default_store(directory)
+  store = default_store()
 )
 }
 \arguments{
@@ -25,8 +25,8 @@ project files. Defaults to c("mlxtran", "smlx").}
 alignment with latest runs. If NULL (default), no output file alignment
 check is performed.}
 
-\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
-Defaults to \code{default_store(directory)}. Nothing is written to it.}
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
+Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A list with components:

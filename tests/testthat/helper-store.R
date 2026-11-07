@@ -55,7 +55,7 @@ fake_done_json <- function(...) {
   base
 }
 
-# Builds a temp substage holding `<substage>/.mlxtrx/runs/<id>/...` from R
+# Builds a temp root holding `<root>/.mlxtrx/runs/<id>/...` from R
 # lists, written with store_write_json(). Removed when `.env` exits.
 #
 # runs: unnamed list of run specs. Each spec is a list with
@@ -68,9 +68,9 @@ fake_done_json <- function(...) {
 #               summary, done (list content, or NULL to omit the file)
 #   files       character vector of extra file names created empty in the
 #               run folder (e.g. "run.json.tmp-abcd1234")
-# substage: existing directory to use instead of a new temp dir.
+# root: existing directory to use instead of a new temp dir.
 #
-# Returns list(store, substage, run_ids, run_dirs); the last two are named
+# Returns list(store, root, run_ids, run_dirs); the last two are named
 # by run id in spec order.
 #
 # Example:
@@ -90,13 +90,13 @@ fake_done_json <- function(...) {
 #   store_read(s$store)
 local_store_with_runs <- function(
   runs = list(),
-  substage = NULL,
+  root = NULL,
   .env = parent.frame()
 ) {
-  if (is.null(substage)) {
-    substage <- withr::local_tempdir(.local_envir = .env)
+  if (is.null(root)) {
+    root <- withr::local_tempdir(.local_envir = .env)
   }
-  store <- file.path(substage, ".mlxtrx")
+  store <- file.path(root, ".mlxtrx")
   runs_dir <- file.path(store, "runs")
   dir.create(runs_dir, recursive = TRUE)
   ids <- character()
@@ -128,5 +128,5 @@ local_store_with_runs <- function(
       file.create(file.path(run_dir, f))
     }
   }
-  list(store = store, substage = substage, run_ids = ids, run_dirs = dirs)
+  list(store = store, root = root, run_ids = ids, run_dirs = dirs)
 }
