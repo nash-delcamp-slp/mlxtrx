@@ -31,3 +31,32 @@ test_that("theoph fixture summary parses to the documented values", {
   expect_identical(stats$n_doses, 12L)
   expect_identical(parsed$observations, list(CONC = 132L))
 })
+
+eigen_stats <- function(eigen_line) {
+  path <- withr::local_tempfile(fileext = ".txt", .local_envir = parent.frame())
+  writeLines(
+    c("ESTIMATION OF THE FISHER INFORMATION MATRIX ____", eigen_line),
+    path
+  )
+  MonolixHandler$new()$parse_summary(path)$summary_stats
+}
+
+test_that("eigenvalue_min and eigenvalue_max are the smallest and largest listed", {
+  stats <- eigen_stats("Eigen values           :     0.099       1.9        19")
+  expect_equal(stats$eigenvalue_min, 0.099)
+  expect_equal(stats$eigenvalue_max, 19)
+})
+
+test_that("eigenvalues in scientific notation are read whole", {
+  stats <- eigen_stats("Eigen values           :   3.2e-06   0.5   1.4e+03")
+  expect_equal(stats$eigenvalue_min, 3.2e-06)
+  expect_equal(stats$eigenvalue_max, 1400)
+})
+
+test_that("eigenvalues stay NA when Monolix cannot compute them", {
+  stats <- eigen_stats(
+    "WARNING : Impossible to compute the eigen values of the correlation matrix."
+  )
+  expect_true(is.na(stats$eigenvalue_min))
+  expect_true(is.na(stats$eigenvalue_max))
+})
