@@ -173,31 +173,35 @@ file_record <- function(path, root) {
 
 # Claims the right to record completion by creating the folder. Returns the
 # folder path, or NULL when another process already holds the claim. With
-# `retry = TRUE` the next free `completion-<n>` (n >= 2) is claimed instead.
+# `retry = TRUE` the attempt after the highest existing one is claimed
+# (`completion` is attempt 1, then `completion-<n>`); if another retrier
+# created it first, NULL is returned rather than moving on to a later one.
 # A failed dir.create() counts as "taken" only when the folder exists;
 # any other failure is an error.
 claim_completion <- function(run_dir, retry = FALSE) {
-  try_claim <- function(path) {
-    if (dir.create(path, showWarnings = FALSE)) {
-      return(TRUE)
-    }
-    if (!dir.exists(path)) {
-      stop("Could not create completion folder: ", path, call. = FALSE)
-    }
-    FALSE
+  n <- if (retry) highest_completion_attempt(run_dir) + 1L else 1L
+  path <- file.path(
+    run_dir,
+    if (n == 1L) "completion" else paste0("completion-", n)
+  )
+  if (dir.create(path, showWarnings = FALSE)) {
+    return(path)
   }
-  if (!retry) {
-    path <- file.path(run_dir, "completion")
-    return(if (try_claim(path)) path else NULL)
+  if (!dir.exists(path)) {
+    stop("Could not create completion folder: ", path, call. = FALSE)
   }
-  n <- 2L
-  repeat {
-    path <- file.path(run_dir, paste0("completion-", n))
-    if (try_claim(path)) {
-      return(path)
-    }
-    n <- n + 1L
+  NULL
+}
+
+# Highest completion attempt number in a run folder (`completion` is 1), or 0
+# when there is none.
+highest_completion_attempt <- function(run_dir) {
+  dirs <- list.dirs(run_dir, recursive = FALSE, full.names = FALSE)
+  dirs <- dirs[grepl("^completion(-[0-9]+)?$", dirs)]
+  if (length(dirs) == 0L) {
+    return(0L)
   }
+  max(ifelse(dirs == "completion", 1L, as.integer(sub("^completion-?", "", dirs))))
 }
 
 # Software version such as "2024R1" for a command, or NA when not recognised.

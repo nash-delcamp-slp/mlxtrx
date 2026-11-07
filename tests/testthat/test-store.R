@@ -150,3 +150,24 @@ test_that("claim_completion errors on I/O failure instead of reporting a lost cl
     "Could not create completion folder"
   )
 })
+
+test_that("a retry claims the attempt after the highest existing one", {
+  d <- withr::local_tempdir()
+  dir.create(file.path(d, "completion"))
+  dir.create(file.path(d, "completion-2"))
+  expect_identical(
+    claim_completion(d, retry = TRUE),
+    file.path(d, "completion-3")
+  )
+})
+
+test_that("a retry whose attempt another retrier took returns NULL", {
+  d <- withr::local_tempdir()
+  dir.create(file.path(d, "completion"))
+  dir.create(file.path(d, "completion-2"))
+  # This retrier saw only `completion`; another one created completion-2
+  # before it could.
+  local_mocked_bindings(highest_completion_attempt = function(run_dir) 1L)
+  expect_null(claim_completion(d, retry = TRUE))
+  expect_false(dir.exists(file.path(d, "completion-3")))
+})
