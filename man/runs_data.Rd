@@ -26,8 +26,9 @@ incomplete or \code{"no_results"} runs). Default is \code{FALSE}.}
 \item{latest_only}{Logical scalar. Whether to return only the latest run
 (by \code{submitted_at}) for each project file. Default is \code{FALSE}.}
 
-\item{include_summary}{Logical scalar. Whether to include information from the
-summary.txt file. Default is \code{FALSE}.}
+\item{include_summary}{Logical scalar. Whether to include the statistics
+parsed from the run's results (\code{summary.txt} for Monolix, the result
+tables for PKanalix). Default is \code{FALSE}.}
 }
 \value{
 A data frame with run information, newest submission first. Contains
@@ -36,14 +37,23 @@ columns: \code{run_id} (character), \code{job_id}, \code{project_name}, \code{pr
 \code{project_file_timestamp}, \code{project_file_sha256}, \code{cmd}, \code{submitted_at},
 \code{completed_at}, \code{state}, \code{recorded_late}. \code{state} is one of \code{"submit_failed"},
 \code{"unrecorded"}, \code{"completion_crashed"}, \code{"recorded"}, \code{"recorded_late"} or
-\code{"no_results"} (recorded, but a Monolix run without a summary).
+\code{"no_results"} (recorded, but a Monolix or PKanalix run without parsed
+results).
 When \code{include_files = TRUE}, additionally contains one row per input and
 output file with \code{io_type}, \code{file_name}, \code{file_path}, \code{file_timestamp} and
 \code{sha256}.
-When \code{include_summary = TRUE}, additionally contains run summary from
-summary.txt and one \verb{n_obs_<type>} column per observation type. Characters in
-\verb{<type>} other than letters, digits and \verb{_} are replaced by \verb{_}, so
-\code{"obsid 1"} gives \code{n_obs_obsid_1}.
+When \code{include_summary = TRUE}, additionally contains the run statistics:
+for Monolix, those of summary.txt and one \verb{n_obs_<type>} column per
+observation type; for PKanalix, \code{tasks} (the tasks with results, e.g.
+\code{"nca,ca,be"}), \code{n_individuals}, the compartmental analysis criteria
+\code{ofv} (-2LL), \code{aic}, \code{bic} and \code{ca_cost}, and per bioequivalence
+parameter the columns \verb{be_<parameter>_ratio}, \verb{be_<parameter>_ci_lower},
+\verb{be_<parameter>_ci_upper} and \verb{be_<parameter>_bioequivalent} (logical).
+A run with more than one formulation gets
+\verb{be_<formulation>_<parameter>_...} columns. Columns of the other tool
+are \code{NA}. Characters in \verb{<type>}, \verb{<parameter>} and \verb{<formulation>}
+other than letters, digits and \verb{_} are replaced by \verb{_}, so \code{"obsid 1"}
+gives \code{n_obs_obsid_1}.
 Timestamps are in the session time zone. Returns \code{NULL} invisibly, with a
 message, when there are no runs.
 }

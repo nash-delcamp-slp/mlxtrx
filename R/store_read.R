@@ -1,10 +1,10 @@
 # Reads the run store into data frames. Never creates or writes anything.
 #
-# Returns list(runs, files, summary, observations). Run folders that cannot be
-# read are skipped with one warning each. A run's state is one of
-# "submit_failed", "unrecorded", "completion_crashed", "recorded",
-# "recorded_late" or "no_results" (recorded, but the project type produces a
-# summary and the attempt has none). Timestamps are POSIXct in the
+# Returns list(runs, files, summary, observations, bioequivalence). Run
+# folders that cannot be read are skipped with one warning each. A run's
+# state is one of "submit_failed", "unrecorded", "completion_crashed",
+# "recorded", "recorded_late" or "no_results" (recorded, but the project type
+# produces results and the attempt has no summary.json). Timestamps are POSIXct in the
 # session time zone; paths are absolute, resolved against the folder that holds the store.
 store_read <- function(store) {
   root <- store_root_dir(store)
@@ -36,8 +36,8 @@ store_read <- function(store) {
   assemble_store_frames(parsed)
 }
 
-# One run folder as list(run, files, summary, observations), each a list of
-# plain values or a list of such rows.
+# One run folder as list(run, files, summary, observations, bioequivalence),
+# each a list of plain values or a list of such rows.
 read_run_folder <- function(run_dir, root) {
   run_path <- file.path(run_dir, "run.json")
   if (!file.exists(run_path)) {
@@ -146,6 +146,7 @@ read_run_folder <- function(run_dir, root) {
 
   summary <- NULL
   observations <- list()
+  bioequivalence <- list()
   if (!is.null(done)) {
     outputs_path <- file.path(attempt$dir, "outputs.json")
     if (file.exists(outputs_path)) {
@@ -158,6 +159,7 @@ read_run_folder <- function(run_dir, root) {
       stats <- sj$summary_stats %||% list()
       summary <- check_scalars(list(
         run_id = run_id,
+        tasks = scalar_chr(stats$tasks),
         exploratory_iterations = scalar_int(stats$exploratory_iterations),
         smoothing_iterations = scalar_int(stats$smoothing_iterations),
         fisher_matrix_estimation = scalar_lgl(stats$fisher_matrix_estimation),
@@ -167,6 +169,7 @@ read_run_folder <- function(run_dir, root) {
         aic = scalar_dbl(stats$aic),
         bicc = scalar_dbl(stats$bicc),
         bic = scalar_dbl(stats$bic),
+        ca_cost = scalar_dbl(stats$ca_cost),
         n_individuals = scalar_int(stats$n_individuals),
         n_doses = scalar_int(stats$n_doses),
         summary_extracted_at = parse_utc(sj$summary_extracted_at)
@@ -178,9 +181,26 @@ read_run_folder <- function(run_dir, root) {
           n_observations = scalar_int(sj$observations[[nm]])
         ))
       })
+      bioequivalence <- lapply(sj$bioequivalence, function(be) {
+        check_scalars(list(
+          run_id = run_id,
+          formulation = scalar_chr(be$formulation),
+          parameter = scalar_chr(be$parameter),
+          ratio = scalar_dbl(be$ratio),
+          ci_lower = scalar_dbl(be$ci_lower),
+          ci_upper = scalar_dbl(be$ci_upper),
+          bioequivalent = scalar_lgl(be$bioequivalent)
+        ))
+      })
     }
   }
-  list(run = row, files = files, summary = summary, observations = observations)
+  list(
+    run = row,
+    files = files,
+    summary = summary,
+    observations = observations,
+    bioequivalence = bioequivalence
+  )
 }
 
 # Whether the file handler for the project's extension produces a summary.
@@ -258,6 +278,7 @@ assemble_store_frames <- function(parsed) {
   files <- unlist(lapply(parsed, `[[`, "files"), recursive = FALSE)
   summaries <- Filter(Negate(is.null), lapply(parsed, `[[`, "summary"))
   obs <- unlist(lapply(parsed, `[[`, "observations"), recursive = FALSE)
+  be <- unlist(lapply(parsed, `[[`, "bioequivalence"), recursive = FALSE)
 
   runs_df <- data.frame(
     run_id = col_of(runs, "run_id", ""),
@@ -307,6 +328,7 @@ assemble_store_frames <- function(parsed) {
 
   summary_df <- data.frame(
     run_id = col_of(summaries, "run_id", ""),
+    tasks = col_of(summaries, "tasks", ""),
     exploratory_iterations = col_of(summaries, "exploratory_iterations", 0L),
     smoothing_iterations = col_of(summaries, "smoothing_iterations", 0L),
     fisher_matrix_estimation = col_of(summaries, "fisher_matrix_estimation", TRUE),
@@ -316,6 +338,7 @@ assemble_store_frames <- function(parsed) {
     aic = col_of(summaries, "aic", 0),
     bicc = col_of(summaries, "bicc", 0),
     bic = col_of(summaries, "bic", 0),
+    ca_cost = col_of(summaries, "ca_cost", 0),
     n_individuals = col_of(summaries, "n_individuals", 0L),
     n_doses = col_of(summaries, "n_doses", 0L),
     summary_extracted_at = as_time(col_of(summaries, "summary_extracted_at", 0)),
@@ -329,5 +352,22 @@ assemble_store_frames <- function(parsed) {
     stringsAsFactors = FALSE
   )
 
-  list(runs = runs_df, files = files_df, summary = summary_df, observations = obs_df)
+  be_df <- data.frame(
+    run_id = col_of(be, "run_id", ""),
+    formulation = col_of(be, "formulation", ""),
+    parameter = col_of(be, "parameter", ""),
+    ratio = col_of(be, "ratio", 0),
+    ci_lower = col_of(be, "ci_lower", 0),
+    ci_upper = col_of(be, "ci_upper", 0),
+    bioequivalent = col_of(be, "bioequivalent", TRUE),
+    stringsAsFactors = FALSE
+  )
+
+  list(
+    runs = runs_df,
+    files = files_df,
+    summary = summary_df,
+    observations = obs_df,
+    bioequivalence = be_df
+  )
 }
