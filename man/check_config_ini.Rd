@@ -2,7 +2,7 @@
 % Please edit documentation in R/check_config_ini.R
 \name{check_config_ini}
 \alias{check_config_ini}
-\title{Check Monolix/Simulx config file}
+\title{Check Monolix/Simulx/PKanalix config file}
 \usage{
 check_config_ini(
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
@@ -10,7 +10,8 @@ check_config_ini(
 )
 }
 \arguments{
-\item{cmd}{Monolix or Simulx command being executed. Defaults to \code{"mono24"}}
+\item{cmd}{Monolix, Simulx or PKanalix command being executed. Defaults to
+\code{"mono24"}}
 
 \item{offer_fix}{Whether to offer interactive fixes. Defaults to \code{interactive()}}
 }
@@ -19,7 +20,8 @@ Returns TRUE if all settings are present
 }
 \description{
 Checks if the relevant config.ini file contains required export settings
-for charts data.
+for charts data: \code{exportChartsData=true} and \code{export-charts-datasets=true}
+in \verb{[misc]}, plus \code{exportVPCSimulations=true} for Monolix and Simulx.
 In interactive sessions, offers to fix missing settings.
 }
 \examples{

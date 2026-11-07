@@ -1,10 +1,12 @@
-#' Check Monolix/Simulx config file
+#' Check Monolix/Simulx/PKanalix config file
 #'
 #' Checks if the relevant config.ini file contains required export settings
-#' for charts data.
+#' for charts data: `exportChartsData=true` and `export-charts-datasets=true`
+#' in `[misc]`, plus `exportVPCSimulations=true` for Monolix and Simulx.
 #' In interactive sessions, offers to fix missing settings.
 #'
-#' @param cmd Monolix or Simulx command being executed. Defaults to `"mono24"`
+#' @param cmd Monolix, Simulx or PKanalix command being executed. Defaults to
+#'   `"mono24"`
 #' @param offer_fix Whether to offer interactive fixes. Defaults to `interactive()`
 #'
 #' @return Returns TRUE if all settings are present
@@ -18,15 +20,18 @@ check_config_ini <- function(
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
   offer_fix = interactive()
 ) {
-  required_settings <- list(
-    "exportChartsData" = "true",
-    "export-charts-datasets" = "true",
-    "exportVPCSimulations" = "true"
-  )
-
   version_dir <- cmd_version_dir(cmd)
   if (is.na(version_dir)) {
     version_dir <- ""
+  }
+
+  required_settings <- list(
+    "exportChartsData" = "true",
+    "export-charts-datasets" = "true"
+  )
+  # PKanalix has no VPC.
+  if (!startsWith(version_dir, "pkanalix/")) {
+    required_settings[["exportVPCSimulations"]] <- "true"
   }
 
   ini_path <- file.path(
