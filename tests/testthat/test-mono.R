@@ -182,7 +182,8 @@ test_that("a failed completion warns and the other runs are recorded", {
 # A fake local runner named monolix.sh in its own temp dir. It copies
 # $MLXTRX_FAKE_DIR/summary.txt into the project's export folder, prints 30
 # lines of log, and exits 0; with $MLXTRX_FAKE_DIR/fail present it
-# exits 255 without writing anything.
+# exits 255 without writing anything, and with $MLXTRX_FAKE_DIR/no_summary
+# present it exits 0 without writing anything.
 local_fake_monolix_sh <- function(.env = parent.frame()) {
   dir <- withr::local_tempdir(.local_envir = .env)
   cmd <- file.path(dir, "monolix.sh")
@@ -200,6 +201,7 @@ local_fake_monolix_sh <- function(.env = parent.frame()) {
       "    *) shift ;;",
       "  esac",
       "done",
+      "if [ -e \"$fake/no_summary\" ]; then exit 0; fi",
       "dir=$(dirname \"$project\")",
       "export_path=$(sed -n \"s/^[[:space:]]*exportpath[[:space:]]*=[[:space:]]*['\\\"]\\(.*\\)['\\\"].*/\\1/p\" \"$project\")",
       "mkdir -p \"$dir/$export_path\"",
@@ -273,4 +275,19 @@ test_that("a failing sq leaves runs unrecorded instead of finished", {
   expect_match(warnings, "sq failed")
   expect_true(any(grepl("finalize_runs()", msgs, fixed = TRUE)))
   expect_equal(store_read(e$store)$runs$state, c("unrecorded", "unrecorded"))
+})
+
+test_that("a local runner that writes no summary.txt is recorded when it exits", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  cmd <- local_fake_monolix_sh()
+  file.create(file.path(e$fake, "no_summary"))
+  setTimeLimit(elapsed = 30, transient = TRUE)
+  on.exit(setTimeLimit(elapsed = Inf), add = TRUE)
+  suppressMessages(
+    id <- mono(e$paths[1], cmd = cmd, store = e$store, require_charts_data = FALSE)
+  )
+  res <- store_read(e$store)
+  expect_equal(res$runs$state, "recorded")
+  expect_equal(nrow(res$summary), 0L)
 })

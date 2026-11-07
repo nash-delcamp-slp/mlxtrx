@@ -380,7 +380,9 @@ execute_job <- function(
 #' Polls every `poll_interval` seconds until each submitted job has finished,
 #' then records its completion in the run store with `record_completion()`. A
 #' job with a job ID has finished when it is no longer in the queue; a job
-#' without one has finished when its `summary.txt` exists. Runs whose
+#' run by the local runners `monolix.sh` or `simulx.sh` has finished already;
+#' any other job without a job ID has finished when its `summary.txt` exists.
+#' Runs whose
 #' submission failed are skipped. A run whose completion cannot be recorded
 #' gives a warning naming it, and the other runs are still monitored and
 #' recorded.
@@ -467,6 +469,9 @@ monitor_jobs <- function(
       if (!is.na(job_id[i])) {
         job_completed <- !is.null(queued) &&
           !as.character(job_id[i]) %in% queued
+      } else if (basename(cmd[i]) %in% c("monolix.sh", "simulx.sh")) {
+        # Local runners have finished when execute_job() returns.
+        job_completed <- TRUE
       } else {
         ext <- fs::path_ext(path[i])
         handler <- get_file_handler(ext)
