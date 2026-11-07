@@ -4,32 +4,38 @@
 \alias{check_output_file_status}
 \title{Check output file integrity}
 \usage{
-check_output_file_status(run_ids = NULL, db_conn = default_db_conn())
+check_output_file_status(run_ids = NULL, store = default_store())
 }
 \arguments{
-\item{run_ids}{Integer vector. Specific run IDs to check. If NULL (default),
+\item{run_ids}{Character vector. Specific run IDs to check. If NULL (default),
 checks all runs.}
 
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A data frame with columns:
 \itemize{
-\item \code{run_id} (integer): The run identifier
+\item \code{run_id} (character): The run identifier
 \item \code{file_path} (character): Full path to the output file
 \item \code{file_name} (character): File name (basename)
 \item \code{recorded_timestamp} (POSIXct): Timestamp when output was recorded
-\item \code{recorded_checksum} (character): MD5 checksum when recorded
+\item \code{recorded_sha256} (character): SHA-256 checksum when recorded
 \item \code{current_timestamp} (POSIXct): Current file modification time
-\item \code{current_checksum} (character): Current MD5 checksum
+\item \code{current_sha256} (character): Current SHA-256 checksum
 \item \code{timestamp_changed} (logical): Whether modification time changed
 \item \code{checksum_changed} (logical): Whether file content changed
 \item \code{file_exists} (logical): Whether file still exists
-\item \code{status} (character): Summary status
+\item \code{recorded_late} (logical): Whether the run's completion was
+recorded late
+\item \code{status} (character): Summary status: \code{"missing"}, \code{"modified"},
+\code{"timestamp_changed"}, \code{"suspect"} (unchanged, but flagged when the
+late recording found it written long after the other outputs),
+\code{"unchanged_late"} (unchanged, recorded late) or \code{"unchanged"}
 }
 }
 \description{
 Identifies output files that have been manually changed, deleted, or updated
-with another tool since they were recorded.
+with another tool since they were recorded. Outputs of runs whose completion
+was recorded late are never reported as plain \code{"unchanged"}.
 }

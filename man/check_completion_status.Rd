@@ -7,7 +7,7 @@
 check_completion_status(
   directory = ".",
   ext = c("mlxtran", "smlx"),
-  db_conn = default_db_conn()
+  store = default_store()
 )
 }
 \arguments{
@@ -16,21 +16,25 @@ check_completion_status(
 \item{ext}{Character vector. File extensions to consider as
 project files. Defaults to c("mlxtran", "smlx").}
 
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A data frame with columns:
 \itemize{
 \item \code{project_file} (character): Full path to the project file
 \item \code{has_run} (logical): Whether any run record exists for this file
-\item \code{has_successful_run} (logical): Whether a completed run exists
-\item \code{latest_run_id} (integer): Most recent run_id (NA if no runs)
+\item \code{has_successful_run} (logical): Whether the latest run completed
+\item \code{latest_run_id} (character): Most recent run_id (NA if no runs)
 \item \code{latest_completed_at} (POSIXct): Latest completion timestamp (NA if not completed)
-\item \code{status} (character): Summary status ("completed", "incomplete", "no_runs")
+\item \code{recorded_late} (logical): Whether the latest run's completion was
+recorded late (NA if it was not recorded)
+\item \code{status} (character): Summary status ("completed",
+"completed_late", "incomplete", "no_runs")
 }
 }
 \description{
 Validates that all project files in a directory have successful run records.
-A successful run is defined as having a non-NULL completed_at timestamp.
+A successful run is one whose latest run (by \code{submitted_at}) has a
+completion timestamp.
 }

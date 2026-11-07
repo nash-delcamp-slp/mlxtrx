@@ -7,7 +7,7 @@
 check_project_file_status(
   directory = ".",
   ext = c("mlxtran", "smlx"),
-  db_conn = default_db_conn()
+  store = default_store()
 )
 }
 \arguments{
@@ -16,19 +16,19 @@ check_project_file_status(
 \item{ext}{Character vector. File extensions to consider as
 project files. Defaults to c("mlxtran", "smlx").}
 
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A data frame with columns:
 \itemize{
 \item \code{project_file} (character): Full path to the project file
-\item \code{run_id} (integer): Most recent completed run ID (NA if no completed runs)
+\item \code{run_id} (character): Most recent completed run ID (NA if no completed runs)
 \item \code{run_completed_at} (POSIXct): When the run was completed (NA if not completed)
 \item \code{recorded_timestamp} (POSIXct): Project file timestamp at run time
-\item \code{recorded_checksum} (character): Project file checksum at run time
+\item \code{recorded_sha256} (character): Project file SHA-256 checksum at run time
 \item \code{current_timestamp} (POSIXct): Current project file modification time
-\item \code{current_checksum} (character): Current project file checksum
+\item \code{current_sha256} (character): Current project file SHA-256 checksum
 \item \code{timestamp_changed} (logical): Whether modification time changed since run
 \item \code{checksum_changed} (logical): Whether file content changed since run
 \item \code{file_exists} (logical): Whether project file still exists
@@ -36,5 +36,6 @@ A data frame with columns:
 }
 }
 \description{
-Detects project files that have been modified since their latest successful run.
+Detects project files that have been modified since their latest completed
+run.
 }

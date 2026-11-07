@@ -4,31 +4,37 @@
 \alias{check_output_files}
 \title{Check specified output files alignment with latest runs}
 \usage{
-check_output_files(output_files, db_conn = default_db_conn())
+check_output_files(output_files, store = default_store())
 }
 \arguments{
 \item{output_files}{Character vector. Paths to output files to validate.}
 
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. Path to the run store (a \code{.mlxtrx} folder).
+Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A data frame with columns:
 \itemize{
 \item \code{file_path} (character): Full path to the output file
 \item \code{file_name} (character): File name (basename)
-\item \code{run_id} (integer): Most recent run ID that generated this file (NA if not found)
+\item \code{run_id} (character): Most recently submitted run that recorded
+this file (NA if not found)
 \item \code{run_submitted_at} (POSIXct): When the generating run was submitted
 \item \code{run_completed_at} (POSIXct): When the generating run completed
-\item \code{recorded_timestamp} (POSIXct): File timestamp when recorded in database
-\item \code{recorded_checksum} (character): MD5 checksum when recorded
+\item \code{recorded_timestamp} (POSIXct): File timestamp when recorded in the store
+\item \code{recorded_sha256} (character): SHA-256 checksum when recorded
 \item \code{current_timestamp} (POSIXct): Current file modification time
-\item \code{current_checksum} (character): Current MD5 checksum
+\item \code{current_sha256} (character): Current SHA-256 checksum
 \item \code{timestamp_changed} (logical): Whether modification time changed since recording
 \item \code{checksum_changed} (logical): Whether file content changed since recording
 \item \code{file_exists} (logical): Whether file still exists
 \item \code{predates_submission} (logical): Whether file predates the run submission
-\item \code{status} (character): Summary status
+\item \code{recorded_late} (logical): Whether the run's completion was
+recorded late
+\item \code{status} (character): Summary status: \code{"missing"},
+\code{"no_run_record"}, \code{"incomplete_run"}, \code{"predates_run"}, \code{"modified"},
+\code{"timestamp_changed"}, \code{"suspect"}, \code{"unchanged_late"} or
+\code{"unchanged"} (see \code{\link[=check_output_file_status]{check_output_file_status()}})
 }
 }
 \description{
