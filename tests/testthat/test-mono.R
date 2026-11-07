@@ -178,3 +178,71 @@ test_that("a failed completion warns and the other runs are recorded", {
   expect_equal(runs$state[runs$run_id == ids[1]], "unrecorded")
   expect_equal(runs$state[runs$run_id == ids[2]], "recorded")
 })
+
+# A fake local runner named monolix.sh in its own temp dir. It copies
+# $MLXTRX_FAKE_DIR/summary.txt into the project's export folder, prints 30
+# lines of log, and exits 0; with $MLXTRX_FAKE_DIR/fail present it
+# exits 255 without writing anything.
+local_fake_monolix_sh <- function(.env = parent.frame()) {
+  dir <- withr::local_tempdir(.local_envir = .env)
+  cmd <- file.path(dir, "monolix.sh")
+  writeLines(
+    c(
+      "#!/bin/sh",
+      "fake=\"$MLXTRX_FAKE_DIR\"",
+      "i=1",
+      "while [ $i -le 30 ]; do echo \"log line $i\"; i=$((i + 1)); done",
+      "if [ -e \"$fake/fail\" ]; then echo 'Error: invalid project'; exit 255; fi",
+      "project=\"\"",
+      "while [ $# -gt 0 ]; do",
+      "  case \"$1\" in",
+      "    -p) project=\"$2\"; shift 2 ;;",
+      "    *) shift ;;",
+      "  esac",
+      "done",
+      "dir=$(dirname \"$project\")",
+      "export_path=$(sed -n \"s/^[[:space:]]*exportpath[[:space:]]*=[[:space:]]*['\\\"]\\(.*\\)['\\\"].*/\\1/p\" \"$project\")",
+      "mkdir -p \"$dir/$export_path\"",
+      "cp \"$fake/summary.txt\" \"$dir/$export_path/summary.txt\"",
+      "exit 0"
+    ),
+    cmd
+  )
+  Sys.chmod(cmd, "755")
+  cmd
+}
+
+test_that("a local runner that exits 0 is recorded without a warning", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  cmd <- local_fake_monolix_sh()
+  expect_no_warning(
+    suppressMessages(
+      id <- mono(e$paths[1], cmd = cmd, store = e$store, require_charts_data = FALSE)
+    )
+  )
+  run <- read_run_json(e$store, id)
+  expect_true(run$submission$ok)
+  expect_null(run$job_id)
+  res <- store_read(e$store)
+  expect_equal(res$runs$state, "recorded")
+  expect_equal(nrow(res$summary), 1L)
+  expect_equal(res$summary$n_individuals, 12L)
+})
+
+test_that("a local runner that exits non-zero is a failed submission", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  cmd <- local_fake_monolix_sh()
+  file.create(file.path(e$fake, "fail"))
+  w <- expect_warning(
+    id <- mono(e$paths[1], cmd = cmd, store = e$store, require_charts_data = FALSE),
+    "exited with status 255"
+  )
+  expect_match(conditionMessage(w), "invalid project")
+  expect_no_match(conditionMessage(w), "log line 1\n", fixed = TRUE)
+  run <- read_run_json(e$store, id)
+  expect_false(run$submission$ok)
+  expect_length(run$submission$output, 31L)
+  expect_equal(store_read(e$store)$runs$state, "submit_failed")
+})

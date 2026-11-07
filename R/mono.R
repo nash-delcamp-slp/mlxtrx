@@ -284,9 +284,10 @@ resolve_config_path <- function(config, path) {
 #' @param cmd Character scalar. The Monolix command to execute.
 #'
 #' @return A list with `job_id` (integer, `NA` when no job ID was found),
-#'   `ok` (logical, `TRUE` when a job ID was found or the command reports
-#'   that results have been loaded) and `output` (character, the command's
-#'   output).
+#'   `ok` (logical) and `output` (character, the command's output). For the
+#'   local runners `monolix.sh` and `simulx.sh`, `ok` is `TRUE` when the
+#'   command exits with status 0. For other commands, `ok` is `TRUE` when a
+#'   job ID was found or the command reports that results have been loaded.
 #'
 #' @keywords internal
 execute_job <- function(
@@ -298,7 +299,9 @@ execute_job <- function(
   config = NULL,
   cmd = "mono24"
 ) {
-  result <- system2(
+  # A non-zero exit status is reported below from the "status" attribute, so
+  # system2()'s own warning about it is muffled.
+  result <- suppressWarnings(system2(
     cmd,
     args = c(
       if (basename(cmd) == "monolix.sh") "--no-gui" else NULL,
@@ -315,8 +318,28 @@ execute_job <- function(
     ),
     stdout = TRUE,
     stderr = TRUE
-  )
+  ))
   output <- as.character(result)
+
+  # Local runners execute the project in the foreground: success is exit
+  # status 0. system2() sets the "status" attribute only when it is non-zero.
+  if (basename(cmd) %in% c("monolix.sh", "simulx.sh")) {
+    status <- attr(result, "status") %||% 0L
+    if (status == 0L) {
+      message("Ran ", cmd, " for file: ", path)
+      return(list(job_id = NA_integer_, ok = TRUE, output = output))
+    }
+    warning(
+      cmd,
+      " exited with status ",
+      status,
+      " for file: ",
+      path,
+      ". Last lines of output:\n",
+      paste(utils::tail(output, 20), collapse = "\n")
+    )
+    return(list(job_id = NA_integer_, ok = FALSE, output = output))
+  }
 
   job_id <- NA_integer_
   if (length(output) > 0) {
