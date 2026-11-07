@@ -1,16 +1,18 @@
-#' Submit Monolix and Simulx jobs to grid and record runs in the run store
+#' Submit Monolix, Simulx and PKanalix jobs to grid and record runs in the run store
 #'
-#' Executes one or more commands that submit Monolix/Simulx jobs to the grid and
-#' records each run in the run store.
+#' Executes one or more commands that submit Monolix, Simulx or PKanalix jobs
+#' to the grid and records each run in the run store. `sim()` and `pk()` call
+#' `mono()` with the Simulx and PKanalix commands.
 #'
-#' @param path Character vector. Paths to existing Monolix or Simulx project files.
+#' @param path Character vector. Paths to existing Monolix (`.mlxtran`),
+#'   Simulx (`.smlx`) or PKanalix (`.pkx`) project files.
 #' @param output_dir Character vector or `NULL`. Directory for
 #'   output files relative to the project path.
 #'   Passed as `--output-dir` argument to the Monolix command.
 #'   If `NULL` (default), Monolix uses the export path from the project file.
 #'   Should be same length as `path`, length 1, or `NULL`.
-#' @param thread Integer vector or `NULL`. Number of threads used by Monolix/Simulx.
-#'   Passed as `--thread` argument to the Monolix and Simulx commands.
+#' @param thread Integer vector or `NULL`. Number of threads.
+#'   Passed as `--thread` argument to the command.
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param tool Character vector or `NULL`. Tool to launch assessment
 #'   (`"monolix"`, `"modelBuilding"`, `"bootstrap"`).
@@ -19,22 +21,27 @@
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param mode Character vector or `NULL`. Console mode
 #'   (`"none"`, `"basic"`, or `"complete"`).
-#'   Passed as `--mode` argument to the Monolix and Simulx commands.
-#'   If `NULL` (default), Monolix and Simulx use `"basic"`.
+#'   Passed as `--mode` argument to the command.
+#'   If `NULL` (default), the command uses `"basic"`.
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param config Character vector or `NULL`. Configuration file path.
 #'   Passed as `--config` argument to the Monolix command.
 #'   Should be same length as `path`, length 1, or `NULL`.
-#' @param cmd Character vector. The Monolix or Simulx command to execute. Must be
-#'   identifiable by `Sys.which()` and contain "mono" or "sim" in the name.
-#'   Default is "mono24". Should be same length as `path` or length 1.
+#' @param cmd Character vector. The command to execute. Must be
+#'   identifiable by `Sys.which()` and contain "mono", "sim" or "pk" in the
+#'   name: a grid command such as `mono24`, `sim24` or `pk24`, or a local
+#'   runner `monolix.sh`, `simulx.sh` or `pkanalix.sh`. Defaults to the
+#'   `mlxtrx.monolix_cmd` option or "mono24" for `mono()`, the
+#'   `mlxtrx.simulx_cmd` option or "sim24" for `sim()` and the
+#'   `mlxtrx.pkanalix_cmd` option or "pk24" for `pk()`. Should be same length
+#'   as `path` or length 1.
 #' @param store Character scalar. The run store directory (see
 #'   [default_store()]). Defaults to `default_store()`. Created when the first
 #'   run is recorded.
 #' @param require_charts_data A logical indicating whether charts data must
 #'   be exported. This requires the relevant config.ini file includes options
-#'   `exportChartsData=true`, `export-charts-datasets=true`, and
-#'   `exportVPCSimulations=true`.
+#'   `exportChartsData=true`, `export-charts-datasets=true`, and, except for
+#'   PKanalix, `exportVPCSimulations=true` (see [check_config_ini()]).
 #'
 #' @return Character vector. The run IDs of all jobs, in the order of `path`.
 #'
@@ -60,8 +67,16 @@
 #' Once all jobs are submitted, the function polls the job queue until every
 #' submitted job has finished, then records each run's completion in a
 #' `completion/` folder of the run: the output files written since submission
-#' (`outputs.json`), the parsed `summary.txt` (`summary.json`) and, last,
-#' `done.json`.
+#' (`outputs.json`), the statistics parsed from the run's results
+#' (`summary.json`: `summary.txt` for Monolix, the result tables under
+#' `PKanalix/IndividualParameters` for PKanalix) and, last, `done.json`.
+#' A Monolix or PKanalix run recorded without `summary.json` is in state
+#' `"no_results"` (see [runs_data()]).
+#'
+#' The local runners `monolix.sh`, `simulx.sh` and `pkanalix.sh` run the
+#' project in the foreground with `--no-gui` (`monolix.sh` and `pkanalix.sh`);
+#' the submission succeeded when the command exits with status 0, and the run
+#' is recorded straight away.
 #'
 #' Paths inside the store are relative to the folder that holds the store
 #' when the file is inside it, and absolute otherwise.
@@ -83,6 +98,10 @@
 #'
 #' # Record runs in a specific store
 #' mono("project.mlxtran", store = "path/to/monolix/.mlxtrx")
+#'
+#' # PKanalix project on the grid, or with the local runner
+#' pk("project.pkx")
+#' pk("project.pkx", cmd = "/path/to/MonolixSuite2024R1/bin/pkanalix.sh")
 #' }
 #'
 #' @export
@@ -99,14 +118,14 @@ mono <- function(
 ) {
   assertthat::assert_that(
     all(file.exists(path)),
-    msg = "All `path`s should be paths to existing Monolix or Simulx project files."
+    msg = "All `path`s should be paths to existing Monolix, Simulx or PKanalix project files."
   )
 
   assertthat::assert_that(
     is.character(cmd),
     all(Sys.which(cmd) != ""),
-    all(grepl("mono|sim", cmd, ignore.case = TRUE)),
-    msg = "All `cmd` commands must be 'mono' or 'sim' commands that can be identified by `Sys.which()`."
+    all(grepl("mono|sim|pk", cmd, ignore.case = TRUE)),
+    msg = "All `cmd` commands must be 'mono', 'sim' or 'pk' commands that can be identified by `Sys.which()`."
   )
 
   assertthat::assert_that(
@@ -254,7 +273,27 @@ sim <- function(
 # Whether `cmd` is a local runner, which runs the project in the foreground
 # and has finished when it returns.
 is_local_runner <- function(cmd) {
-  basename(cmd) %in% c("monolix.sh", "simulx.sh")
+  basename(cmd) %in% c("monolix.sh", "simulx.sh", "pkanalix.sh")
+}
+
+#' @rdname mono
+#' @export
+pk <- function(
+  path,
+  thread = NULL,
+  mode = NULL,
+  cmd = getOption("mlxtrx.pkanalix_cmd", "pk24"),
+  store = default_store(),
+  require_charts_data = TRUE
+) {
+  mono(
+    path = path,
+    thread = thread,
+    mode = mode,
+    cmd = cmd,
+    store = store,
+    require_charts_data = require_charts_data
+  )
 }
 
 na_to_null <- function(x) {
@@ -312,7 +351,8 @@ resolve_config_path <- function(config, path) {
 #'
 #' @return A list with `job_id` (integer, `NA` when no job ID was found),
 #'   `ok` (logical) and `output` (character, the command's output). For the
-#'   local runners `monolix.sh` and `simulx.sh`, `ok` is `TRUE` when the
+#'   local runners `monolix.sh`, `simulx.sh` and `pkanalix.sh`, `ok` is
+#'   `TRUE` when the
 #'   command exits with status 0. For other commands, `ok` is `TRUE` when a
 #'   job ID was found or the command reports that results have been loaded.
 #'
@@ -331,7 +371,7 @@ execute_job <- function(
   result <- suppressWarnings(system2(
     cmd,
     args = c(
-      if (basename(cmd) == "monolix.sh") "--no-gui" else NULL,
+      if (basename(cmd) %in% c("monolix.sh", "pkanalix.sh")) "--no-gui" else NULL,
       paste("-p", shQuote(normalizePath(path))),
       if (!is.null(output_dir)) {
         paste("--output-dir", shQuote(output_dir))
@@ -407,7 +447,8 @@ execute_job <- function(
 #' Polls every `poll_interval` seconds until each submitted job has finished,
 #' then records its completion in the run store with `record_completion()`. A
 #' job with a job ID has finished when it is no longer in the queue; a job
-#' run by the local runners `monolix.sh` or `simulx.sh` has finished already;
+#' run by the local runners `monolix.sh`, `simulx.sh` or `pkanalix.sh` has
+#' finished already;
 #' any other job without a job ID has finished when one of its project type's
 #' result files (`summary.txt` for Monolix) exists in the output directory
 #' saved in its `run.json`.

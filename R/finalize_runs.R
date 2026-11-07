@@ -3,7 +3,8 @@
 #' Records completion, marked as recorded late, for runs that were launched but
 #' never recorded, for example because the R session that launched them died.
 #' A run with a job ID is recorded once its job has left the queue (`sq`). A
-#' run launched with the local runners `monolix.sh` or `simulx.sh` had finished
+#' run launched with the local runners `monolix.sh`, `simulx.sh` or
+#' `pkanalix.sh` had finished
 #' before its launch was recorded, so it is recorded straight away. Any other
 #' run without a job ID is recorded once its output folder holds one of its
 #' project type's result files (`summary.txt` for Monolix).

@@ -287,8 +287,9 @@ show_ini_diff <- function(
 
 #' Lixoft version directory for a command
 #'
-#' Maps a Monolix or Simulx command (grid wrapper such as `mono24`, or a
-#' `monolix.sh`/`simulx.sh` path) to its directory under `~/lixoft`, e.g.
+#' Maps a Monolix, Simulx or PKanalix command (grid wrapper such as `mono24`
+#' or `pk24`, or a `monolix.sh`/`simulx.sh`/`pkanalix.sh` path) to its
+#' directory under `~/lixoft`, e.g.
 #' `"monolix/monolix2024R1"`.
 #'
 #' @param cmd Command name or path.
@@ -309,6 +310,10 @@ cmd_version_dir <- function(cmd) {
       sim21 = "simulx/simulx2021R1",
       mono20 = "monolix/monolix2020R1",
       sim20 = "simulx/simulx2020R1",
+      pk24 = "pkanalix/pkanalix2024R1",
+      pk23 = "pkanalix/pkanalix2023R1",
+      pk21 = "pkanalix/pkanalix2021R1",
+      pk20 = "pkanalix/pkanalix2020R1",
       NA_character_
     )
   } else if (basename(cmd) == "monolix.sh") {
@@ -327,6 +332,15 @@ cmd_version_dir <- function(cmd) {
         cmd,
         ".*MonolixSuite(20\\d\\dR\\d)/.*",
         "simulx\\1"
+      )
+    )
+  } else if (basename(cmd) == "pkanalix.sh") {
+    version_dir <- file.path(
+      "pkanalix",
+      stringr::str_replace(
+        cmd,
+        ".*MonolixSuite(20\\d\\dR\\d)/.*",
+        "pkanalix\\1"
       )
     )
   } else {

@@ -40,7 +40,8 @@ NULL (invisible). Called for side effects.
 Polls every \code{poll_interval} seconds until each submitted job has finished,
 then records its completion in the run store with \code{record_completion()}. A
 job with a job ID has finished when it is no longer in the queue; a job
-run by the local runners \code{monolix.sh} or \code{simulx.sh} has finished already;
+run by the local runners \code{monolix.sh}, \code{simulx.sh} or \code{pkanalix.sh} has
+finished already;
 any other job without a job ID has finished when one of its project type's
 result files (\code{summary.txt} for Monolix) exists in the output directory
 saved in its \code{run.json}.
