@@ -1,8 +1,9 @@
 # One unrecorded run on a copy of the theoph fixture, with the fake `sq` on
-# PATH. The queue holds the given job IDs.
+# PATH. The queue holds the given job IDs. The run belongs to `user`.
 local_finalize_env <- function(
   queue = character(),
   job_id = 7L,
+  user = Sys.info()[["user"]],
   .env = parent.frame()
 ) {
   root <- withr::local_tempdir(.local_envir = .env)
@@ -14,7 +15,8 @@ local_finalize_env <- function(
     "r1",
     project = file_record(project, root),
     submitted_at = format_utc(Sys.time() - 3600),
-    job_id = job_id
+    job_id = job_id,
+    user = user
   )
   s <- local_store_with_runs(
     list(list(id = "r1", run = run)),
@@ -179,4 +181,15 @@ test_that("a late recording does not take a later run's outputs", {
   expect_equal(flagged, "theoph/theoph/summary.txt")
   res <- store_read(e$store)
   expect_false("r1" %in% res$summary$run_id)
+})
+
+test_that("another user's runs are left alone unless all_users = TRUE", {
+  skip_on_os("windows")
+  e <- local_finalize_env(queue = "999999", user = "someone_else")
+  expect_message(res <- finalize_runs(e$store), "other_user = 1")
+  expect_equal(res, data.frame(run_id = "r1", action = "other_user"))
+  expect_false(dir.exists(file.path(e$run_dir, "completion")))
+  suppressMessages(res <- finalize_runs(e$store, all_users = TRUE))
+  expect_equal(res$action, "recorded_late")
+  expect_equal(store_read(e$store)$runs$state, "recorded_late")
 })
