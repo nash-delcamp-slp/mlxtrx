@@ -377,12 +377,18 @@ execute_job <- function(
 
 #' Monitor multiple jobs and record completed ones
 #'
-#' Polls every 5 seconds until each submitted job has finished, then records
-#' its completion in the run store with `record_completion()`. A job with a
-#' job ID has finished when it is no longer in the queue; a job without one
-#' has finished when its `summary.txt` exists. Runs whose submission failed
-#' are skipped. A run whose completion cannot be recorded gives a warning
-#' naming it, and the other runs are still monitored and recorded.
+#' Polls every `poll_interval` seconds until each submitted job has finished,
+#' then records its completion in the run store with `record_completion()`. A
+#' job with a job ID has finished when it is no longer in the queue; a job
+#' without one has finished when its `summary.txt` exists. Runs whose
+#' submission failed are skipped. A run whose completion cannot be recorded
+#' gives a warning naming it, and the other runs are still monitored and
+#' recorded.
+#'
+#' The queue is read with `sq` once per poll. When `sq` fails, a warning is
+#' given and the jobs with a job ID count as still queued for that poll. After
+#' `sq_failure_limit` consecutive failures those runs are no longer monitored
+#' and are left unrecorded, for [finalize_runs()] to record once they finish.
 #'
 #' @param path Character vector. Paths to Monolix project files.
 #' @param run_id Character vector. Run IDs.
@@ -391,6 +397,9 @@ execute_job <- function(
 #' @param output_dir Character vector or `NULL`. Output directories.
 #' @param cmd Character vector. The commands used for each job.
 #' @param store Character scalar. The run store directory (see [default_store()]).
+#' @param poll_interval Numeric. Seconds between polls.
+#' @param sq_failure_limit Integer. Consecutive `sq` failures after which runs
+#'   with a job ID are no longer monitored.
 #'
 #' @return NULL (invisible). Called for side effects.
 #'
@@ -402,7 +411,9 @@ monitor_jobs <- function(
   job_id,
   output_dir = NULL,
   cmd,
-  store
+  store,
+  poll_interval = 5,
+  sq_failure_limit = 12
 ) {
   assertthat::assert_that(
     length(path) == length(run_id) &&
@@ -431,15 +442,31 @@ monitor_jobs <- function(
   # Track which jobs are still running
   running_jobs <- which(submitted_ok)
 
+  sq_failures <- 0L
+
   while (length(running_jobs) > 0) {
     # Check which running jobs have completed
     completed_now <- c()
+
+    # NULL when sq failed: every job with a job ID counts as still queued.
+    queued <- character()
+    if (any(!is.na(job_id[running_jobs]))) {
+      queued <- tryCatch(
+        sq_job_ids(),
+        error = function(e) {
+          warning(conditionMessage(e), call. = FALSE)
+          NULL
+        }
+      )
+      sq_failures <- if (is.null(queued)) sq_failures + 1L else 0L
+    }
 
     for (i in running_jobs) {
       job_completed <- FALSE
 
       if (!is.na(job_id[i])) {
-        job_completed <- !job_in_sq(job_id[i])
+        job_completed <- !is.null(queued) &&
+          !as.character(job_id[i]) %in% queued
       } else {
         ext <- fs::path_ext(path[i])
         handler <- get_file_handler(ext)
@@ -478,9 +505,21 @@ monitor_jobs <- function(
     }
     running_jobs <- setdiff(running_jobs, completed_now)
 
+    if (sq_failures >= sq_failure_limit) {
+      abandoned <- running_jobs[!is.na(job_id[running_jobs])]
+      running_jobs <- setdiff(running_jobs, abandoned)
+      message(
+        "sq failed ",
+        sq_failures,
+        " times in a row; no longer monitoring runs ",
+        paste(run_id[abandoned], collapse = ", "),
+        ". Record them with finalize_runs() once they finish."
+      )
+    }
+
     # Sleep before next check if there are still running jobs
     if (length(running_jobs) > 0) {
-      Sys.sleep(5)
+      Sys.sleep(poll_interval)
     }
   }
 

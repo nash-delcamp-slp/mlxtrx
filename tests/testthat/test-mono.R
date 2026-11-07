@@ -246,3 +246,31 @@ test_that("a local runner that exits non-zero is a failed submission", {
   expect_length(run$submission$output, 31L)
   expect_equal(store_read(e$store)$runs$state, "submit_failed")
 })
+
+test_that("a failing sq leaves runs unrecorded instead of finished", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  file.create(file.path(e$fake, "hold"))
+  file.create(file.path(e$fake, "sq_fail"))
+  real <- monitor_jobs
+  local_mocked_bindings(monitor_jobs = function(...) {
+    real(..., poll_interval = 0, sq_failure_limit = 2)
+  })
+  warnings <- character()
+  msgs <- character()
+  withCallingHandlers(
+    ids <- mono(e$paths, store = e$store, require_charts_data = FALSE),
+    warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    },
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_length(warnings, 2L)
+  expect_match(warnings, "sq failed")
+  expect_true(any(grepl("finalize_runs()", msgs, fixed = TRUE)))
+  expect_equal(store_read(e$store)$runs$state, c("unrecorded", "unrecorded"))
+})
