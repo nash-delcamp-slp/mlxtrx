@@ -291,3 +291,14 @@ test_that("a local runner that writes no summary.txt is recorded when it exits",
   expect_equal(res$runs$state, "recorded")
   expect_equal(nrow(res$summary), 0L)
 })
+
+test_that("a launch that errors leaves no run folder behind", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  local_mocked_bindings(execute_job = function(...) stop("launch failed"))
+  expect_error(
+    mono(e$paths[1], store = e$store, require_charts_data = FALSE),
+    "launch failed"
+  )
+  expect_length(list.files(file.path(e$store, "runs")), 0L)
+})
