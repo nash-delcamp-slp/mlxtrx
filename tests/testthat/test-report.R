@@ -39,7 +39,7 @@ test_that("print_report_summary prints late recordings", {
   s <- local_report_store()
   expect_output(
     print_report_summary(s$root, store = s$store),
-    "Completed (recorded late): 1",
+    "of which recorded late: 1",
     fixed = TRUE
   )
   expect_output(

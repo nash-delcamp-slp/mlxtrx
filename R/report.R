@@ -200,7 +200,7 @@ print_report_summary <- function(
   cat("  Total project files:", report$summary$total_project_files, "\n")
   cat("  Successfully completed:", report$summary$project_files_completed, "\n")
   cat(
-    "  Completed (recorded late):",
+    "  of which recorded late:",
     report$summary$project_files_completed_late,
     "\n"
   )

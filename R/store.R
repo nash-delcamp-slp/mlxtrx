@@ -165,7 +165,7 @@ file_record <- function(path, root) {
     rec,
     list(
       sha256 = calculate_sha256(path),
-      size = as.integer(info$size),
+      size = as.numeric(info$size),
       mtime = format_utc(info$mtime)
     )
   )

@@ -70,7 +70,7 @@ test_that("file_record hashes files and skips built-ins", {
   rec <- file_record(f, tmp)
   expect_identical(rec$path, "a.txt")
   expect_identical(rec$sha256, calculate_sha256(f))
-  expect_identical(rec$size, 6L)
+  expect_identical(rec$size, 6)
   expect_match(rec$mtime, "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$")
   b <- file_record("lib:foo.txt", tmp)
   expect_true(b$builtin)

@@ -148,7 +148,7 @@ test_that("a failing project stops the batch before it is submitted", {
   dir.create(data_b)
   expect_error(
     suppressMessages(mono(e$paths, store = e$store, require_charts_data = FALSE)),
-    "Runs already submitted: "
+    "Runs already submitted: .*Record them with finalize_runs\\(\\) once they finish\\."
   )
   expect_equal(readLines(file.path(e$fake, "next_job")), "2")
   runs <- store_read(e$store)$runs
