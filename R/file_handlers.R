@@ -428,6 +428,172 @@ SimulxHandler <- R6::R6Class(
   )
 )
 
+#' PKanalix file handler
+#'
+#' Reads `.pkx` projects, which share the `.mlxtran` section syntax. The input
+#' files are the data file and the model used by compartmental analysis
+#' (`<MODEL>` `[LONGITUDINAL]`), when the project has one. The output
+#' directory is the `exportpath` of `<PKANALIX>` `[SETTINGS]`, or the project
+#' name next to the project file without one.
+#'
+#' Results are read from `PKanalix/IndividualParameters/` in the output
+#' directory, one folder per task: `nca/ncaIndividualParameters.txt`,
+#' `ca/caIndividualParameters.txt`, `ca/cost.txt` and
+#' `be/confidenceInterval_<formulation>.txt`. They give the tasks with results
+#' (`tasks`, in the order `nca,ca,be`), the number of individuals
+#' (`n_individuals`, unique `id` in the NCA parameters, else in the CA
+#' parameters), the CA criteria (`-2LL` as `ofv`, `AIC` as `aic`, `BIC` as
+#' `bic`, `Cost` as `ca_cost`) and, per formulation and parameter, the
+#' bioequivalence ratio, its confidence interval and conclusion.
+#' @keywords internal
+PkanalixHandler <- R6::R6Class(
+  "PkanalixHandler",
+  inherit = MonolixHandler,
+  public = list(
+    #' @description Get expected output directory
+    #' @param path Path to project file
+    #' @param output_dir User-specified output directory (may be NULL)
+    get_output_dir = function(path, output_dir = NULL) {
+      exportpath <- self$parse_file(path)$PKANALIX$SETTINGS$GLOBAL$exportpath
+      path_based_output_dir <- file.path(
+        dirname(path),
+        exportpath %||% fs::path_ext_remove(basename(path))
+      )
+      resolve_output_dir(
+        path = path,
+        output_dir = output_dir %||% path_based_output_dir
+      )
+    },
+
+    #' @description Result files of a run into `output_dir`: the individual
+    #'   parameter tables of NCA and CA, the CA cost table and the
+    #'   bioequivalence confidence interval tables
+    #' @param output_dir Output directory of the run
+    #' @param files Character vector of candidate file paths, such as the
+    #'   recorded outputs of a run. `NULL` (default) looks in `output_dir`.
+    #' @return The result files among `files`, or those that exist in
+    #'   `output_dir` when `files` is `NULL`
+    result_files = function(output_dir, files = NULL) {
+      results_dir <- file.path(output_dir, "PKanalix", "IndividualParameters")
+      if (is.null(files)) {
+        files <- list.files(results_dir, recursive = TRUE, full.names = TRUE)
+      }
+      if (length(files) == 0L) {
+        return(character())
+      }
+      rel <- as.character(fs::path_rel(fs::path_norm(files), fs::path_norm(results_dir)))
+      files[grepl(
+        paste0(
+          "^(nca/ncaIndividualParameters|ca/caIndividualParameters|ca/cost)",
+          "\\.txt$|^be/confidenceInterval_.+\\.txt$"
+        ),
+        rel
+      )]
+    },
+
+    #' @description Parse PKanalix result files into the content of
+    #'   `summary.json`
+    #' @param files Result files to parse, as returned by `result_files()`
+    #' @return A list with `summary_stats`, `observations` (empty) and
+    #'   `bioequivalence` (one entry per formulation and parameter), or `NULL`
+    #'   when the files cannot be parsed
+    parse_results = function(files) {
+      if (length(files) == 0L) {
+        return(NULL)
+      }
+      task <- basename(dirname(files))
+      name <- basename(files)
+      find <- function(t, n) files[task == t & name == n]
+      tryCatch(
+        {
+          tasks <- intersect(c("nca", "ca", "be"), task)
+          stats <- list(
+            tasks = paste(tasks, collapse = ","),
+            n_individuals = NA_integer_,
+            ofv = NA_real_,
+            aic = NA_real_,
+            bic = NA_real_,
+            ca_cost = NA_real_
+          )
+
+          individuals <- c(
+            find("nca", "ncaIndividualParameters.txt"),
+            find("ca", "caIndividualParameters.txt")
+          )
+          if (length(individuals) > 0L) {
+            stats$n_individuals <- count_pkanalix_ids(individuals[[1]])
+          }
+
+          cost_file <- find("ca", "cost.txt")
+          if (length(cost_file) > 0L) {
+            cost <- read_pkanalix_table(cost_file[[1]])
+            stats$ofv <- as.numeric(cost[["-2LL"]][1])
+            stats$aic <- as.numeric(cost[["AIC"]][1])
+            stats$bic <- as.numeric(cost[["BIC"]][1])
+            stats$ca_cost <- as.numeric(cost[["Cost"]][1])
+          }
+
+          ci_files <- files[
+            task == "be" & grepl("^confidenceInterval_.+\\.txt$", name)
+          ]
+          bioequivalence <- list()
+          for (ci_file in ci_files) {
+            formulation <- sub("^confidenceInterval_(.+)\\.txt$", "\\1", basename(ci_file))
+            ci <- read_pkanalix_table(ci_file)
+            for (i in seq_len(nrow(ci))) {
+              bioequivalence[[length(bioequivalence) + 1L]] <- list(
+                formulation = formulation,
+                parameter = ci[["Parameter"]][i],
+                ratio = as.numeric(ci[["Ratio"]][i]),
+                ci_lower = as.numeric(ci[["CILower"]][i]),
+                ci_upper = as.numeric(ci[["CIUpper"]][i]),
+                bioequivalent = as.logical(as.integer(ci[["Bioequivalence"]][i]))
+              )
+            }
+          }
+
+          list(
+            summary_stats = stats,
+            observations = stats::setNames(list(), character()),
+            bioequivalence = bioequivalence
+          )
+        },
+        error = function(e) {
+          warning(
+            "Failed to parse PKanalix result files ",
+            paste(files, collapse = ", "),
+            ": ",
+            e$message
+          )
+          NULL
+        }
+      )
+    }
+  )
+)
+
+# A PKanalix CSV result table with every column as character and the column
+# names as written (e.g. "-2LL").
+read_pkanalix_table <- function(path) {
+  utils::read.csv(
+    path,
+    colClasses = "character",
+    check.names = FALSE,
+    encoding = "UTF-8",
+    strip.white = TRUE
+  )
+}
+
+# Number of unique individuals in a PKanalix individual parameters table.
+# The first column is `id`; the extra header rows that can follow the column
+# names (CDISC names, labels, units) have `id` or nothing in that column.
+count_pkanalix_ids <- function(path) {
+  table <- read_pkanalix_table(path)
+  ids <- table[[1]]
+  ids <- ids[!is.na(ids) & ids != "" & ids != names(table)[1]]
+  length(unique(ids))
+}
+
 # Helper function to resolve file paths
 resolve_file_path <- function(file_path, project_dir) {
   if (fs::is_absolute_path(file_path) || file.exists(file_path)) {
@@ -450,6 +616,7 @@ get_file_handler <- function(ext) {
     tolower(ext),
     "mlxtran" = MonolixHandler$new(),
     "smlx" = SimulxHandler$new(),
+    "pkx" = PkanalixHandler$new(),
     {
       # Default handler for unknown types
       message(

@@ -1,0 +1,8 @@
+id,OCC,AUClast,Cmax,Cmax_SS,Tmax
+id,OCC,AUCLST,CMAX,CMAX,TMAX
+id,OCC,AUC<sub>0-tlast</sub>,C<sub>max</sub>,"C<sub>max, SS</sub>",T<sub>max</sub>
+,,h*mg/L,mg/L,mg/L,h
+1,1,101.5,10.2,9.9,1
+1,2,98.1,9.7,9.5,1.5
+2,1,87.3,8.4,8.1,2
+3,1,120.9,11.6,11.2,1
