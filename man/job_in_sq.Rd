@@ -27,8 +27,8 @@ job IDs. The function:
 \item Checks if job IDs exist in the \code{JOBID} column
 }
 
-If the \code{sq} command fails, returns no output, or the output cannot be
-parsed, the function returns \code{FALSE} and issues appropriate warnings.
+If the \code{sq} command fails or its output has no \code{JOBID} column, the function
+returns \code{FALSE} with a warning. A header-only listing is an empty queue.
 }
 \examples{
 \dontrun{

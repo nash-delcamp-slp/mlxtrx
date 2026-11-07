@@ -18,8 +18,8 @@
 #'   \item Checks if job IDs exist in the `JOBID` column
 #' }
 #'
-#' If the `sq` command fails, returns no output, or the output cannot be
-#' parsed, the function returns `FALSE` and issues appropriate warnings.
+#' If the `sq` command fails or its output has no `JOBID` column, the function
+#' returns `FALSE` with a warning. A header-only listing is an empty queue.
 #'
 #' @examples
 #' \dontrun{
@@ -43,48 +43,42 @@ job_in_sq <- function(job_id) {
     msg = "`job_id` should be a vector of job IDs (numeric or character)."
   )
 
-  # Convert to character for consistent handling
-  job_id <- as.character(job_id)
-
-  # Run sq command and capture output
-  result <- system2("sq", stdout = TRUE, stderr = TRUE)
-
-  # Handle case where sq command fails or returns no output
-  if (any(attr(result, "status") != 0, na.rm = TRUE)) {
-    warning("sq command failed")
-    return(FALSE)
-  }
-
-  if (length(result) == 0) {
-    return(FALSE)
-  }
-
-  # Parse as data frame - assuming space-separated output with headers
-  # Create temporary connection to read the output
-  sq_data <- tryCatch(
-    {
-      readr::read_table(
-        I(paste(result, collapse = "\n")),
-        col_types = readr::cols(.default = "c")
-      )
-    },
+  queued <- tryCatch(
+    sq_job_ids(),
     error = function(e) {
-      warning("Failed to parse sq output as data frame: ", e$message)
-      return(NULL)
+      warning(conditionMessage(e), call. = FALSE)
+      NULL
     }
   )
-
-  # Return FALSE if parsing failed
-  if (is.null(sq_data)) {
+  if (is.null(queued)) {
     return(FALSE)
   }
+  as.character(job_id) %in% queued
+}
 
-  # Check if JOBID column exists and contains the job_id
-  if (!"JOBID" %in% names(sq_data)) {
-    warning("No JOBID column found in sq output")
-    return(FALSE)
+# Job IDs currently in the queue, from the `JOBID` column of `sq`. Errors with
+# "sq failed" when `sq` is missing, exits non-zero or prints no `JOBID`
+# column; a header-only listing is an empty queue.
+sq_job_ids <- function() {
+  result <- tryCatch(
+    suppressWarnings(system2("sq", stdout = TRUE, stderr = TRUE)),
+    error = function(e) {
+      stop("sq failed: ", conditionMessage(e), call. = FALSE)
+    }
+  )
+  if (any(attr(result, "status") != 0, na.rm = TRUE)) {
+    stop("sq failed: ", paste(result, collapse = " "), call. = FALSE)
   }
-
-  # Check if job_id is in the JOBID column
-  job_id %in% sq_data$JOBID
+  result <- result[nzchar(trimws(result))]
+  if (length(result) == 0L || !"JOBID" %in% strsplit(trimws(result[1]), "\\s+")[[1]]) {
+    stop("sq failed: no JOBID column in output", call. = FALSE)
+  }
+  if (length(result) == 1L) {
+    return(character())
+  }
+  sq_data <- readr::read_table(
+    I(paste(result, collapse = "\n")),
+    col_types = readr::cols(.default = "c")
+  )
+  sq_data$JOBID
 }
