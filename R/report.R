@@ -3,15 +3,15 @@
 #' Combines all validation checks into a single comprehensive report.
 #'
 #' @param directory Character scalar. Directory path to check for project files.
-#' @param run_ids Integer vector. Specific run IDs to check. If NULL (default),
+#' @param run_ids Character vector. Specific run IDs to check. If NULL (default),
 #'   checks all runs.
 #' @param ext Character vector. File extensions to consider as
 #'   project files. Defaults to c("mlxtran", "smlx").
 #' @param output_files Character vector. Optional output file paths to validate
 #'   alignment with latest runs. If NULL (default), no output file alignment
 #'   check is performed.
-#' @param db_conn A database connection object inheriting from `DBIObject`.
-#'   Defaults to a connection created by `default_db_conn()`.
+#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#'   Defaults to `default_store(directory)`. Nothing is written to it.
 #'
 #' @return A list with components:
 #'   \itemize{
@@ -30,12 +30,8 @@ generate_project_report <- function(
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
   output_files = NULL,
-  db_conn = default_db_conn()
+  store = default_store(directory)
 ) {
-  if (missing(db_conn)) {
-    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
-  }
-
   directory <- normalizePath(directory)
 
   timestamp <- Sys.time()
@@ -44,23 +40,23 @@ generate_project_report <- function(
   completion_status <- check_completion_status(
     directory = directory,
     ext = ext,
-    db_conn = db_conn
+    store = store
   )
 
   project_file_status <- check_project_file_status(
     directory = directory,
     ext = ext,
-    db_conn = db_conn
+    store = store
   )
 
   input_file_status <- check_input_file_status(
     run_ids = run_ids,
-    db_conn = db_conn
+    store = store
   )
 
   output_file_status <- check_output_file_status(
     run_ids = run_ids,
-    db_conn = db_conn
+    store = store
   )
 
   # Optional output files alignment check
@@ -68,7 +64,7 @@ generate_project_report <- function(
   if (!is.null(output_files) && length(output_files) > 0) {
     output_files_alignment <- check_output_files(
       output_files = output_files,
-      db_conn = db_conn
+      store = store
     )
   }
 
@@ -78,6 +74,10 @@ generate_project_report <- function(
     total_project_files = nrow(completion_status),
     project_files_completed = sum(
       completion_status$has_successful_run,
+      na.rm = TRUE
+    ),
+    project_files_completed_late = sum(
+      completion_status$status == "completed_late",
       na.rm = TRUE
     ),
     project_files_incomplete = sum(
@@ -110,6 +110,14 @@ generate_project_report <- function(
       na.rm = TRUE
     ),
     output_files_missing = sum(!output_file_status$file_exists, na.rm = TRUE),
+    output_files_late = sum(
+      output_file_status$status == "unchanged_late",
+      na.rm = TRUE
+    ),
+    output_files_suspect = sum(
+      output_file_status$status == "suspect",
+      na.rm = TRUE
+    ),
     report_timestamp = timestamp
   )
 
@@ -152,15 +160,15 @@ generate_project_report <- function(
 #' Prints a formatted summary of the project report to the console.
 #'
 #' @param directory Character scalar. Directory path to check for project files.
-#' @param run_ids Integer vector. Specific run IDs to check. If NULL (default),
+#' @param run_ids Character vector. Specific run IDs to check. If NULL (default),
 #'   checks all runs.
 #' @param ext Character vector. File extensions to consider as
 #'   project files. Defaults to c("mlxtran", "smlx").
 #' @param output_files Character vector. Optional output file paths to validate
 #'   alignment with latest runs. If NULL (default), no output file alignment
 #'   section is included in the report.
-#' @param db_conn A database connection object inheriting from `DBIObject`.
-#'   Defaults to a connection created by `default_db_conn()`.
+#' @param store Character scalar. Path to the run store (a `.mlxtrx` folder).
+#'   Defaults to `default_store(directory)`. Nothing is written to it.
 #'
 #' @return NULL (invisible). Called for side effects (printing).
 #'
@@ -170,18 +178,14 @@ print_report_summary <- function(
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
   output_files = NULL,
-  db_conn = default_db_conn()
+  store = default_store(directory)
 ) {
-  if (missing(db_conn)) {
-    on.exit(DBI::dbDisconnect(db_conn), add = TRUE)
-  }
-
   report <- generate_project_report(
     directory = directory,
     run_ids = run_ids,
     ext = ext,
     output_files = output_files,
-    db_conn = db_conn
+    store = store
   )
 
   cat("=== PROJECT VALIDATION REPORT ===\n")
@@ -195,6 +199,11 @@ print_report_summary <- function(
   cat("PROJECT COMPLETION:\n")
   cat("  Total project files:", report$summary$total_project_files, "\n")
   cat("  Successfully completed:", report$summary$project_files_completed, "\n")
+  cat(
+    "  Completed (recorded late):",
+    report$summary$project_files_completed_late,
+    "\n"
+  )
   cat("  Incomplete runs:", report$summary$project_files_incomplete, "\n")
   cat("  No runs recorded:", report$summary$project_files_no_runs, "\n\n")
 
@@ -218,7 +227,13 @@ print_report_summary <- function(
     "\n"
   )
   cat("  Files modified after run:", report$summary$output_files_modified, "\n")
-  cat("  Missing output files:", report$summary$output_files_missing, "\n\n")
+  cat("  Missing output files:", report$summary$output_files_missing, "\n")
+  cat("  Outputs recorded late:", report$summary$output_files_late, "\n")
+  cat(
+    "  Outputs flagged suspect:",
+    report$summary$output_files_suspect,
+    "\n\n"
+  )
 
   # Optional output files alignment section
   if (!is.null(output_files) && !is.null(report$output_files_alignment)) {
@@ -298,6 +313,24 @@ print_report_summary <- function(
       )
     )
   }
+  if (report$summary$project_files_completed_late > 0) {
+    issues <- c(
+      issues,
+      paste(
+        report$summary$project_files_completed_late,
+        "project files completed but were recorded late"
+      )
+    )
+  }
+  if (report$summary$output_files_suspect > 0) {
+    issues <- c(
+      issues,
+      paste(
+        report$summary$output_files_suspect,
+        "output files were flagged suspect in a late recording"
+      )
+    )
+  }
   if (report$summary$input_files_missing > 0) {
     issues <- c(
       issues,
@@ -330,10 +363,10 @@ print_report_summary <- function(
   if (length(issues) > 0) {
     cat("ISSUES IDENTIFIED:\n")
     for (issue in issues) {
-      cat("  ⚠️ ", issue, "\n")
+      cat("  \u26a0\ufe0f ", issue, "\n")
     }
   } else {
-    cat("✅ No issues identified\n")
+    cat("\u2705 No issues identified\n")
   }
 
   invisible(NULL)
