@@ -1,10 +1,12 @@
-#' Check Monolix/Simulx config file
+#' Check Monolix/Simulx/PKanalix config file
 #'
 #' Checks if the relevant config.ini file contains required export settings
-#' for charts data.
+#' for charts data: `exportChartsData=true` and `export-charts-datasets=true`
+#' in `[misc]`, plus `exportVPCSimulations=true` for Monolix and Simulx.
 #' In interactive sessions, offers to fix missing settings.
 #'
-#' @param cmd Monolix or Simulx command being executed. Defaults to `"mono24"`
+#' @param cmd Monolix, Simulx or PKanalix command being executed. Defaults to
+#'   `"mono24"`
 #' @param offer_fix Whether to offer interactive fixes. Defaults to `interactive()`
 #'
 #' @return Returns TRUE if all settings are present
@@ -18,15 +20,18 @@ check_config_ini <- function(
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
   offer_fix = interactive()
 ) {
-  required_settings <- list(
-    "exportChartsData" = "true",
-    "export-charts-datasets" = "true",
-    "exportVPCSimulations" = "true"
-  )
-
   version_dir <- cmd_version_dir(cmd)
   if (is.na(version_dir)) {
     version_dir <- ""
+  }
+
+  required_settings <- list(
+    "exportChartsData" = "true",
+    "export-charts-datasets" = "true"
+  )
+  # PKanalix has no VPC.
+  if (!startsWith(version_dir, "pkanalix/")) {
+    required_settings[["exportVPCSimulations"]] <- "true"
   }
 
   ini_path <- file.path(
@@ -287,8 +292,9 @@ show_ini_diff <- function(
 
 #' Lixoft version directory for a command
 #'
-#' Maps a Monolix or Simulx command (grid wrapper such as `mono24`, or a
-#' `monolix.sh`/`simulx.sh` path) to its directory under `~/lixoft`, e.g.
+#' Maps a Monolix, Simulx or PKanalix command (grid wrapper such as `mono24`
+#' or `pk24`, or a `monolix.sh`/`simulx.sh`/`pkanalix.sh` path) to its
+#' directory under `~/lixoft`, e.g.
 #' `"monolix/monolix2024R1"`.
 #'
 #' @param cmd Command name or path.
@@ -309,6 +315,10 @@ cmd_version_dir <- function(cmd) {
       sim21 = "simulx/simulx2021R1",
       mono20 = "monolix/monolix2020R1",
       sim20 = "simulx/simulx2020R1",
+      pk24 = "pkanalix/pkanalix2024R1",
+      pk23 = "pkanalix/pkanalix2023R1",
+      pk21 = "pkanalix/pkanalix2021R1",
+      pk20 = "pkanalix/pkanalix2020R1",
       NA_character_
     )
   } else if (basename(cmd) == "monolix.sh") {
@@ -327,6 +337,15 @@ cmd_version_dir <- function(cmd) {
         cmd,
         ".*MonolixSuite(20\\d\\dR\\d)/.*",
         "simulx\\1"
+      )
+    )
+  } else if (basename(cmd) == "pkanalix.sh") {
+    version_dir <- file.path(
+      "pkanalix",
+      stringr::str_replace(
+        cmd,
+        ".*MonolixSuite(20\\d\\dR\\d)/.*",
+        "pkanalix\\1"
       )
     )
   } else {

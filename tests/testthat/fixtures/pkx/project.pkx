@@ -1,0 +1,30 @@
+<DATAFILE>
+
+[FILEINFO]
+file = 'data/pk.csv'
+delimiter = comma
+header = {ID, TIME, CONC, AMT}
+
+[CONTENT]
+ID = {use=identifier}
+TIME = {use=time}
+CONC = {use=observation, type=continuous}
+AMT = {use=amount}
+
+<MODEL>
+
+[LONGITUDINAL]
+file = 'lib:oral1_1cpt_kaVCl.txt'
+
+<FIT>
+data = 'CONC'
+model = Cc
+
+<PKANALIX>
+
+[TASKS]
+bioequivalence()
+
+[SETTINGS]
+GLOBAL:
+exportpath = 'pk'

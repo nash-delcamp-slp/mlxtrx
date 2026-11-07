@@ -6,7 +6,7 @@
 \usage{
 check_completion_status(
   directory = ".",
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   store = default_store()
 )
 }
@@ -14,7 +14,7 @@ check_completion_status(
 \item{directory}{Character scalar. Directory path to check for project files.}
 
 \item{ext}{Character vector. File extensions to consider as
-project files. Defaults to c("mlxtran", "smlx").}
+project files. Defaults to c("mlxtran", "smlx", "pkx").}
 
 \item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}
@@ -37,5 +37,5 @@ recorded late (NA if it was not recorded)
 \description{
 Validates that all project files in a directory have successful run records.
 A successful run is one whose latest run (by \code{submitted_at}) has a
-completion timestamp and, for Monolix projects, a summary.
+completion timestamp and, for Monolix and PKanalix projects, parsed results.
 }

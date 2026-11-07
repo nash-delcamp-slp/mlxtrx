@@ -138,3 +138,14 @@ test_that("check_completion_status: a latest run without results is no_results",
   expect_false(res$has_successful_run)
   expect_true(res$has_run)
 })
+
+test_that("check_completion_status and check_project_file_status include .pkx by default", {
+  s <- local_pkx_run()
+  record_completion(s$run_dir, s$store)
+  project <- normalizePath(file.path(s$root, "pkx", "project.pkx"))
+  res <- check_completion_status(file.path(s$root, "pkx"), store = s$store)
+  expect_equal(normalizePath(res$project_file), project)
+  expect_equal(res$status, "completed")
+  files <- check_project_file_status(file.path(s$root, "pkx"), store = s$store)
+  expect_equal(nrow(files), 1L)
+})

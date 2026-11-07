@@ -34,16 +34,17 @@ test_that("a missing store gives zero-row frames and creates nothing", {
   tmp <- withr::local_tempdir()
   store <- file.path(tmp, "nope", ".mlxtrx")
   res <- store_read(store)
-  expect_named(res, c("runs", "files", "summary", "observations"))
+  expect_named(res, c("runs", "files", "summary", "observations", "bioequivalence"))
   expect_true(all(vapply(res, nrow, integer(1)) == 0L))
   expect_s3_class(res$runs$submitted_at, "POSIXct")
   expect_type(res$runs$late_flags, "list")
   expect_identical(
     names(res$summary),
     c(
-      "run_id", "exploratory_iterations", "smoothing_iterations",
+      "run_id", "tasks", "exploratory_iterations", "smoothing_iterations",
       "fisher_matrix_estimation", "eigenvalue_min", "eigenvalue_max", "ofv",
-      "aic", "bicc", "bic", "n_individuals", "n_doses", "summary_extracted_at"
+      "aic", "bicc", "bic", "ca_cost", "n_individuals", "n_doses",
+      "summary_extracted_at"
     )
   )
   expect_false(dir.exists(store))

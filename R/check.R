@@ -2,11 +2,11 @@
 #'
 #' Validates that all project files in a directory have successful run records.
 #' A successful run is one whose latest run (by `submitted_at`) has a
-#' completion timestamp and, for Monolix projects, a summary.
+#' completion timestamp and, for Monolix and PKanalix projects, parsed results.
 #'
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
-#'   project files. Defaults to c("mlxtran", "smlx").
+#'   project files. Defaults to c("mlxtran", "smlx", "pkx").
 #' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
@@ -27,7 +27,7 @@
 #' @export
 check_completion_status <- function(
   directory = ".",
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   store = default_store()
 ) {
   project_files <- find_project_files(directory, ext)
@@ -128,7 +128,7 @@ check_input_file_status <- function(
 #'
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
-#'   project files. Defaults to c("mlxtran", "smlx").
+#'   project files. Defaults to c("mlxtran", "smlx", "pkx").
 #' @param store Character scalar. The run store directory (see [default_store()]).
 #'   Defaults to `default_store()`. Nothing is written to it.
 #'
@@ -150,7 +150,7 @@ check_input_file_status <- function(
 #' @export
 check_project_file_status <- function(
   directory = ".",
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   store = default_store()
 ) {
   project_files <- find_project_files(directory, ext)
