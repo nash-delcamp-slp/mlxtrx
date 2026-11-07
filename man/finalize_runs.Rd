@@ -30,7 +30,8 @@ never recorded, for example because the R session that launched them died.
 A run with a job ID is recorded once its job has left the queue (\code{sq}). A
 run launched with the local runners \code{monolix.sh} or \code{simulx.sh} had finished
 before its launch was recorded, so it is recorded straight away. Any other
-run without a job ID is recorded once its output folder holds \code{summary.txt}.
+run without a job ID is recorded once its output folder holds one of its
+project type's result files (\code{summary.txt} for Monolix).
 If \code{sq} is missing or fails the function stops, because a running job would
 otherwise be recorded as finished.
 }

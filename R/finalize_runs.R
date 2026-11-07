@@ -5,7 +5,8 @@
 #' A run with a job ID is recorded once its job has left the queue (`sq`). A
 #' run launched with the local runners `monolix.sh` or `simulx.sh` had finished
 #' before its launch was recorded, so it is recorded straight away. Any other
-#' run without a job ID is recorded once its output folder holds `summary.txt`.
+#' run without a job ID is recorded once its output folder holds one of its
+#' project type's result files (`summary.txt` for Monolix).
 #' If `sq` is missing or fails the function stops, because a running job would
 #' otherwise be recorded as finished.
 #'
@@ -97,17 +98,15 @@ finalize_runs <- function(
 
 # The action taken for one candidate run (a one-row data frame). Outputs
 # written once a later run of the same project or into the same output
-# directory was submitted are not credited to this run. A local runner's run has finished by the time run.json exists,
-# so it does not wait for summary.txt.
+# directory was submitted are not credited to this run. A local runner's run
+# has finished by the time run.json exists, so it does not wait for result
+# files.
 finalize_run <- function(run, store, queued, all_runs) {
   if (!is.na(run$job_id)) {
     if (as.character(run$job_id) %in% queued) {
       return("still_queued")
     }
-  } else if (
-    !basename(run$cmd) %in% c("monolix.sh", "simulx.sh") &&
-      !file.exists(run_summary_path(run))
-  ) {
+  } else if (!is_local_runner(run$cmd) && !run_has_result_files(run)) {
     return("no_summary_yet")
   }
   crashed <- run$state == "completion_crashed"
@@ -147,12 +146,14 @@ next_submission <- function(run, all_runs) {
   if (length(later) == 0L) NULL else min(later)
 }
 
-# summary.txt in the output directory saved at launch, or NA without one.
-run_summary_path <- function(run) {
+# Whether the output directory saved at launch holds a result file of the
+# run's project type.
+run_has_result_files <- function(run) {
   if (is.na(run$output_dir)) {
-    return(NA_character_)
+    return(FALSE)
   }
-  file.path(run$output_dir, "summary.txt")
+  handler <- suppressMessages(get_file_handler(tools::file_ext(run$project_path)))
+  length(handler$result_files(run$output_dir)) > 0L
 }
 
 report_finalize_counts <- function(result) {

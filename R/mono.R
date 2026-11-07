@@ -251,6 +251,12 @@ sim <- function(
   )
 }
 
+# Whether `cmd` is a local runner, which runs the project in the foreground
+# and has finished when it returns.
+is_local_runner <- function(cmd) {
+  basename(cmd) %in% c("monolix.sh", "simulx.sh")
+}
+
 na_to_null <- function(x) {
   if (length(x) == 0L || is.na(x)) NULL else x
 }
@@ -344,7 +350,7 @@ execute_job <- function(
 
   # Local runners execute the project in the foreground: success is exit
   # status 0. system2() sets the "status" attribute only when it is non-zero.
-  if (basename(cmd) %in% c("monolix.sh", "simulx.sh")) {
+  if (is_local_runner(cmd)) {
     status <- attr(result, "status") %||% 0L
     if (status == 0L) {
       message("Ran ", cmd, " for file: ", path)
@@ -402,8 +408,9 @@ execute_job <- function(
 #' then records its completion in the run store with `record_completion()`. A
 #' job with a job ID has finished when it is no longer in the queue; a job
 #' run by the local runners `monolix.sh` or `simulx.sh` has finished already;
-#' any other job without a job ID has finished when `summary.txt` exists in
-#' the output directory saved in its `run.json`.
+#' any other job without a job ID has finished when one of its project type's
+#' result files (`summary.txt` for Monolix) exists in the output directory
+#' saved in its `run.json`.
 #' Runs whose
 #' submission failed are skipped. A run whose completion cannot be recorded
 #' gives a warning naming it, and the other runs are still monitored and
@@ -481,7 +488,7 @@ monitor_jobs <- function(
       if (!is.na(job_id[i])) {
         job_completed <- !is.null(queued) &&
           !as.character(job_id[i]) %in% queued
-      } else if (basename(cmd[i]) %in% c("monolix.sh", "simulx.sh")) {
+      } else if (is_local_runner(cmd[i])) {
         # Local runners have finished when execute_job() returns.
         job_completed <- TRUE
       } else {
@@ -496,11 +503,11 @@ monitor_jobs <- function(
           )
           job_completed <- TRUE
         } else {
-          summary_file <- file.path(
-            path_from_record(runs[[i]]$output_dir, store_root_dir(store)),
-            "summary.txt"
+          output_dir <- path_from_record(
+            runs[[i]]$output_dir,
+            store_root_dir(store)
           )
-          job_completed <- file.exists(summary_file)
+          job_completed <- length(handler$result_files(output_dir)) > 0L
         }
       }
 

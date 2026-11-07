@@ -1,0 +1,11 @@
+test_that("Monolix result files are summary.txt in the output dir", {
+  out <- withr::local_tempdir()
+  handler <- MonolixHandler$new()
+  expect_length(handler$result_files(out), 0L)
+  writeLines("x", file.path(out, "summary.txt"))
+  writeLines("x", file.path(out, "other.txt"))
+  expect_equal(handler$result_files(out), file.path(out, "summary.txt"))
+  files <- file.path(out, c("other.txt", "summary.txt", "sub/summary.txt"))
+  expect_equal(handler$result_files(out, files), files[2])
+  expect_length(handler$result_files(out, character()), 0L)
+})

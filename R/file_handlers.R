@@ -34,17 +34,36 @@ FileHandler <- R6::R6Class(
       NULL
     },
 
-    #' @description Whether a finished run of this project type produces a summary
+    #' @description Whether a finished run of this project type produces
+    #'   results (a `summary.json` in its completion record)
     expects_summary = function() {
       FALSE
     },
 
-    #' @description Get path to summary file
-    #' @param project_path Path to project file
-    #' @param output_dir Optional output directory override
-    get_summary_file_path = function(project_path, output_dir = NULL) {
-      output_dir_resolved <- self$get_output_dir(project_path, output_dir)
-      file.path(output_dir_resolved, "summary.txt")
+    #' @description Result files of a run into `output_dir`: the files this
+    #'   handler parses into `summary.json`. The default is `summary.txt` in
+    #'   the output directory.
+    #' @param output_dir Output directory of the run
+    #' @param files Character vector of candidate file paths, such as the
+    #'   recorded outputs of a run. `NULL` (default) looks in `output_dir`.
+    #' @return The result files among `files`, or those that exist in
+    #'   `output_dir` when `files` is `NULL`
+    result_files = function(output_dir, files = NULL) {
+      summary_path <- file.path(output_dir, "summary.txt")
+      if (is.null(files)) {
+        return(summary_path[file.exists(summary_path)])
+      }
+      files[fs::path_norm(files) == fs::path_norm(summary_path)]
+    },
+
+    #' @description Parse result files into the content of `summary.json`
+    #' @param files Result files to parse, as returned by `result_files()`
+    #' @return A list, or `NULL` when nothing could be parsed
+    parse_results = function(files) {
+      if (length(files) == 0L) {
+        return(NULL)
+      }
+      self$parse_summary(files[[1]])
     }
   )
 )
