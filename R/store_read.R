@@ -94,7 +94,11 @@ read_run_folder <- function(run_dir, root) {
     tool = scalar_chr(run$settings$tool),
     mode = scalar_chr(run$settings$mode),
     config = scalar_chr(run$settings$config),
-    output_dir = scalar_chr(run$settings$output_dir),
+    output_dir = if (is.null(run$output_dir$path)) {
+      NA_character_
+    } else {
+      path_from_record(run$output_dir, root)
+    },
     cmd = scalar_chr(run$cmd),
     software_version = scalar_chr(run$software_version),
     user = scalar_chr(run$user),

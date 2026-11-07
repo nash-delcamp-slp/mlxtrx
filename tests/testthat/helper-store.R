@@ -27,6 +27,7 @@ fake_run_json <- function(run_id, ...) {
       mode = NULL,
       config = NULL
     ),
+    output_dir = list(path = "models/run001", absolute = FALSE),
     cmd = "mono24",
     job_id = 123456L,
     software_version = "2024R1",

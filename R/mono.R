@@ -141,6 +141,14 @@ mono <- function(
       # submission, so a failure here stops the batch before this job runs.
       project <- file_record(path[i], root)
       inputs <- input_records(path[i], root)
+      # The effective output directory is resolved and saved now, so
+      # completion does not depend on later project edits or on the working
+      # directory it runs in.
+      handler <- get_file_handler(fs::path_ext(path[i]))
+      resolved_output_dir <- path_to_record(
+        handler$get_output_dir(path[i], output_dir_recycled[i]),
+        root
+      )
       settings <- list(
         output_dir = output_dir_recycled[i],
         thread = thread_recycled[i],
@@ -184,6 +192,7 @@ mono <- function(
           project = project,
           inputs = inputs,
           settings = settings,
+          output_dir = resolved_output_dir,
           cmd = cmd_recycled[i],
           job_id = if (is.na(submission$job_id)) NULL else submission$job_id,
           software_version = na_to_null(cmd_software_version(cmd_recycled[i])),
@@ -215,7 +224,6 @@ mono <- function(
     run_id = run_ids,
     run_dir = run_dirs,
     job_id = job_ids,
-    output_dir = output_dir_recycled,
     cmd = cmd_recycled,
     store = store
   )
@@ -394,7 +402,8 @@ execute_job <- function(
 #' then records its completion in the run store with `record_completion()`. A
 #' job with a job ID has finished when it is no longer in the queue; a job
 #' run by the local runners `monolix.sh` or `simulx.sh` has finished already;
-#' any other job without a job ID has finished when its `summary.txt` exists.
+#' any other job without a job ID has finished when `summary.txt` exists in
+#' the output directory saved in its `run.json`.
 #' Runs whose
 #' submission failed are skipped. A run whose completion cannot be recorded
 #' gives a warning naming it, and the other runs are still monitored and
@@ -409,7 +418,6 @@ execute_job <- function(
 #' @param run_id Character vector. Run IDs.
 #' @param run_dir Character vector. Run folders in the store.
 #' @param job_id Integer vector. External job IDs (from job scheduler).
-#' @param output_dir Character vector or `NULL`. Output directories.
 #' @param cmd Character vector. The commands used for each job.
 #' @param store Character scalar. The run store directory (see [default_store()]).
 #' @param poll_interval Numeric. Seconds between polls.
@@ -424,7 +432,6 @@ monitor_jobs <- function(
   run_id,
   run_dir,
   job_id,
-  output_dir = NULL,
   cmd,
   store,
   poll_interval = 5,
@@ -437,21 +444,13 @@ monitor_jobs <- function(
     msg = "`path`, `run_id`, `run_dir`, and `job_id` must have the same length"
   )
 
-  if (!is.null(output_dir)) {
-    assertthat::assert_that(
-      length(output_dir) == length(path),
-      msg = "`output_dir` must be NULL or same length as `path`"
-    )
-  }
-
+  runs <- lapply(run_dir, function(dir) {
+    jsonlite::read_json(file.path(dir, "run.json"))
+  })
   submitted_ok <- vapply(
-    run_dir,
-    function(dir) {
-      run <- jsonlite::read_json(file.path(dir, "run.json"))
-      !isFALSE(run$submission$ok)
-    },
-    logical(1),
-    USE.NAMES = FALSE
+    runs,
+    function(run) !isFALSE(run$submission$ok),
+    logical(1)
   )
 
   # Track which jobs are still running
@@ -497,7 +496,10 @@ monitor_jobs <- function(
           )
           job_completed <- TRUE
         } else {
-          summary_file <- handler$get_summary_file_path(path[i], output_dir[i])
+          summary_file <- file.path(
+            path_from_record(runs[[i]]$output_dir, store_root_dir(store)),
+            "summary.txt"
+          )
           job_completed <- file.exists(summary_file)
         }
       }

@@ -16,6 +16,7 @@ local_finalize_env <- function(
   run <- fake_run_json(
     "r1",
     project = file_record(project, root),
+    output_dir = path_to_record(out_dir, root),
     submitted_at = format_utc(Sys.time() - 3600),
     job_id = job_id,
     user = user,

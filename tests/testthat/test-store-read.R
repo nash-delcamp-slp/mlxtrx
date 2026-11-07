@@ -118,7 +118,7 @@ test_that("run.json fields are mapped to columns", {
   expect_identical(r$model_file, "lib:oral1_1cpt_kaVCl.txt")
   expect_identical(r$thread, 4L)
   expect_true(is.na(r$tool))
-  expect_true(is.na(r$output_dir))
+  expect_identical(r$output_dir, file.path(s$root, "models/run001"))
   expect_identical(r$cmd, "mono24")
   expect_identical(r$software_version, "2024R1")
   expect_identical(r$user, "tester")

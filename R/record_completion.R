@@ -1,5 +1,6 @@
 # Records what a finished run produced into a completion folder of the run:
 # outputs.json, summary.json (when summary.txt parses) and, last, done.json.
+# Outputs are read from the output directory saved in run.json at launch.
 # Returns "recorded", or "claimed_elsewhere" when another process holds the
 # completion claim (nothing is written then). `late` marks a recording made
 # by someone other than the launching session; a retry is always late.
@@ -29,12 +30,12 @@ record_completion <- function(
   if (length(submitted_at) != 1L || is.na(submitted_at)) {
     stop("run.json has no valid submitted_at", call. = FALSE)
   }
+  if (is.null(run$output_dir$path)) {
+    stop("run.json has no output_dir", call. = FALSE)
+  }
   handler <- get_file_handler(tools::file_ext(project_path))
-  output_dir <- handler$get_output_dir(project_path, run$settings$output_dir)
-  summary_path <- handler$get_summary_file_path(
-    project_path,
-    run$settings$output_dir
-  )
+  output_dir <- path_from_record(run$output_dir, root)
+  summary_path <- file.path(output_dir, "summary.txt")
 
   # Everything above can fail on a malformed run.json; the claim comes after
   # it so such a failure leaves no completion folder.

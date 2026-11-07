@@ -44,6 +44,7 @@ theoph_run_spec <- function(
     run = fake_run_json(
       id,
       project = file_record(p$project, root),
+      output_dir = path_to_record(dirname(p$summary), root),
       inputs = list(
         c(list(role = "data"), file_record(p$data, root)),
         list(role = "model", path = "lib:oral1_1cpt_kaVCl.txt", builtin = TRUE)

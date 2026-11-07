@@ -9,7 +9,6 @@ monitor_jobs(
   run_id,
   run_dir,
   job_id,
-  output_dir = NULL,
   cmd,
   store,
   poll_interval = 5,
@@ -24,8 +23,6 @@ monitor_jobs(
 \item{run_dir}{Character vector. Run folders in the store.}
 
 \item{job_id}{Integer vector. External job IDs (from job scheduler).}
-
-\item{output_dir}{Character vector or \code{NULL}. Output directories.}
 
 \item{cmd}{Character vector. The commands used for each job.}
 
@@ -44,7 +41,8 @@ Polls every \code{poll_interval} seconds until each submitted job has finished,
 then records its completion in the run store with \code{record_completion()}. A
 job with a job ID has finished when it is no longer in the queue; a job
 run by the local runners \code{monolix.sh} or \code{simulx.sh} has finished already;
-any other job without a job ID has finished when its \code{summary.txt} exists.
+any other job without a job ID has finished when \code{summary.txt} exists in
+the output directory saved in its \code{run.json}.
 Runs whose
 submission failed are skipped. A run whose completion cannot be recorded
 gives a warning naming it, and the other runs are still monitored and

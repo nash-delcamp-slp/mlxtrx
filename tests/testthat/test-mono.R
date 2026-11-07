@@ -302,3 +302,30 @@ test_that("a launch that errors leaves no run folder behind", {
   )
   expect_length(list.files(file.path(e$store, "runs")), 0L)
 })
+
+test_that("completion reads outputs from the output dir resolved at launch", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  real <- monitor_jobs
+  local_mocked_bindings(monitor_jobs = function(...) {
+    # The project's export path changes after the launch; a fresh file there
+    # is not this run's.
+    lines <- readLines(e$paths[1])
+    writeLines(sub("exportpath = 'theoph'", "exportpath = 'other'", lines), e$paths[1])
+    other <- file.path(e$root, "a", "theoph", "other")
+    dir.create(other)
+    writeLines("x", file.path(other, "new.txt"))
+    real(...)
+  })
+  suppressMessages(
+    id <- mono(e$paths[1], store = e$store, require_charts_data = FALSE)
+  )
+  run <- read_run_json(e$store, id)
+  expect_equal(run$output_dir, list(path = "a/theoph/theoph", absolute = FALSE))
+  expect_null(run$settings$output_dir)
+  res <- store_read(e$store)
+  expect_equal(res$runs$output_dir, file.path(e$root, "a", "theoph", "theoph"))
+  outs <- res$files[res$files$io_type == "output", ]
+  expect_equal(outs$path, file.path(e$root, "a", "theoph", "theoph", "summary.txt"))
+  expect_equal(res$summary$n_individuals, 12L)
+})

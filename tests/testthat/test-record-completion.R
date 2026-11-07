@@ -15,6 +15,7 @@ local_theoph_run <- function(.env = parent.frame()) {
   run <- fake_run_json(
     "r1",
     project = file_record(project, root),
+    output_dir = path_to_record(out_dir, root),
     submitted_at = format_utc(submitted)
   )
   s <- local_store_with_runs(
@@ -129,5 +130,31 @@ test_that("a malformed submitted_at errors before the completion is claimed", {
   unlink(file.path(s$run_dir, "run.json"))
   store_write_json(run, file.path(s$run_dir, "run.json"))
   expect_error(record_completion(s$run_dir, s$store), "submitted_at")
+  expect_length(list.files(s$run_dir, pattern = "^completion"), 0L)
+})
+
+test_that("outputs are read from the output dir saved at launch", {
+  s <- local_theoph_run()
+  # The project's export path changed after launch; a fresh file there is not
+  # this run's.
+  project <- file.path(s$root, "theoph", "theoph.mlxtran")
+  lines <- readLines(project)
+  writeLines(sub("exportpath = 'theoph'", "exportpath = 'other'", lines), project)
+  other <- file.path(s$root, "theoph", "other")
+  dir.create(other)
+  writeLines("x", file.path(other, "new.txt"))
+  expect_equal(record_completion(s$run_dir, s$store), "recorded")
+  res <- store_read(s$store)
+  expect_equal(res$files$name[res$files$io_type == "output"], "summary.txt")
+  expect_equal(res$summary$n_individuals, 12L)
+})
+
+test_that("a run.json without output_dir errors before the completion is claimed", {
+  s <- local_theoph_run()
+  run <- jsonlite::read_json(file.path(s$run_dir, "run.json"))
+  run$output_dir <- NULL
+  unlink(file.path(s$run_dir, "run.json"))
+  store_write_json(run, file.path(s$run_dir, "run.json"))
+  expect_error(record_completion(s$run_dir, s$store), "output_dir")
   expect_length(list.files(s$run_dir, pattern = "^completion"), 0L)
 })

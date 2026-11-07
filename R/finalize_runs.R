@@ -144,12 +144,12 @@ next_submission <- function(run, all_runs) {
   if (length(later) == 0L) NULL else min(later)
 }
 
+# summary.txt in the output directory saved at launch, or NA without one.
 run_summary_path <- function(run) {
-  output_dir <- if (is.na(run$output_dir)) NULL else run$output_dir
-  get_file_handler(tools::file_ext(run$project_path))$get_summary_file_path(
-    run$project_path,
-    output_dir
-  )
+  if (is.na(run$output_dir)) {
+    return(NA_character_)
+  }
+  file.path(run$output_dir, "summary.txt")
 }
 
 report_finalize_counts <- function(result) {
