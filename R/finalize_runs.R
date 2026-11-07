@@ -96,8 +96,8 @@ finalize_runs <- function(
 }
 
 # The action taken for one candidate run (a one-row data frame). Outputs
-# written once a later run of the same project was submitted are not credited
-# to this run. A local runner's run has finished by the time run.json exists,
+# written once a later run into the same output directory was submitted are
+# not credited to this run. A local runner's run has finished by the time run.json exists,
 # so it does not wait for summary.txt.
 finalize_run <- function(run, store, queued, all_runs) {
   if (!is.na(run$job_id)) {
@@ -133,11 +133,11 @@ finalize_run <- function(run, store, queued, all_runs) {
   if (identical(outcome, "recorded")) "recorded_late" else outcome
 }
 
-# Earliest submission time of a later run (any state) of the same project,
-# or NULL when there is none.
+# Earliest submission time of a later run (any state) whose saved output
+# directory is this run's, or NULL when there is none.
 next_submission <- function(run, all_runs) {
   later <- all_runs$submitted_at[
-    all_runs$project_path == run$project_path &
+    all_runs$output_dir == run$output_dir &
       all_runs$submitted_at > run$submitted_at
   ]
   later <- later[!is.na(later)]
