@@ -41,7 +41,9 @@ When \code{include_files = TRUE}, additionally contains one row per input and
 output file with \code{io_type}, \code{file_name}, \code{file_path}, \code{file_timestamp} and
 \code{sha256}.
 When \code{include_summary = TRUE}, additionally contains run summary from
-summary.txt and one \verb{n_obs_<type>} column per observation type.
+summary.txt and one \verb{n_obs_<type>} column per observation type. Characters in
+\verb{<type>} other than letters, digits and \verb{_} are replaced by \verb{_}, so
+\code{"obsid 1"} gives \code{n_obs_obsid_1}.
 Timestamps are in the session time zone. Returns \code{NULL} invisibly, with a
 message, when there are no runs.
 }

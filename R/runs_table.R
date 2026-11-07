@@ -27,7 +27,9 @@
 #'   output file with `io_type`, `file_name`, `file_path`, `file_timestamp` and
 #'   `sha256`.
 #'   When `include_summary = TRUE`, additionally contains run summary from
-#'   summary.txt and one `n_obs_<type>` column per observation type.
+#'   summary.txt and one `n_obs_<type>` column per observation type. Characters in
+#'   `<type>` other than letters, digits and `_` are replaced by `_`, so
+#'   `"obsid 1"` gives `n_obs_obsid_1`.
 #'   Timestamps are in the session time zone. Returns `NULL` invisibly, with a
 #'   message, when there are no runs.
 #'
@@ -182,7 +184,9 @@ runs_data <- function(
 }
 
 # Observation counts as one row per run with an `n_obs_<type>` column per
-# observation type; NULL when there are none.
+# observation type; NULL when there are none. Each run of characters outside
+# [A-Za-z0-9_] in a type becomes "_" (leading and trailing "_" dropped), and
+# types that end up with the same name are made unique with a "_<n>" suffix.
 pivot_observations <- function(observations) {
   if (nrow(observations) == 0) {
     return(NULL)
@@ -191,9 +195,15 @@ pivot_observations <- function(observations) {
     run_id = unique(observations$run_id),
     stringsAsFactors = FALSE
   )
-  for (type in unique(observations$obs_type)) {
+  types <- unique(observations$obs_type)
+  col_names <- make.unique(
+    paste0("n_obs_", gsub("^_+|_+$", "", gsub("[^A-Za-z0-9_]+", "_", types))),
+    sep = "_"
+  )
+  for (i in seq_along(types)) {
+    type <- types[[i]]
     of_type <- observations[observations$obs_type == type, , drop = FALSE]
-    wide[[paste0("n_obs_", type)]] <-
+    wide[[col_names[[i]]]] <-
       of_type$n_observations[match(wide$run_id, of_type$run_id)]
   }
   wide

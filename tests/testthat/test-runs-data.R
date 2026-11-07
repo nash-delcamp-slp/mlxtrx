@@ -89,3 +89,31 @@ test_that("ignore_failed_runs drops runs that finished without results", {
   expect_equal(all$state[all$run_id == "r2"], "no_results")
   expect_identical(runs_data(s$store, ignore_failed_runs = TRUE)$run_id, "r1")
 })
+
+test_that("observation types become syntactic n_obs_ column names", {
+  s <- local_store_with_runs(list(list(
+    id = "r1",
+    completions = list(completion = list(
+      summary = list(observations = list("obsid 1" = 10L, "obsid 2" = 20L)),
+      done = fake_done_json()
+    ))
+  )))
+  d <- runs_data(s$store, include_summary = TRUE)
+  expect_identical(d$n_obs_obsid_1, 10L)
+  expect_identical(d$n_obs_obsid_2, 20L)
+  expect_false(any(grepl(" ", names(d))))
+})
+
+test_that("observation types that collapse to one name stay distinct columns", {
+  s <- local_store_with_runs(list(list(
+    id = "r1",
+    completions = list(completion = list(
+      summary = list(observations = list("a b" = 1L, "a-b" = 2L)),
+      done = fake_done_json()
+    ))
+  )))
+  d <- runs_data(s$store, include_summary = TRUE)
+  obs <- grep("^n_obs_", names(d), value = TRUE)
+  expect_length(obs, 2L)
+  expect_equal(anyDuplicated(obs), 0L)
+})
