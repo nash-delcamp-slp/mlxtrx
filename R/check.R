@@ -2,7 +2,7 @@
 #'
 #' Validates that all project files in a directory have successful run records.
 #' A successful run is one whose latest run (by `submitted_at`) has a
-#' completion timestamp and, for Monolix projects, a summary.
+#' completion timestamp and, for Monolix and PKanalix projects, parsed results.
 #'
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as

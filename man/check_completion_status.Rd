@@ -37,5 +37,5 @@ recorded late (NA if it was not recorded)
 \description{
 Validates that all project files in a directory have successful run records.
 A successful run is one whose latest run (by \code{submitted_at}) has a
-completion timestamp and, for Monolix projects, a summary.
+completion timestamp and, for Monolix and PKanalix projects, parsed results.
 }
