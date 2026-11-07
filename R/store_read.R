@@ -1,7 +1,10 @@
 # Reads the run store into data frames. Never creates or writes anything.
 #
 # Returns list(runs, files, summary, observations). Run folders that cannot be
-# read are skipped with one warning each. Timestamps are POSIXct in the
+# read are skipped with one warning each. A run's state is one of
+# "submit_failed", "unrecorded", "completion_crashed", "recorded",
+# "recorded_late" or "no_results" (recorded, but the project type produces a
+# summary and the attempt has none). Timestamps are POSIXct in the
 # session time zone; paths are absolute, resolved against the folder that holds the store.
 store_read <- function(store) {
   root <- store_root_dir(store)
@@ -51,12 +54,19 @@ read_run_folder <- function(run_dir, root) {
     "unrecorded"
   } else if (!attempt$has_done) {
     "completion_crashed"
+  } else if (
+    project_expects_summary(run$project$path) &&
+      !file.exists(file.path(attempt$dir, "summary.json"))
+  ) {
+    "no_results"
   } else if (isTRUE(attempt$done$recorded_late)) {
     "recorded_late"
   } else {
     "recorded"
   }
-  done <- if (state %in% c("recorded", "recorded_late")) attempt$done else NULL
+  done <- if (state %in% c("recorded", "recorded_late", "no_results")) {
+    attempt$done
+  }
 
   project <- run$project
   inputs <- run$inputs %||% list()
@@ -107,7 +117,7 @@ read_run_folder <- function(run_dir, root) {
     submission_ok = submission_ok,
     completed_at = parse_utc(done$completed_at),
     recorded_at = parse_utc(done$recorded_at),
-    recorded_late = if (is.null(done)) NA else state == "recorded_late",
+    recorded_late = if (is.null(done)) NA else isTRUE(done$recorded_late),
     late_flags = list(late_flags),
     project_file_timestamp = parse_utc(project$mtime),
     project_file_sha256 = scalar_chr(project$sha256)
@@ -171,6 +181,14 @@ read_run_folder <- function(run_dir, root) {
     }
   }
   list(run = row, files = files, summary = summary, observations = observations)
+}
+
+# Whether the file handler for the project's extension produces a summary.
+project_expects_summary <- function(path) {
+  if (!is.character(path) || length(path) != 1L) {
+    return(FALSE)
+  }
+  suppressMessages(get_file_handler(tools::file_ext(path)))$expects_summary()
 }
 
 # The attempt used for a run: the highest-numbered completion folder holding

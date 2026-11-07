@@ -20,7 +20,8 @@ Defaults to \code{default_store()}. Nothing is written to it.}
 output files in the data. Default is \code{FALSE}.}
 
 \item{ignore_failed_runs}{Logical scalar. Whether to exclude runs where
-\code{completed_at} is missing (i.e., failed or incomplete runs). Default is \code{FALSE}.}
+\code{completed_at} is missing or the run finished without results (i.e., failed,
+incomplete or \code{"no_results"} runs). Default is \code{FALSE}.}
 
 \item{latest_only}{Logical scalar. Whether to return only the latest run
 (by \code{submitted_at}) for each project file. Default is \code{FALSE}.}
@@ -33,7 +34,9 @@ A data frame with run information, newest submission first. Contains
 columns: \code{run_id} (character), \code{job_id}, \code{project_name}, \code{project_path},
 \code{data_file}, \code{model_file}, \code{thread}, \code{tool}, \code{mode}, \code{config},
 \code{project_file_timestamp}, \code{project_file_sha256}, \code{cmd}, \code{submitted_at},
-\code{completed_at}, \code{state}, \code{recorded_late}.
+\code{completed_at}, \code{state}, \code{recorded_late}. \code{state} is one of \code{"submit_failed"},
+\code{"unrecorded"}, \code{"completion_crashed"}, \code{"recorded"}, \code{"recorded_late"} or
+\code{"no_results"} (recorded, but a Monolix run without a summary).
 When \code{include_files = TRUE}, additionally contains one row per input and
 output file with \code{io_type}, \code{file_name}, \code{file_path}, \code{file_timestamp} and
 \code{sha256}.

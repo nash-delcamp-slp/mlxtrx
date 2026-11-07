@@ -27,7 +27,8 @@ Either \code{"gt"} for a formatted gt table (default) or \code{"csv"} for a data
 output files in the table. Default is \code{FALSE}.}
 
 \item{ignore_failed_runs}{Logical scalar. Whether to exclude runs where
-\code{completed_at} is missing (i.e., failed or incomplete runs). Default is \code{FALSE}.}
+\code{completed_at} is missing or the run finished without results (i.e., failed,
+incomplete or \code{"no_results"} runs). Default is \code{FALSE}.}
 
 \item{latest_only}{Logical scalar. Whether to return only the latest run
 (by \code{submitted_at}) for each project file. Default is \code{FALSE}.}

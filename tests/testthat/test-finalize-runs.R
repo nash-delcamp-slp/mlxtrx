@@ -119,7 +119,7 @@ test_that("a local runner's run is recorded without summary.txt", {
   unlink(file.path(e$out_dir, "summary.txt"))
   suppressMessages(res <- finalize_runs(e$store))
   expect_equal(res$action, "recorded_late")
-  expect_equal(store_read(e$store)$runs$state, "recorded_late")
+  expect_equal(store_read(e$store)$runs$state, "no_results")
 })
 
 test_that("a crashed completion is reported and retried on request", {

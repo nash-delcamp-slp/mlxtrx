@@ -75,3 +75,17 @@ test_that("get_run_files returns the files of the given runs", {
   expect_true("sha256" %in% names(f))
   expect_equal(nrow(get_run_files(character(), s$store)), 0L)
 })
+
+test_that("ignore_failed_runs drops runs that finished without results", {
+  root <- local_theoph_root()
+  bare <- theoph_run_spec(root, "r2", submitted_at = Sys.time() - 3600)
+  bare$completions$completion$summary <- NULL
+  s <- local_store_with_runs(
+    list(theoph_run_spec(root, "r1", submitted_at = Sys.time() - 7200), bare),
+    root = root
+  )
+  all <- runs_data(s$store)
+  expect_setequal(all$run_id, c("r1", "r2"))
+  expect_equal(all$state[all$run_id == "r2"], "no_results")
+  expect_identical(runs_data(s$store, ignore_failed_runs = TRUE)$run_id, "r1")
+})

@@ -18,6 +18,7 @@ Monolix file handler
 \item \href{#method-MonolixHandler-parse_file}{\code{MonolixHandler$parse_file()}}
 \item \href{#method-MonolixHandler-get_input_files}{\code{MonolixHandler$get_input_files()}}
 \item \href{#method-MonolixHandler-get_output_dir}{\code{MonolixHandler$get_output_dir()}}
+\item \href{#method-MonolixHandler-expects_summary}{\code{MonolixHandler$expects_summary()}}
 \item \href{#method-MonolixHandler-parse_summary}{\code{MonolixHandler$parse_summary()}}
 \item \href{#method-MonolixHandler-clone}{\code{MonolixHandler$clone()}}
 }
@@ -84,6 +85,16 @@ Get expected output directory
 }
 \if{html}{\out{</div>}}
 }
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MonolixHandler-expects_summary"></a>}}
+\if{latex}{\out{\hypertarget{method-MonolixHandler-expects_summary}{}}}
+\subsection{Method \code{expects_summary()}}{
+Monolix runs produce a summary
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{MonolixHandler$expects_summary()}\if{html}{\out{</div>}}
+}
+
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-MonolixHandler-parse_summary"></a>}}

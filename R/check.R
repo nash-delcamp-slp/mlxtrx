@@ -2,7 +2,7 @@
 #'
 #' Validates that all project files in a directory have successful run records.
 #' A successful run is one whose latest run (by `submitted_at`) has a
-#' completion timestamp.
+#' completion timestamp and, for Monolix projects, a summary.
 #'
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
@@ -15,12 +15,13 @@
 #'     \item `project_file` (character): Full path to the project file
 #'     \item `has_run` (logical): Whether any run record exists for this file
 #'     \item `has_successful_run` (logical): Whether the latest run completed
+#'       with results
 #'     \item `latest_run_id` (character): Most recent run_id (NA if no runs)
 #'     \item `latest_completed_at` (POSIXct): Latest completion timestamp (NA if not completed)
 #'     \item `recorded_late` (logical): Whether the latest run's completion was
 #'       recorded late (NA if it was not recorded)
 #'     \item `status` (character): Summary status ("completed",
-#'       "completed_late", "incomplete", "no_runs")
+#'       "completed_late", "incomplete", "no_results", "no_runs")
 #'   }
 #'
 #' @export
@@ -36,7 +37,8 @@ check_completion_status <- function(
   idx <- match(project_files, latest$project_file)
 
   has_run <- !is.na(idx)
-  has_successful_run <- !is.na(latest$completed_at[idx])
+  no_results <- latest$state[idx] %in% "no_results"
+  has_successful_run <- !is.na(latest$completed_at[idx]) & !no_results
   recorded_late <- latest$recorded_late[idx]
 
   data.frame(
@@ -48,6 +50,7 @@ check_completion_status <- function(
     recorded_late = recorded_late,
     status = dplyr::case_when(
       !has_run ~ "no_runs",
+      no_results ~ "no_results",
       has_successful_run & recorded_late %in% TRUE ~ "completed_late",
       has_successful_run ~ "completed",
       TRUE ~ "incomplete"

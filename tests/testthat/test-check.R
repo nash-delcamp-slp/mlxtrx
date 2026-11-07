@@ -127,3 +127,14 @@ test_that("check_project_file_status compares against the latest submitted compl
   expect_identical(res$run_id, "b")
   expect_equal(res$status, "unchanged")
 })
+
+test_that("check_completion_status: a latest run without results is no_results", {
+  root <- local_theoph_root()
+  spec <- theoph_run_spec(root, "r1")
+  spec$completions$completion$summary <- NULL
+  s <- local_store_with_runs(list(spec), root = root)
+  res <- check_completion_status(root, store = s$store)
+  expect_equal(res$status, "no_results")
+  expect_false(res$has_successful_run)
+  expect_true(res$has_run)
+})

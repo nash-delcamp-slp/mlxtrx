@@ -34,6 +34,11 @@ FileHandler <- R6::R6Class(
       NULL
     },
 
+    #' @description Whether a finished run of this project type produces a summary
+    expects_summary = function() {
+      FALSE
+    },
+
     #' @description Get path to summary file
     #' @param project_path Path to project file
     #' @param output_dir Optional output directory override
@@ -140,6 +145,11 @@ MonolixHandler <- R6::R6Class(
       current_output_dir <- output_dir %||%
         path_based_output_dir
       resolve_output_dir(path = path, output_dir = current_output_dir)
+    },
+
+    #' @description Monolix runs produce a summary
+    expects_summary = function() {
+      TRUE
     },
 
     #' @description Parse Monolix summary file

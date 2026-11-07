@@ -9,7 +9,8 @@
 #' @param include_files Logical scalar. Whether to include details about input and
 #'   output files in the data. Default is `FALSE`.
 #' @param ignore_failed_runs Logical scalar. Whether to exclude runs where
-#'   `completed_at` is missing (i.e., failed or incomplete runs). Default is `FALSE`.
+#'   `completed_at` is missing or the run finished without results (i.e., failed,
+#'   incomplete or `"no_results"` runs). Default is `FALSE`.
 #' @param latest_only Logical scalar. Whether to return only the latest run
 #'   (by `submitted_at`) for each project file. Default is `FALSE`.
 #' @param include_summary Logical scalar. Whether to include information from the
@@ -19,7 +20,9 @@
 #'   columns: `run_id` (character), `job_id`, `project_name`, `project_path`,
 #'   `data_file`, `model_file`, `thread`, `tool`, `mode`, `config`,
 #'   `project_file_timestamp`, `project_file_sha256`, `cmd`, `submitted_at`,
-#'   `completed_at`, `state`, `recorded_late`.
+#'   `completed_at`, `state`, `recorded_late`. `state` is one of `"submit_failed"`,
+#'   `"unrecorded"`, `"completion_crashed"`, `"recorded"`, `"recorded_late"` or
+#'   `"no_results"` (recorded, but a Monolix run without a summary).
 #'   When `include_files = TRUE`, additionally contains one row per input and
 #'   output file with `io_type`, `file_name`, `file_path`, `file_timestamp` and
 #'   `sha256`.
@@ -60,7 +63,11 @@ runs_data <- function(
   data <- store_read(store)
   runs <- data$runs
   if (ignore_failed_runs) {
-    runs <- runs[!is.na(runs$completed_at), , drop = FALSE]
+    runs <- runs[
+      !is.na(runs$completed_at) & runs$state != "no_results",
+      ,
+      drop = FALSE
+    ]
   }
   if (latest_only) {
     runs <- latest_by(runs, runs$project_path, runs$submitted_at)
@@ -214,7 +221,8 @@ latest_by <- function(df, key, time) {
 #' @param include_files Logical scalar. Whether to include details about input and
 #'   output files in the table. Default is `FALSE`.
 #' @param ignore_failed_runs Logical scalar. Whether to exclude runs where
-#'   `completed_at` is missing (i.e., failed or incomplete runs). Default is `FALSE`.
+#'   `completed_at` is missing or the run finished without results (i.e., failed,
+#'   incomplete or `"no_results"` runs). Default is `FALSE`.
 #' @param latest_only Logical scalar. Whether to return only the latest run
 #'   (by `submitted_at`) for each project file. Default is `FALSE`.
 #' @param include_summary Logical scalar. Whether to include information from the

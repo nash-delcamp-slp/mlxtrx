@@ -25,16 +25,17 @@ A data frame with columns:
 \item \code{project_file} (character): Full path to the project file
 \item \code{has_run} (logical): Whether any run record exists for this file
 \item \code{has_successful_run} (logical): Whether the latest run completed
+with results
 \item \code{latest_run_id} (character): Most recent run_id (NA if no runs)
 \item \code{latest_completed_at} (POSIXct): Latest completion timestamp (NA if not completed)
 \item \code{recorded_late} (logical): Whether the latest run's completion was
 recorded late (NA if it was not recorded)
 \item \code{status} (character): Summary status ("completed",
-"completed_late", "incomplete", "no_runs")
+"completed_late", "incomplete", "no_results", "no_runs")
 }
 }
 \description{
 Validates that all project files in a directory have successful run records.
 A successful run is one whose latest run (by \code{submitted_at}) has a
-completion timestamp.
+completion timestamp and, for Monolix projects, a summary.
 }
