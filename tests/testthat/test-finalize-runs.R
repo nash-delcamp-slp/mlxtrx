@@ -198,14 +198,16 @@ test_that("a late recording does not take a later run's outputs", {
   expect_false("r1" %in% res$summary$run_id)
 })
 
-test_that("a later run into another output dir does not flag outputs", {
+test_that("a later run of another project into another output dir does not flag outputs", {
   skip_on_os("windows")
   e <- local_finalize_env(queue = "999999")
-  # Run B of the same project was submitted after A but writes to another
+  # Run B of another project was submitted after A and writes to another
   # output dir, so A's outputs are its own.
+  other_project <- file.path(e$root, "theoph", "other.mlxtran")
+  file.copy(file.path(e$root, "theoph", "theoph.mlxtran"), other_project)
   later <- fake_run_json(
     "r2",
-    project = file_record(file.path(e$root, "theoph", "theoph.mlxtran"), e$root),
+    project = file_record(other_project, e$root),
     output_dir = path_to_record(file.path(e$root, "theoph", "other"), e$root),
     submitted_at = format_utc(Sys.time() - 2400),
     job_id = 8L
@@ -222,6 +224,32 @@ test_that("a later run into another output dir does not flag outputs", {
   expect_length(done$late_flags, 0L)
   expect_true(file.exists(file.path(e$run_dir, "completion", "summary.json")))
   expect_true("r1" %in% store_read(e$store)$summary$run_id)
+})
+
+test_that("a later run of the same project cuts off when its output dir is spelled differently", {
+  skip_on_os("windows")
+  e <- local_finalize_env(queue = "999999")
+  # B's output dir is the same folder spelled with different case (one folder
+  # on case-insensitive file systems), so string compare does not match it.
+  later <- fake_run_json(
+    "r2",
+    project = file_record(file.path(e$root, "theoph", "theoph.mlxtran"), e$root),
+    output_dir = list(path = "theoph/Theoph", absolute = FALSE),
+    submitted_at = format_utc(Sys.time() - 2400),
+    job_id = 8L
+  )
+  dir.create(file.path(e$store, "runs", "r2", "completion"), recursive = TRUE)
+  store_write_json(later, file.path(e$store, "runs", "r2", "run.json"))
+  store_write_json(
+    fake_done_json(),
+    file.path(e$store, "runs", "r2", "completion", "done.json")
+  )
+  suppressMessages(res <- finalize_runs(e$store))
+  expect_equal(res$action, "recorded_late")
+  done <- jsonlite::read_json(file.path(e$run_dir, "completion", "done.json"))
+  flagged <- vapply(done$late_flags, function(x) x$path, character(1))
+  expect_equal(flagged, "theoph/theoph/summary.txt")
+  expect_false(file.exists(file.path(e$run_dir, "completion", "summary.json")))
 })
 
 test_that("another user's runs are left for their owner to finalize", {

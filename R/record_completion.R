@@ -4,9 +4,9 @@
 # Returns "recorded", or "claimed_elsewhere" when another process holds the
 # completion claim (nothing is written then). `late` marks a recording made
 # by someone other than the launching session; a retry is always late.
-# `until` is the submission time of a later run into the same output
-# directory: outputs written at or after it may be that run's, so they are
-# flagged, and summary.txt among them is not parsed.
+# `until` is the submission time of a later run of the same project or into
+# the same output directory: outputs written at or after it may be that run's,
+# so they are flagged, and summary.txt among them is not parsed.
 record_completion <- function(
   run_dir,
   store,
