@@ -1,9 +1,11 @@
 # One unrecorded run on a copy of the theoph fixture, with the fake `sq` on
-# PATH. The queue holds the given job IDs. The run belongs to `user`.
+# PATH. The queue holds the given job IDs. The run belongs to `user` and was
+# launched with `cmd`.
 local_finalize_env <- function(
   queue = character(),
   job_id = 7L,
   user = Sys.info()[["user"]],
+  cmd = "mono24",
   .env = parent.frame()
 ) {
   root <- withr::local_tempdir(.local_envir = .env)
@@ -16,7 +18,8 @@ local_finalize_env <- function(
     project = file_record(project, root),
     submitted_at = format_utc(Sys.time() - 3600),
     job_id = job_id,
-    user = user
+    user = user,
+    cmd = cmd
   )
   s <- local_store_with_runs(
     list(list(id = "r1", run = run)),
@@ -106,6 +109,16 @@ test_that("a run without a job ID needs summary.txt in its output dir", {
   file.rename(paste0(summary, ".hidden"), summary)
   suppressMessages(res <- finalize_runs(e$store))
   expect_equal(res$action, "recorded_late")
+})
+
+test_that("a local runner's run is recorded without summary.txt", {
+  skip_on_os("windows")
+  e <- local_finalize_env(job_id = NULL, cmd = "/opt/monolix/bin/simulx.sh")
+  file.create(file.path(e$fake, "sq_fail"))
+  unlink(file.path(e$out_dir, "summary.txt"))
+  suppressMessages(res <- finalize_runs(e$store))
+  expect_equal(res$action, "recorded_late")
+  expect_equal(store_read(e$store)$runs$state, "recorded_late")
 })
 
 test_that("a crashed completion is reported and retried on request", {

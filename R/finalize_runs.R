@@ -3,6 +3,8 @@
 #' Records completion, marked as recorded late, for runs that were launched but
 #' never recorded, for example because the R session that launched them died.
 #' A run with a job ID is recorded once its job has left the queue (`sq`). A
+#' run launched with the local runners `monolix.sh` or `simulx.sh` had finished
+#' before its launch was recorded, so it is recorded straight away. Any other
 #' run without a job ID is recorded once its output folder holds `summary.txt`.
 #' If `sq` is missing or fails the function stops, because a running job would
 #' otherwise be recorded as finished.
@@ -95,13 +97,17 @@ finalize_runs <- function(
 
 # The action taken for one candidate run (a one-row data frame). Outputs
 # written once a later run of the same project was submitted are not credited
-# to this run.
+# to this run. A local runner's run has finished by the time run.json exists,
+# so it does not wait for summary.txt.
 finalize_run <- function(run, store, queued, all_runs) {
   if (!is.na(run$job_id)) {
     if (as.character(run$job_id) %in% queued) {
       return("still_queued")
     }
-  } else if (!file.exists(run_summary_path(run))) {
+  } else if (
+    !basename(run$cmd) %in% c("monolix.sh", "simulx.sh") &&
+      !file.exists(run_summary_path(run))
+  ) {
     return("no_summary_yet")
   }
   crashed <- run$state == "completion_crashed"
