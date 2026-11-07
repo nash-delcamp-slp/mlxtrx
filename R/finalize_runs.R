@@ -32,7 +32,8 @@ finalize_runs <- function(
   run_id = NULL,
   retry_crashed = FALSE
 ) {
-  runs <- store_read(store)$runs
+  all_runs <- store_read(store)$runs
+  runs <- all_runs
   if (!is.null(run_id)) {
     runs <- runs[runs$run_id %in% run_id, , drop = FALSE]
   }
@@ -62,7 +63,9 @@ finalize_runs <- function(
     stats::setNames(
       vapply(
         seq_len(nrow(candidates)),
-        function(i) finalize_run(candidates[i, ], store, queued),
+        function(i) {
+          finalize_run(candidates[i, ], store, queued, all_runs)
+        },
         character(1)
       ),
       candidates$run_id
@@ -80,8 +83,10 @@ finalize_runs <- function(
   result
 }
 
-# The action taken for one candidate run (a one-row data frame).
-finalize_run <- function(run, store, queued) {
+# The action taken for one candidate run (a one-row data frame). Outputs
+# written once a later run of the same project was submitted are not credited
+# to this run.
+finalize_run <- function(run, store, queued, all_runs) {
   if (!is.na(run$job_id)) {
     if (as.character(run$job_id) %in% queued) {
       return("still_queued")
@@ -91,7 +96,13 @@ finalize_run <- function(run, store, queued) {
   }
   crashed <- run$state == "completion_crashed"
   outcome <- tryCatch(
-    record_completion(run$run_dir, store, late = TRUE, retry = crashed),
+    record_completion(
+      run$run_dir,
+      store,
+      late = TRUE,
+      retry = crashed,
+      until = next_submission(run, all_runs)
+    ),
     error = function(e) {
       warning(
         "Recording ",
@@ -104,6 +115,17 @@ finalize_run <- function(run, store, queued) {
     }
   )
   if (identical(outcome, "recorded")) "recorded_late" else outcome
+}
+
+# Earliest submission time of a later run (any state) of the same project,
+# or NULL when there is none.
+next_submission <- function(run, all_runs) {
+  later <- all_runs$submitted_at[
+    all_runs$project_path == run$project_path &
+      all_runs$submitted_at > run$submitted_at
+  ]
+  later <- later[!is.na(later)]
+  if (length(later) == 0L) NULL else min(later)
 }
 
 run_summary_path <- function(run) {

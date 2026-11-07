@@ -153,3 +153,30 @@ test_that("a failed submission is skipped when named", {
   suppressMessages(res <- finalize_runs(e$store, run_id = "bad"))
   expect_equal(res$action, "skipped_submit_failed")
 })
+
+test_that("a late recording does not take a later run's outputs", {
+  skip_on_os("windows")
+  e <- local_finalize_env(queue = "999999")
+  # Run B of the same project was submitted after A and is recorded; its
+  # summary.txt (30 min ago) overwrote A's outputs.
+  later <- fake_run_json(
+    "r2",
+    project = file_record(file.path(e$root, "theoph", "theoph.mlxtran"), e$root),
+    submitted_at = format_utc(Sys.time() - 2400),
+    job_id = 8L
+  )
+  dir.create(file.path(e$store, "runs", "r2", "completion"), recursive = TRUE)
+  store_write_json(later, file.path(e$store, "runs", "r2", "run.json"))
+  store_write_json(
+    fake_done_json(),
+    file.path(e$store, "runs", "r2", "completion", "done.json")
+  )
+  suppressMessages(res <- finalize_runs(e$store))
+  expect_equal(res$action, "recorded_late")
+  expect_false(file.exists(file.path(e$run_dir, "completion", "summary.json")))
+  done <- jsonlite::read_json(file.path(e$run_dir, "completion", "done.json"))
+  flagged <- vapply(done$late_flags, function(x) x$path, character(1))
+  expect_equal(flagged, "theoph/theoph/summary.txt")
+  res <- store_read(e$store)
+  expect_false("r1" %in% res$summary$run_id)
+})

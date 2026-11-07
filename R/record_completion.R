@@ -3,12 +3,16 @@
 # Returns "recorded", or "claimed_elsewhere" when another process holds the
 # completion claim (nothing is written then). `late` marks a recording made
 # by someone other than the launching session; a retry is always late.
+# `until` is the submission time of a later run of the same project: outputs
+# written at or after it may be that run's, so they are flagged, and
+# summary.txt among them is not parsed.
 record_completion <- function(
   run_dir,
   store,
   late = FALSE,
   retry = FALSE,
-  late_tolerance = 300
+  late_tolerance = 300,
+  until = NULL
 ) {
   late <- isTRUE(late) || isTRUE(retry)
   root <- store_root_dir(store)
@@ -53,7 +57,12 @@ record_completion <- function(
     tz = "UTC"
   )
 
-  if (summary_is_output(files, summary_path)) {
+  flagged <- if (late) late_output_files(files, mtimes, late_tolerance) else character()
+  if (!is.null(until)) {
+    flagged <- union(flagged, files[mtimes >= until])
+  }
+
+  if (summary_is_output(setdiff(files, flagged), summary_path)) {
     parsed <- handler$parse_summary(summary_path)
     if (!is.null(parsed)) {
       parsed$summary_extracted_at <- format_utc(Sys.time())
@@ -69,15 +78,7 @@ record_completion <- function(
       recorded_at = format_utc(recorded_at),
       recorded_by = paste0(info[["user"]], "@", info[["nodename"]]),
       recorded_late = late,
-      late_flags = if (late) {
-        lapply(
-          late_output_files(files, mtimes, late_tolerance),
-          path_to_record,
-          root = root
-        )
-      } else {
-        list()
-      }
+      late_flags = lapply(flagged, path_to_record, root = root)
     ),
     file.path(completion_dir, "done.json")
   )
