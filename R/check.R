@@ -121,7 +121,7 @@ check_input_file_status <- function(
 #' Check project file modification status
 #'
 #' Detects project files that have been modified since their latest completed
-#' run.
+#' run (the completed run with the latest `submitted_at`).
 #'
 #' @param directory Character scalar. Directory path to check for project files.
 #' @param ext Character vector. File extensions to consider as
@@ -132,7 +132,7 @@ check_input_file_status <- function(
 #' @return A data frame with columns:
 #'   \itemize{
 #'     \item `project_file` (character): Full path to the project file
-#'     \item `run_id` (character): Most recent completed run ID (NA if no completed runs)
+#'     \item `run_id` (character): Latest submitted completed run ID (NA if no completed runs)
 #'     \item `run_completed_at` (POSIXct): When the run was completed (NA if not completed)
 #'     \item `recorded_timestamp` (POSIXct): Project file timestamp at run time
 #'     \item `recorded_sha256` (character): Project file SHA-256 checksum at run time
@@ -154,7 +154,7 @@ check_project_file_status <- function(
   data <- store_read(store)
   runs <- data$runs[!is.na(data$runs$completed_at), , drop = FALSE]
   runs$project_file <- path_key(runs$project_path)
-  latest <- latest_by(runs, runs$project_file, runs$completed_at)
+  latest <- latest_by(runs, runs$project_file, runs$submitted_at)
   idx <- match(project_files, latest$project_file)
   run_id <- latest$run_id[idx]
 

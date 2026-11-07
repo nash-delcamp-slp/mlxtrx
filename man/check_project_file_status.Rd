@@ -23,7 +23,7 @@ Defaults to \code{default_store()}. Nothing is written to it.}
 A data frame with columns:
 \itemize{
 \item \code{project_file} (character): Full path to the project file
-\item \code{run_id} (character): Most recent completed run ID (NA if no completed runs)
+\item \code{run_id} (character): Latest submitted completed run ID (NA if no completed runs)
 \item \code{run_completed_at} (POSIXct): When the run was completed (NA if not completed)
 \item \code{recorded_timestamp} (POSIXct): Project file timestamp at run time
 \item \code{recorded_sha256} (character): Project file SHA-256 checksum at run time
@@ -37,5 +37,5 @@ A data frame with columns:
 }
 \description{
 Detects project files that have been modified since their latest completed
-run.
+run (the completed run with the latest \code{submitted_at}).
 }

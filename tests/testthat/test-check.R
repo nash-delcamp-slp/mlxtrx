@@ -113,3 +113,17 @@ test_that("check_completion_status: completed, completed_late and incomplete", {
   expect_equal(res$status, "incomplete")
   expect_false(res$has_successful_run)
 })
+
+test_that("check_project_file_status compares against the latest submitted completed run", {
+  substage <- local_theoph_substage()
+  now <- Sys.time()
+  a <- theoph_run_spec(substage, "a", submitted_at = now - 5000)
+  a$run$project$sha256 <- "v1"
+  a$completions$completion$done$completed_at <- format_utc(now - 1000)
+  b <- theoph_run_spec(substage, "b", submitted_at = now - 3000)
+  b$completions$completion$done$completed_at <- format_utc(now - 2000)
+  s <- local_store_with_runs(list(a, b), substage = substage)
+  res <- check_project_file_status(substage, store = s$store)
+  expect_identical(res$run_id, "b")
+  expect_equal(res$status, "unchanged")
+})
