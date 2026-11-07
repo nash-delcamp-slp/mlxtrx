@@ -4,32 +4,34 @@
 \alias{check_input_file_status}
 \title{Check input file modification status}
 \usage{
-check_input_file_status(run_ids = NULL, db_conn = default_db_conn())
+check_input_file_status(run_ids = NULL, store = default_store())
 }
 \arguments{
-\item{run_ids}{Integer vector. Specific run IDs to check. If NULL (default),
+\item{run_ids}{Character vector. Specific run IDs to check. If NULL (default),
 checks all runs.}
 
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
+Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A data frame with columns:
 \itemize{
-\item \code{run_id} (integer): The run identifier
+\item \code{run_id} (character): The run identifier
 \item \code{file_path} (character): Full path to the input file
 \item \code{file_name} (character): File name (basename)
-\item \code{recorded_timestamp} (POSIXct): Timestamp when run was recorded
-\item \code{recorded_checksum} (character): MD5 checksum when run was recorded
+\item \code{recorded_timestamp} (POSIXct): File timestamp when the run was submitted
+\item \code{recorded_sha256} (character): SHA-256 checksum when the run was submitted
 \item \code{current_timestamp} (POSIXct): Current file modification time
-\item \code{current_checksum} (character): Current MD5 checksum
+\item \code{current_sha256} (character): Current SHA-256 checksum
 \item \code{timestamp_changed} (logical): Whether modification time changed
 \item \code{checksum_changed} (logical): Whether file content changed
 \item \code{file_exists} (logical): Whether file still exists
+\item \code{recorded_late} (logical): Whether the run's completion was
+recorded late (NA if it was not recorded)
 \item \code{status} (character): Summary status
 }
 }
 \description{
-Detects input files that have been modified since the latest run began.
+Detects input files that have been modified since the run began.
 Compares current file timestamps and checksums against recorded values.
 }

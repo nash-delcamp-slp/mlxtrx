@@ -5,7 +5,7 @@
 \title{Generate a table with details about executed Monolix runs}
 \usage{
 runs_table(
-  db_conn = default_db_conn(),
+  store = default_store(),
   format = "gt",
   output_file = NULL,
   include_files = FALSE,
@@ -15,8 +15,8 @@ runs_table(
 )
 }
 \arguments{
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
+Defaults to \code{default_store()}. Nothing is written to it.}
 
 \item{format}{Character scalar. Output format for the table.
 Either \code{"gt"} for a formatted gt table (default) or \code{"csv"} for a data frame.}
@@ -29,8 +29,8 @@ output files in the table. Default is \code{FALSE}.}
 \item{ignore_failed_runs}{Logical scalar. Whether to exclude runs where
 \code{completed_at} is missing (i.e., failed or incomplete runs). Default is \code{FALSE}.}
 
-\item{latest_only}{Logical scalar. Whether to return only the latest run for
-each project file. Default is \code{FALSE}.}
+\item{latest_only}{Logical scalar. Whether to return only the latest run
+(by \code{submitted_at}) for each project file. Default is \code{FALSE}.}
 
 \item{include_summary}{Logical scalar. Whether to include information from the
 summary.txt file. Default is \code{FALSE}.}
@@ -39,11 +39,11 @@ summary.txt file. Default is \code{FALSE}.}
 When \code{format = "gt"}, returns a \code{gt_tbl} object. When \code{format = "csv"}
 and \code{output_file} is specified, returns the data frame invisibly after writing
 to file. When \code{format = "csv"} and \code{output_file} is \code{NULL}, returns the data frame.
-Returns \code{NULL} invisibly if no runs are found in the database.
+Returns \code{NULL} invisibly if no runs are found in the store.
 }
 \description{
 Creates a formatted table displaying information about Monolix jobs that have
-been executed and recorded in the database. The table can include basic job
+been submitted and recorded in the run store. The table can include basic job
 information or detailed file tracking data.
 }
 \examples{
@@ -66,14 +66,13 @@ runs_table(include_summary = TRUE)
 # Export to CSV
 runs_table(format = "csv", output_file = "runs_summary.csv")
 
-# Use custom database connection
-conn <- DBI::dbConnect(duckdb::duckdb(), "custom.db")
-runs_table(db_conn = conn)
+# Read the store of another folder
+runs_table(store = "/path/to/monolix/.mlxtrx")
 }
 
 }
 \seealso{
 \code{\link{runs_data}} for extracting the underlying data,
 \code{\link{mono}} for submitting Monolix jobs and recording runs,
-\code{\link{default_db_conn}} for default database connections
+\code{\link{default_store}} for the default run store
 }

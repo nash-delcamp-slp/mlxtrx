@@ -10,17 +10,17 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
     assertthat,
-    DBI,
     digest,
     dplyr,
-    duckdb,
     fs,
     gt,
+    jsonlite,
     lixoftConnectors,
     lubridate,
     readr,
     rlang,
-    stringr,
-    utilscognigen
-Remotes:
-    simulations-plus/utilscognigen
+    stringr
+Suggests:
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3

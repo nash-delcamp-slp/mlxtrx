@@ -1,0 +1,31 @@
+#!/bin/sh
+# Test stand-in for the grid submit command. Reads `-p <project>`, copies
+# $MLXTRX_FAKE_DIR/summary.txt into the project's export folder and prints a
+# job ID taken from $MLXTRX_FAKE_DIR/next_job. The job is queued (appended to
+# $MLXTRX_FAKE_DIR/queue) only when $MLXTRX_FAKE_DIR/hold exists. With
+# $MLXTRX_FAKE_DIR/garbage present it prints `nope` and does nothing else.
+fake="$MLXTRX_FAKE_DIR"
+if [ -e "$fake/garbage" ]; then
+  echo "nope"
+  exit 0
+fi
+project=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -p) project="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+dir=$(dirname "$project")
+export_path=$(sed -n "s/^[[:space:]]*exportpath[[:space:]]*=[[:space:]]*['\"]\(.*\)['\"].*/\1/p" "$project")
+mkdir -p "$dir/$export_path"
+cp "$fake/summary.txt" "$dir/$export_path/summary.txt"
+n=1
+if [ -e "$fake/next_job" ]; then
+  n=$(cat "$fake/next_job")
+fi
+echo $((n + 1)) > "$fake/next_job"
+if [ -e "$fake/hold" ]; then
+  echo "$n" >> "$fake/queue"
+fi
+echo "Submitted batch job $n"

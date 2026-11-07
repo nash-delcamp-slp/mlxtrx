@@ -4,25 +4,54 @@
 \alias{monitor_jobs}
 \title{Monitor multiple jobs and record completed ones}
 \usage{
-monitor_jobs(path, run_id, job_id, output_dir = NULL, cmd, db_conn)
+monitor_jobs(
+  path,
+  run_id,
+  run_dir,
+  job_id,
+  cmd,
+  store,
+  poll_interval = 5,
+  sq_failure_limit = 12
+)
 }
 \arguments{
 \item{path}{Character vector. Paths to Monolix project files.}
 
-\item{run_id}{Integer vector. Database run IDs.}
+\item{run_id}{Character vector. Run IDs.}
+
+\item{run_dir}{Character vector. Run folders in the store.}
 
 \item{job_id}{Integer vector. External job IDs (from job scheduler).}
 
-\item{output_dir}{Character vector or \code{NULL}. Output directories.}
-
 \item{cmd}{Character vector. The commands used for each job.}
 
-\item{db_conn}{Database connection object.}
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).}
+
+\item{poll_interval}{Numeric. Seconds between polls.}
+
+\item{sq_failure_limit}{Integer. Consecutive \code{sq} failures after which runs
+with a job ID are no longer monitored.}
 }
 \value{
 NULL (invisible). Called for side effects.
 }
 \description{
-Monitor multiple jobs and record completed ones
+Polls every \code{poll_interval} seconds until each submitted job has finished,
+then records its completion in the run store with \code{record_completion()}. A
+job with a job ID has finished when it is no longer in the queue; a job
+run by the local runners \code{monolix.sh} or \code{simulx.sh} has finished already;
+any other job without a job ID has finished when \code{summary.txt} exists in
+the output directory saved in its \code{run.json}.
+Runs whose
+submission failed are skipped. A run whose completion cannot be recorded
+gives a warning naming it, and the other runs are still monitored and
+recorded.
+}
+\details{
+The queue is read with \code{sq} once per poll. When \code{sq} fails, a warning is
+given and the jobs with a job ID count as still queued for that poll. After
+\code{sq_failure_limit} consecutive failures those runs are no longer monitored
+and are left unrecorded, for \code{\link[=finalize_runs]{finalize_runs()}} to record once they finish.
 }
 \keyword{internal}

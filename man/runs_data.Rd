@@ -5,7 +5,7 @@
 \title{Extract data about executed Monolix runs}
 \usage{
 runs_data(
-  db_conn = default_db_conn(),
+  store = default_store(),
   include_files = FALSE,
   ignore_failed_runs = FALSE,
   latest_only = FALSE,
@@ -13,8 +13,8 @@ runs_data(
 )
 }
 \arguments{
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
+Defaults to \code{default_store()}. Nothing is written to it.}
 
 \item{include_files}{Logical scalar. Whether to include details about input and
 output files in the data. Default is \code{FALSE}.}
@@ -22,22 +22,28 @@ output files in the data. Default is \code{FALSE}.}
 \item{ignore_failed_runs}{Logical scalar. Whether to exclude runs where
 \code{completed_at} is missing (i.e., failed or incomplete runs). Default is \code{FALSE}.}
 
-\item{latest_only}{Logical scalar. Whether to return only the latest run for
-each project file. Default is \code{FALSE}.}
+\item{latest_only}{Logical scalar. Whether to return only the latest run
+(by \code{submitted_at}) for each project file. Default is \code{FALSE}.}
 
 \item{include_summary}{Logical scalar. Whether to include information from the
 summary.txt file. Default is \code{FALSE}.}
 }
 \value{
-A data frame with run information. Contains columns: \code{run_id}, \code{job_id},
-\code{project_name}, \code{project_path}, \code{data_file}, \code{model_file}, \code{thread}, \code{tool}, \code{mode},
-\code{config}, \code{cmd}, \code{project_file_timestamp}, \code{project_file_md5_checksum},
-\code{submitted_at}, \code{completed_at}.
-When \code{include_files = TRUE}, additionally contains file details.
-When \code{include_summary = TRUE}, additionally contains run summary from summary.txt.
+A data frame with run information, newest submission first. Contains
+columns: \code{run_id} (character), \code{job_id}, \code{project_name}, \code{project_path},
+\code{data_file}, \code{model_file}, \code{thread}, \code{tool}, \code{mode}, \code{config},
+\code{project_file_timestamp}, \code{project_file_sha256}, \code{cmd}, \code{submitted_at},
+\code{completed_at}, \code{state}, \code{recorded_late}.
+When \code{include_files = TRUE}, additionally contains one row per input and
+output file with \code{io_type}, \code{file_name}, \code{file_path}, \code{file_timestamp} and
+\code{sha256}.
+When \code{include_summary = TRUE}, additionally contains run summary from
+summary.txt and one \verb{n_obs_<type>} column per observation type.
+Timestamps are in the session time zone. Returns \code{NULL} invisibly, with a
+message, when there are no runs.
 }
 \description{
-Queries the database to retrieve information about Monolix jobs that have
-been executed and recorded. Returns a data frame with basic job information
-or detailed file tracking data.
+Reads the run store for Monolix jobs that have been submitted and recorded.
+Returns a data frame with basic job information or detailed file tracking
+data.
 }

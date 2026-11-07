@@ -30,7 +30,11 @@ execute_job(
 \item{cmd}{Character scalar. The Monolix command to execute.}
 }
 \value{
-Integer scalar with job ID, or \code{NA} if job submission failed.
+A list with \code{job_id} (integer, \code{NA} when no job ID was found),
+\code{ok} (logical) and \code{output} (character, the command's output). For the
+local runners \code{monolix.sh} and \code{simulx.sh}, \code{ok} is \code{TRUE} when the
+command exits with status 0. For other commands, \code{ok} is \code{TRUE} when a
+job ID was found or the command reports that results have been loaded.
 }
 \description{
 Submits a single Monolix job to the grid and extracts the job ID.

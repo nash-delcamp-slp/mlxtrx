@@ -9,13 +9,13 @@ generate_project_report(
   run_ids = NULL,
   ext = c("mlxtran", "smlx"),
   output_files = NULL,
-  db_conn = default_db_conn()
+  store = default_store()
 )
 }
 \arguments{
 \item{directory}{Character scalar. Directory path to check for project files.}
 
-\item{run_ids}{Integer vector. Specific run IDs to check. If NULL (default),
+\item{run_ids}{Character vector. Specific run IDs to check. If NULL (default),
 checks all runs.}
 
 \item{ext}{Character vector. File extensions to consider as
@@ -25,8 +25,8 @@ project files. Defaults to c("mlxtran", "smlx").}
 alignment with latest runs. If NULL (default), no output file alignment
 check is performed.}
 
-\item{db_conn}{A database connection object inheriting from \code{DBIObject}.
-Defaults to a connection created by \code{default_db_conn()}.}
+\item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
+Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A list with components:
