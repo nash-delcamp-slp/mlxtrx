@@ -121,3 +121,13 @@ test_that("an edited summary.txt is flagged against the median mtime", {
   flags <- store_read(s$store)$runs$late_flags[[1]]
   expect_equal(basename(flags), "summary.txt")
 })
+
+test_that("a malformed submitted_at errors before the completion is claimed", {
+  s <- local_theoph_run()
+  run <- jsonlite::read_json(file.path(s$run_dir, "run.json"))
+  run$submitted_at <- "yesterday"
+  unlink(file.path(s$run_dir, "run.json"))
+  store_write_json(run, file.path(s$run_dir, "run.json"))
+  expect_error(record_completion(s$run_dir, s$store), "submitted_at")
+  expect_length(list.files(s$run_dir, pattern = "^completion"), 0L)
+})

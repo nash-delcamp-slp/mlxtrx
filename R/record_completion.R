@@ -26,19 +26,23 @@ record_completion <- function(
     format = "%Y-%m-%dT%H:%M:%OSZ",
     tz = "UTC"
   )
-
-  completion_dir <- claim_completion(run_dir, retry = retry)
-  if (is.null(completion_dir)) {
-    message("Completion of ", basename(run_dir), " is already being recorded.")
-    return("claimed_elsewhere")
+  if (length(submitted_at) != 1L || is.na(submitted_at)) {
+    stop("run.json has no valid submitted_at", call. = FALSE)
   }
-
   handler <- get_file_handler(tools::file_ext(project_path))
   output_dir <- handler$get_output_dir(project_path, run$settings$output_dir)
   summary_path <- handler$get_summary_file_path(
     project_path,
     run$settings$output_dir
   )
+
+  # Everything above can fail on a malformed run.json; the claim comes after
+  # it so such a failure leaves no completion folder.
+  completion_dir <- claim_completion(run_dir, retry = retry)
+  if (is.null(completion_dir)) {
+    message("Completion of ", basename(run_dir), " is already being recorded.")
+    return("claimed_elsewhere")
+  }
 
   files <- list.files(
     output_dir,
