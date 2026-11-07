@@ -573,10 +573,11 @@ PkanalixHandler <- R6::R6Class(
 )
 
 # A PKanalix CSV result table with every column as character and the column
-# names as written (e.g. "-2LL").
+# names as written (e.g. "-2LL"). PKanalix can leave out the final newline,
+# so lines are read without the warning about it.
 read_pkanalix_table <- function(path) {
   utils::read.csv(
-    path,
+    text = readLines(path, warn = FALSE, encoding = "UTF-8"),
     colClasses = "character",
     check.names = FALSE,
     encoding = "UTF-8",

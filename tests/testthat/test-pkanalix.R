@@ -89,7 +89,7 @@ test_that("runs_data gives one be_ column per parameter and statistic", {
 test_that("be_ columns name the formulation when a run has several", {
   s <- local_pkx_run()
   be_dir <- file.path(s$results_dir, "be")
-  ci <- readLines(file.path(be_dir, "confidenceInterval_Test.txt"))
+  ci <- readLines(file.path(be_dir, "confidenceInterval_Test.txt"), warn = FALSE)
   ci[2] <- sub("104.2", "99.5", ci[2], fixed = TRUE)
   writeLines(ci, file.path(be_dir, "confidenceInterval_Test 2.txt"))
   Sys.setFileTime(file.path(be_dir, "confidenceInterval_Test 2.txt"), Sys.time() - 1800)
