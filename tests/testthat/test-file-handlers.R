@@ -18,7 +18,7 @@ local_pkx_root <- function(.env = parent.frame()) {
 }
 
 pkx_results_dir <- function(dir) {
-  file.path(dir, "project", "PKanalix", "IndividualParameters")
+  file.path(dir, "pk", "PKanalix", "IndividualParameters")
 }
 
 test_that(".pkx projects get the PKanalix handler", {
@@ -41,7 +41,7 @@ test_that("the PKanalix output dir is the exportpath, else the project name", {
   handler <- PkanalixHandler$new()
   expect_equal(
     normalizePath(handler$get_output_dir(path)),
-    normalizePath(file.path(dir, "project"))
+    normalizePath(file.path(dir, "pk"))
   )
   lines <- readLines(path)
   writeLines(lines[!grepl("exportpath", lines)], file.path(dir, "other.pkx"))
@@ -53,7 +53,7 @@ test_that("the PKanalix output dir is the exportpath, else the project name", {
 
 test_that("PKanalix result files are the parameter, cost and CI tables", {
   dir <- local_pkx_root()
-  out <- file.path(dir, "project")
+  out <- file.path(dir, "pk")
   res <- pkx_results_dir(dir)
   expected <- file.path(
     res,
@@ -74,7 +74,7 @@ test_that("PKanalix result files are the parameter, cost and CI tables", {
 test_that("PKanalix results give tasks, individuals, CA criteria and BE", {
   dir <- local_pkx_root()
   handler <- PkanalixHandler$new()
-  parsed <- handler$parse_results(handler$result_files(file.path(dir, "project")))
+  parsed <- handler$parse_results(handler$result_files(file.path(dir, "pk")))
   stats <- parsed$summary_stats
   expect_equal(stats$tasks, "nca,ca,be")
   expect_identical(stats$n_individuals, 3L)
@@ -97,7 +97,7 @@ test_that("PKanalix results give tasks, individuals, CA criteria and BE", {
 test_that("individuals come from CA parameters without NCA ones", {
   dir <- local_pkx_root()
   handler <- PkanalixHandler$new()
-  files <- handler$result_files(file.path(dir, "project"))
+  files <- handler$result_files(file.path(dir, "pk"))
   parsed <- handler$parse_results(files[!grepl("/nca/", files)])
   expect_equal(parsed$summary_stats$tasks, "ca,be")
   expect_identical(parsed$summary_stats$n_individuals, 2L)
@@ -115,7 +115,7 @@ test_that("each confidence interval file gives its formulation", {
     file.path(be_dir, "confidenceInterval_Test 2.txt")
   )
   handler <- PkanalixHandler$new()
-  parsed <- handler$parse_results(handler$result_files(file.path(dir, "project")))
+  parsed <- handler$parse_results(handler$result_files(file.path(dir, "pk")))
   formulations <- vapply(parsed$bioequivalence, `[[`, "", "formulation")
   expect_setequal(formulations, c("Test", "Test 2"))
   expect_length(formulations, 4L)

@@ -5,7 +5,7 @@ local_pkx_run <- function(.env = parent.frame()) {
   root <- withr::local_tempdir(.local_envir = .env)
   file.copy(test_path("fixtures", "pkx"), root, recursive = TRUE)
   project <- file.path(root, "pkx", "project.pkx")
-  out_dir <- file.path(root, "pkx", "project")
+  out_dir <- file.path(root, "pkx", "pk")
   results_dir <- file.path(out_dir, "PKanalix", "IndividualParameters")
   outputs <- list.files(out_dir, recursive = TRUE, full.names = TRUE)
   Sys.setFileTime(outputs, Sys.time() - 1800)

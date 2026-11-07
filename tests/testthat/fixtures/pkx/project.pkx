@@ -27,4 +27,4 @@ bioequivalence()
 
 [SETTINGS]
 GLOBAL:
-exportpath = 'project'
+exportpath = 'pk'

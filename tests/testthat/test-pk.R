@@ -4,11 +4,11 @@
 local_pk_env <- function(.env = parent.frame()) {
   root <- withr::local_tempdir(.local_envir = .env)
   file.copy(test_path("fixtures", "pkx"), root, recursive = TRUE)
-  unlink(file.path(root, "pkx", "project"), recursive = TRUE)
+  unlink(file.path(root, "pkx", "pk"), recursive = TRUE)
   fake <- withr::local_tempdir(.local_envir = .env)
   dir.create(file.path(fake, "pkx_results"))
   file.copy(
-    test_path("fixtures", "pkx", "project", "PKanalix"),
+    test_path("fixtures", "pkx", "pk", "PKanalix"),
     file.path(fake, "pkx_results"),
     recursive = TRUE
   )
@@ -68,7 +68,7 @@ test_that("pk() submits with pk24 and records the run and its results", {
   expect_equal(run$cmd, "pk24")
   expect_equal(run$job_id, 1L)
   expect_equal(run$software_version, "2024R1")
-  expect_equal(run$output_dir, list(path = "pkx/project", absolute = FALSE))
+  expect_equal(run$output_dir, list(path = "pkx/pk", absolute = FALSE))
   roles <- vapply(run$inputs, function(x) x$role, character(1))
   expect_equal(roles, c("data", "model"))
   res <- store_read(e$store)
@@ -125,7 +125,7 @@ test_that("pk() errors before submitting when no store is set", {
   withr::local_options(mlxtrx.store = NULL)
   expect_error(pk(e$path, require_charts_data = FALSE), "No run store set")
   expect_false(file.exists(file.path(e$fake, "next_job")))
-  expect_false(dir.exists(file.path(e$root, "pkx", "project")))
+  expect_false(dir.exists(file.path(e$root, "pkx", "pk")))
 })
 
 test_that("PKanalix commands map to their lixoft version folders", {
