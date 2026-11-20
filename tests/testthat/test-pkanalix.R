@@ -124,3 +124,16 @@ test_that("Monolix and PKanalix runs leave each other's columns NA", {
   expect_true(is.na(pkx$bicc))
   expect_true(is.na(pkx$n_doses))
 })
+
+test_that("the PKanalix version is read from a task summary.txt", {
+  s <- local_pkx_run()
+  path <- file.path(s$results_dir, "nca", "summary.txt")
+  mtime <- file.mtime(path)
+  writeLines(
+    c("*                        PKanalix version : 2024R2                             *", readLines(path)),
+    path
+  )
+  Sys.setFileTime(path, mtime)
+  record_completion(s$run_dir, s$store)
+  expect_equal(store_read(s$store)$runs$software_version, "2024R2")
+})

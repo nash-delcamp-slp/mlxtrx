@@ -34,11 +34,15 @@ tables for PKanalix). Default is \code{FALSE}.}
 A data frame with run information, newest submission first. Contains
 columns: \code{run_id} (character), \code{job_id}, \code{project_name}, \code{project_path},
 \code{data_file}, \code{model_file}, \code{thread}, \code{tool}, \code{mode}, \code{config},
-\code{project_file_timestamp}, \code{project_file_sha256}, \code{cmd}, \code{submitted_at},
-\code{completed_at}, \code{state}, \code{recorded_late}. \code{state} is one of \code{"submit_failed"},
-\code{"unrecorded"}, \code{"completion_crashed"}, \code{"recorded"}, \code{"recorded_late"} or
-\code{"no_results"} (recorded, but a Monolix or PKanalix run without parsed
-results).
+\code{project_file_timestamp}, \code{project_file_sha256}, \code{cmd}, \code{software_version},
+\code{user}, \code{submitted_at}, \code{completed_at}, \code{state}, \code{recorded_late}.
+\code{user} is the account that launched the run.
+\code{software_version} is the MonolixSuite version stated in the run's
+\code{summary.txt} (Monolix, PKanalix) when recorded, else the version implied
+by the command (e.g. \code{"2024R1"} for \code{mono24}), else \code{NA}.
+\code{state} is one of \code{"submit_failed"}, \code{"unrecorded"},
+\code{"completion_crashed"}, \code{"recorded"}, \code{"recorded_late"} or \code{"no_results"}
+(recorded, but a Monolix or PKanalix run without parsed results).
 When \code{include_files = TRUE}, additionally contains one row per input and
 output file with \code{io_type}, \code{file_name}, \code{file_path}, \code{file_timestamp} and
 \code{sha256}.

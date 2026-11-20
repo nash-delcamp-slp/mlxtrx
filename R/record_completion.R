@@ -1,6 +1,7 @@
 # Records what a finished run produced into a completion folder of the run:
 # outputs.json, summary.json (when the handler's result files parse) and,
-# last, done.json. Outputs are read from the output directory saved in
+# last, done.json. done.json holds the software version stated in the
+# outputs' summary.txt header, when one is found. Outputs are read from the output directory saved in
 # run.json at launch. Only result files that are recorded outputs and are not
 # flagged are parsed. Returns "recorded", or "claimed_elsewhere" when another
 # process holds the completion claim (nothing is written then). `late` marks
@@ -78,16 +79,15 @@ record_completion <- function(
 
   recorded_at <- Sys.time()
   info <- Sys.info()
-  store_write_json(
-    list(
-      completed_at = format_utc(if (length(mtimes) > 0) max(mtimes) else recorded_at),
-      recorded_at = format_utc(recorded_at),
-      recorded_by = paste0(info[["user"]], "@", info[["nodename"]]),
-      recorded_late = late,
-      late_flags = lapply(flagged, path_to_record, root = root)
-    ),
-    file.path(completion_dir, "done.json")
+  done <- list(
+    completed_at = format_utc(if (length(mtimes) > 0) max(mtimes) else recorded_at),
+    recorded_at = format_utc(recorded_at),
+    recorded_by = paste0(info[["user"]], "@", info[["nodename"]]),
+    recorded_late = late,
+    late_flags = lapply(flagged, path_to_record, root = root)
   )
+  done$software_version <- output_software_version(setdiff(files, flagged))
+  store_write_json(done, file.path(completion_dir, "done.json"))
   "recorded"
 }
 
@@ -98,4 +98,26 @@ late_output_files <- function(files, mtimes, tolerance) {
   }
   reference <- stats::median(mtimes)
   files[as.numeric(difftime(mtimes, reference, units = "secs")) > tolerance]
+}
+
+# The MonolixSuite version stated in the header of the first summary.txt
+# among `files` that has one ("Monolix version : 2024R1", "PKanalix version :
+# 2024R1"), or NULL when none does.
+output_software_version <- function(files) {
+  summaries <- sort(files[basename(files) == "summary.txt"])
+  for (path in summaries) {
+    lines <- tryCatch(
+      readLines(path, n = 20L, warn = FALSE),
+      error = function(e) character()
+    )
+    version <- stats::na.omit(stringr::str_extract(
+      lines,
+      "\\b(?:Monolix|PKanalix|Simulx) version\\s*:\\s*(\\d{4}R\\d+)",
+      group = 1
+    ))
+    if (length(version) > 0L) {
+      return(version[[1]])
+    }
+  }
+  NULL
 }

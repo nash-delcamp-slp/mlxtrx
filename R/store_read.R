@@ -110,7 +110,7 @@ read_run_folder <- function(run_dir, root) {
       path_from_record(run$output_dir, root)
     },
     cmd = scalar_chr(run$cmd),
-    software_version = scalar_chr(run$software_version),
+    software_version = scalar_chr(done$software_version %||% run$software_version),
     user = scalar_chr(run$user),
     host = scalar_chr(run$host),
     submitted_at = parse_utc(run$submitted_at),

@@ -158,3 +158,45 @@ test_that("a run.json without output_dir errors before the completion is claimed
   expect_error(record_completion(s$run_dir, s$store), "output_dir")
   expect_length(list.files(s$run_dir, pattern = "^completion"), 0L)
 })
+
+# Prepends a MonolixSuite-style version header to `path`, keeping its mtime.
+add_version_header <- function(path, tool, version) {
+  mtime <- file.mtime(path)
+  writeLines(
+    c(
+      "********************************************************************************",
+      sprintf("*                        %s version : %s                              *", tool, version),
+      "********************************************************************************",
+      readLines(path)
+    ),
+    path
+  )
+  Sys.setFileTime(path, mtime)
+}
+
+test_that("the software version is read from the summary.txt header", {
+  s <- local_theoph_run()
+  add_version_header(file.path(s$out_dir, "summary.txt"), "Monolix", "2024R2")
+  record_completion(s$run_dir, s$store)
+  done <- jsonlite::read_json(file.path(s$run_dir, "completion", "done.json"))
+  expect_equal(done$software_version, "2024R2")
+  expect_equal(store_read(s$store)$runs$software_version, "2024R2")
+})
+
+test_that("without a version in the outputs, the launch version is kept", {
+  s <- local_theoph_run()
+  record_completion(s$run_dir, s$store)
+  done <- jsonlite::read_json(file.path(s$run_dir, "completion", "done.json"))
+  expect_null(done$software_version)
+  expect_equal(store_read(s$store)$runs$software_version, "2024R1")
+})
+
+test_that("a flagged summary.txt is not used for the version", {
+  s <- local_theoph_run()
+  add_version_header(file.path(s$out_dir, "summary.txt"), "Monolix", "2024R2")
+  run <- jsonlite::read_json(file.path(s$run_dir, "run.json"))
+  until <- as.POSIXct(run$submitted_at, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
+  record_completion(s$run_dir, s$store, until = until)
+  done <- jsonlite::read_json(file.path(s$run_dir, "completion", "done.json"))
+  expect_null(done$software_version)
+})
