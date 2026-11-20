@@ -355,3 +355,43 @@ test_that("a config file given to mono() is fingerprinted as an input", {
   expect_equal(status$condition, "inputs_changed")
   expect_match(status$details, "settings.ini modified")
 })
+
+test_that("giving up on a failing sq is reported once", {
+  skip_on_os("windows")
+  e <- local_finalize_env()
+  file.create(file.path(e$fake, "sq_fail"))
+  # The second run has no job ID; its results appear on the fifth poll, so
+  # monitoring goes on after the first run is given up.
+  polls <- 0L
+  local_mocked_bindings(
+    get_file_handler = function(ext) {
+      list(
+        can_monitor = function() TRUE,
+        result_files = function(output_dir, files = NULL) {
+          polls <<- polls + 1L
+          if (polls < 5L) character() else "summary.txt"
+        }
+      )
+    },
+    record_completion = function(...) "recorded"
+  )
+  msgs <- character()
+  withCallingHandlers(
+    monitor_jobs(
+      path = rep("theoph.mlxtran", 2),
+      run_id = c("r1", "r1"),
+      run_dir = rep(e$run_dir, 2),
+      job_id = c(7L, NA),
+      cmd = c("mono24", "mono24"),
+      store = e$store,
+      poll_interval = 0,
+      sq_failure_limit = 2
+    ),
+    warning = function(w) invokeRestart("muffleWarning"),
+    message = function(m) {
+      msgs <<- c(msgs, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+  expect_equal(sum(grepl("no longer monitoring", msgs)), 1L)
+})

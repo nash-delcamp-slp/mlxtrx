@@ -345,9 +345,9 @@ find_project_files <- function(directory, ext) {
 }
 
 # Comparable form of a path: absolute, symlinks resolved where the file
-# exists, `/` separators.
+# exists, `/` separators, Windows drive letter in upper case.
 path_key <- function(path) {
-  normalizePath(path, winslash = "/", mustWork = FALSE)
+  upper_drive_letter(normalizePath(path, winslash = "/", mustWork = FALSE))
 }
 
 check_run_ids <- function(run_ids) {
