@@ -117,3 +117,10 @@ test_that("observation types that collapse to one name stay distinct columns", {
   expect_length(obs, 2L)
   expect_equal(anyDuplicated(obs), 0L)
 })
+
+test_that("runs_data() includes the software version", {
+  s <- local_store_with_runs(list(list(id = "r1", run = fake_run_json("r1"))))
+  rd <- runs_data(store = s$store)
+  expect_true("software_version" %in% names(rd))
+  expect_equal(rd$software_version, "2024R1")
+})
