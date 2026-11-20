@@ -21,7 +21,8 @@
 #'   columns: `run_id` (character), `job_id`, `project_name`, `project_path`,
 #'   `data_file`, `model_file`, `thread`, `tool`, `mode`, `config`,
 #'   `project_file_timestamp`, `project_file_sha256`, `cmd`, `software_version`,
-#'   `submitted_at`, `completed_at`, `state`, `recorded_late`.
+#'   `user`, `submitted_at`, `completed_at`, `state`, `recorded_late`.
+#'   `user` is the account that launched the run.
 #'   `software_version` is the MonolixSuite version stated in the run's
 #'   `summary.txt` (Monolix, PKanalix) when recorded, else the version implied
 #'   by the command (e.g. `"2024R1"` for `mono24`), else `NA`.
@@ -165,6 +166,7 @@ runs_data <- function(
       "sha256",
       "cmd",
       "software_version",
+      "user",
       "submitted_at",
       "completed_at",
       "state",
@@ -187,6 +189,7 @@ runs_data <- function(
       "project_file_sha256",
       "cmd",
       "software_version",
+      "user",
       "submitted_at",
       "completed_at",
       "state",

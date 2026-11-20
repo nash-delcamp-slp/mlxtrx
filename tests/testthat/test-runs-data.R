@@ -124,3 +124,13 @@ test_that("runs_data() includes the software version", {
   expect_true("software_version" %in% names(rd))
   expect_equal(rd$software_version, "2024R1")
 })
+
+test_that("runs_data() includes the user who launched the run", {
+  s <- local_store_with_runs(list(list(id = "r1", run = fake_run_json("r1"))))
+  rd <- runs_data(store = s$store)
+  expect_equal(rd$user, "tester")
+  expect_equal(
+    which(names(rd) == "user"),
+    which(names(rd) == "software_version") + 1L
+  )
+})
