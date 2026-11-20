@@ -23,10 +23,9 @@ reference:
       - check_output_file_status
       - check_output_files
   - title: Results
-    desc: Recorded runs and their statistics as one table.
+    desc: Recorded runs, their files and statistics as data frames.
     contents:
       - runs_data
-      - runs_table
       - get_run_files
   - title: Store and recovery
     contents:

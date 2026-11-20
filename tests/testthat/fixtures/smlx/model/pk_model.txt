@@ -1,0 +1,7 @@
+; Synthetic fixture for mlxtrx tests; not a Lixoft model.
+[LONGITUDINAL]
+input = {ka, V, Cl}
+EQUATION:
+Cc = 0
+OUTPUT:
+output = Cc

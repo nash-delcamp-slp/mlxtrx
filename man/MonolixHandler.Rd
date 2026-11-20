@@ -53,19 +53,21 @@ Parse project file and extract metadata
 \if{html}{\out{<a id="method-MonolixHandler-get_input_files"></a>}}
 \if{latex}{\out{\hypertarget{method-MonolixHandler-get_input_files}{}}}
 \subsection{Method \code{get_input_files()}}{
-Get input files from parsed content
+Input files of a project: every file the project
+references (see \code{\link[=project_file_references]{project_file_references()}})
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{MonolixHandler$get_input_files(parsed_content, project_dir)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{MonolixHandler$get_input_files(path)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{parsed_content}}{Result from parse_file()}
-
-\item{\code{project_dir}}{Directory containing the project file}
+\item{\code{path}}{Path to project file}
 }
 \if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A list of \code{list(role, path)}
 }
 }
 \if{html}{\out{<hr>}}

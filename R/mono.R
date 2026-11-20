@@ -25,7 +25,9 @@
 #'   If `NULL` (default), the command uses `"basic"`.
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param config Character vector or `NULL`. Configuration file path.
-#'   Passed as `--config` argument to the Monolix command.
+#'   Passed as `--config` argument to the Monolix command, and recorded as an
+#'   input of the run (role `"config"`) so a later edit shows as a changed
+#'   input.
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param cmd Character vector. The command to execute. Must be
 #'   identifiable by `Sys.which()` and contain "mono", "pk" or "sim" in the
@@ -69,12 +71,13 @@
 #' `completion/` folder of the run: the output files written since submission
 #' (`outputs.json`), the statistics parsed from the run's results
 #' (`summary.json`: `summary.txt` for Monolix, the result tables under
-#' `PKanalix/IndividualParameters` for PKanalix) and, last, `done.json`.
-#' A Monolix or PKanalix run recorded without `summary.json` is in state
-#' `"no_results"` (see [runs_data()]).
+#' `PKanalix/IndividualParameters` for PKanalix, the files under
+#' `Simulation/` and `Endpoints/` for Simulx) and, last, `done.json`.
+#' A Monolix, PKanalix or Simulx run recorded without `summary.json` is in
+#' state `"no_results"` (see [runs_data()]).
 #'
-#' The local runners `monolix.sh`, `simulx.sh` and `pkanalix.sh` run the
-#' project in the foreground with `--no-gui` (`monolix.sh` and `pkanalix.sh`);
+#' The local runners `monolix.sh`, `pkanalix.sh` and `simulx.sh` run the
+#' project in the foreground with `--no-gui`;
 #' the submission succeeded when the command exits with status 0, and the run
 #' is recorded straight away.
 #'
@@ -159,7 +162,8 @@ mono <- function(
       # Everything that reads the project or the store happens before the
       # submission, so a failure here stops the batch before this job runs.
       project <- file_record(path[i], root)
-      inputs <- input_records(path[i], root)
+      config_path <- resolve_config_path(config_recycled[i], path[i])
+      inputs <- input_records(path[i], root, config = config_path)
       # The effective output directory is resolved and saved now, so
       # completion does not depend on later project edits or on the working
       # directory it runs in.
@@ -173,7 +177,7 @@ mono <- function(
         thread = thread_recycled[i],
         tool = tool_recycled[i],
         mode = mode_recycled[i],
-        config = resolve_config_path(config_recycled[i], path[i])
+        config = config_path
       )
       run <- store_create_run(store)
 
@@ -300,22 +304,22 @@ na_to_null <- function(x) {
   if (length(x) == 0L || is.na(x)) NULL else x
 }
 
-# File records of a project's data and model files, each with its role. Files
-# that do not exist are left out; built-in library models are kept.
-input_records <- function(path, root) {
+# File records of a project's input files, each with its role ("data",
+# "model", "other"), plus the configuration file passed with `config` (role
+# "config"). Files that do not exist are left out; built-in library models
+# are kept.
+input_records <- function(path, root, config = NULL) {
   handler <- get_file_handler(fs::path_ext(path))
-  input_files <- handler$get_input_files(handler$parse_file(path), dirname(path))
-  roles <- c(data_file = "data", model_file = "model")
+  inputs <- handler$get_input_files(path)
+  if (!is.null(config)) {
+    inputs[[length(inputs) + 1L]] <- list(role = "config", path = config)
+  }
   records <- list()
-  for (nm in names(roles)) {
-    file <- input_files[[nm]]
-    if (is.null(file) || is.na(file)) {
-      next
-    }
-    if (file.exists(file) || is_builtin_path(file)) {
+  for (input in inputs) {
+    if (file.exists(input$path) || is_builtin_path(input$path)) {
       records[[length(records) + 1L]] <- c(
-        list(role = roles[[nm]]),
-        file_record(file, root)
+        list(role = input$role),
+        file_record(input$path, root)
       )
     }
   }
@@ -351,7 +355,7 @@ resolve_config_path <- function(config, path) {
 #'
 #' @return A list with `job_id` (integer, `NA` when no job ID was found),
 #'   `ok` (logical) and `output` (character, the command's output). For the
-#'   local runners `monolix.sh`, `simulx.sh` and `pkanalix.sh`, `ok` is
+#'   local runners `monolix.sh`, `pkanalix.sh` and `simulx.sh`, `ok` is
 #'   `TRUE` when the
 #'   command exits with status 0. For other commands, `ok` is `TRUE` when a
 #'   job ID was found or the command reports that results have been loaded.
@@ -371,7 +375,7 @@ execute_job <- function(
   result <- suppressWarnings(system2(
     cmd,
     args = c(
-      if (basename(cmd) %in% c("monolix.sh", "pkanalix.sh")) "--no-gui" else NULL,
+      if (is_local_runner(cmd)) "--no-gui" else NULL,
       paste("-p", shQuote(normalizePath(path))),
       if (!is.null(output_dir)) {
         paste("--output-dir", shQuote(output_dir))
@@ -447,7 +451,7 @@ execute_job <- function(
 #' Polls every `poll_interval` seconds until each submitted job has finished,
 #' then records its completion in the run store with `record_completion()`. A
 #' job with a job ID has finished when it is no longer in the queue; a job
-#' run by the local runners `monolix.sh`, `simulx.sh` or `pkanalix.sh` has
+#' run by the local runners `monolix.sh`, `pkanalix.sh` or `simulx.sh` has
 #' finished already;
 #' any other job without a job ID has finished when one of its project type's
 #' result files (`summary.txt` for Monolix) exists in the output directory

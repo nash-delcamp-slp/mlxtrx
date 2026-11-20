@@ -15,7 +15,8 @@
 #'   (by `submitted_at`) for each project file. Default is `FALSE`.
 #' @param include_summary Logical scalar. Whether to include the statistics
 #'   parsed from the run's results (`summary.txt` for Monolix, the result
-#'   tables for PKanalix). Default is `FALSE`.
+#'   tables for PKanalix, the `Simulation/` and `Endpoints/` files for
+#'   Simulx). Default is `FALSE`.
 #'
 #' @return A data frame with run information, newest submission first. Contains
 #'   columns: `run_id` (character), `job_id`, `project_name`, `project_path`,
@@ -28,7 +29,7 @@
 #'   by the command (e.g. `"2024R1"` for `mono24`), else `NA`.
 #'   `state` is one of `"submit_failed"`, `"unrecorded"`,
 #'   `"completion_crashed"`, `"recorded"`, `"recorded_late"` or `"no_results"`
-#'   (recorded, but a Monolix or PKanalix run without parsed results).
+#'   (recorded, but a Monolix, PKanalix or Simulx run without results).
 #'   When `include_files = TRUE`, additionally contains one row per input and
 #'   output file with `io_type`, `file_name`, `file_path`, `file_timestamp` and
 #'   `sha256`.
@@ -40,7 +41,8 @@
 #'   parameter the columns `be_<parameter>_ratio`, `be_<parameter>_ci_lower`,
 #'   `be_<parameter>_ci_upper` and `be_<parameter>_bioequivalent` (logical).
 #'   A run with more than one formulation gets
-#'   `be_<formulation>_<parameter>_...` columns. Columns of the other tool
+#'   `be_<formulation>_<parameter>_...` columns. For Simulx, `tasks`
+#'   (`"simulation"`, `"simulation,endpoint"`). Columns of the other tools
 #'   are `NA`. Characters in `<type>`, `<parameter>` and `<formulation>`
 #'   other than letters, digits and `_` are replaced by `_`, so `"obsid 1"`
 #'   gives `n_obs_obsid_1`.
@@ -280,203 +282,6 @@ latest_by <- function(df, key, time) {
   ord <- order(time, decreasing = TRUE)
   df <- df[ord, , drop = FALSE]
   df[!duplicated(key[ord]), , drop = FALSE]
-}
-
-#' Generate a table with details about executed Monolix runs
-#'
-#' Creates a formatted table displaying information about Monolix jobs that have
-#' been submitted and recorded in the run store. The table can include basic job
-#' information or detailed file tracking data.
-#'
-#' @param store Character scalar. The run store directory (see [default_store()]).
-#'   Defaults to `default_store()`. Nothing is written to it.
-#' @param format Character scalar. Output format for the table.
-#'   Either `"gt"` for a formatted gt table (default) or `"csv"` for a data frame.
-#' @param output_file Character scalar or `NULL`. File path to save output.
-#' @param include_files Logical scalar. Whether to include details about input and
-#'   output files in the table. Default is `FALSE`.
-#' @param ignore_failed_runs Logical scalar. Whether to exclude runs where
-#'   `completed_at` is missing or the run finished without results (i.e., failed,
-#'   incomplete or `"no_results"` runs). Default is `FALSE`.
-#' @param latest_only Logical scalar. Whether to return only the latest run
-#'   (by `submitted_at`) for each project file. Default is `FALSE`.
-#' @param include_summary Logical scalar. Whether to include the statistics
-#'   parsed from the run's results (see [runs_data()]). Default is `FALSE`.
-#'
-#' @return When `format = "gt"`, returns a `gt_tbl` object. When `format = "csv"`
-#'   and `output_file` is specified, returns the data frame invisibly after writing
-#'   to file. When `format = "csv"` and `output_file` is `NULL`, returns the data frame.
-#'   Returns `NULL` invisibly if no runs are found in the store.
-#'
-#' @examples
-#' \dontrun{
-#' # Table of all runs
-#' runs_table()
-#'
-#' # Table with input/output file information
-#' runs_table(include_files = TRUE)
-#'
-#' # Table excluding failed runs
-#' runs_table(ignore_failed_runs = TRUE)
-#'
-#' # Table showing only latest run per project file
-#' runs_table(latest_only = TRUE)
-#'
-#' # Table with the parsed run statistics
-#' runs_table(include_summary = TRUE)
-#'
-#' # Export to CSV
-#' runs_table(format = "csv", output_file = "runs_summary.csv")
-#'
-#' # Read the store of another folder
-#' runs_table(store = "/path/to/monolix/.mlxtrx")
-#' }
-#'
-#' @seealso
-#' \code{\link{runs_data}} for extracting the underlying data,
-#' \code{\link{mono}} for submitting Monolix jobs and recording runs,
-#' \code{\link{default_store}} for the default run store
-#'
-#' @export
-runs_table <- function(
-  store = default_store(),
-  format = "gt",
-  output_file = NULL,
-  include_files = FALSE,
-  ignore_failed_runs = FALSE,
-  latest_only = FALSE,
-  include_summary = FALSE
-) {
-  format <- match.arg(format, c("gt", "csv"))
-
-  # Get the data using runs_data()
-  runs_formatted <- runs_data(
-    store = store,
-    include_files = include_files,
-    ignore_failed_runs = ignore_failed_runs,
-    latest_only = latest_only,
-    include_summary = include_summary
-  )
-
-  # Return early if no data
-  if (is.null(runs_formatted)) {
-    return(invisible(NULL))
-  }
-
-  # Handle output format
-  if (format == "csv") {
-    if (!is.null(output_file)) {
-      readr::write_csv(runs_formatted, output_file)
-      message("CSV written to: ", output_file)
-      return(invisible(runs_formatted))
-    } else {
-      return(runs_formatted)
-    }
-  } else {
-    # Create gt table
-    if (include_files) {
-      gt_table <- runs_formatted |>
-        dplyr::mutate(
-          run_id = sprintf(
-            "%s '%s' (%s)",
-            .data[["cmd"]],
-            .data[["project_path"]],
-            .data[["run_id"]]
-          ),
-          job_id = NULL,
-          project_path = NULL,
-          project_name = NULL,
-          cmd = NULL
-        ) |>
-        gt::gt(groupname_col = "run_id") |>
-        gt::tab_header(
-          title = "Executed Runs with File Details",
-          subtitle = paste("Total runs:", length(unique(runs_formatted$run_id)))
-        ) |>
-        gt::cols_label(
-          io_type = "Type",
-          file_name = "File",
-          file_path = "Path",
-          file_timestamp = "File Modified",
-          sha256 = "SHA-256",
-          data_file = "Data File",
-          model_file = "Model File",
-          thread = "Threads",
-          tool = "Tool",
-          mode = "Mode",
-          config = "Config File",
-          project_file_timestamp = "Project Modified",
-          project_file_sha256 = "Project SHA-256",
-          submitted_at = "Submitted",
-          completed_at = "Completed",
-          state = "State",
-          recorded_late = "Late"
-        ) |>
-        gt::fmt_datetime(
-          columns = dplyr::any_of(c(
-            "submitted_at",
-            "completed_at",
-            "project_file_timestamp",
-            "file_timestamp"
-          )),
-          date_style = "yMMMd",
-          time_style = "Hm"
-        )
-    } else {
-      gt_table <- runs_formatted |>
-        gt::gt() |>
-        gt::tab_header(
-          title = "Executed Runs",
-          subtitle = paste("Total runs:", nrow(runs_formatted))
-        ) |>
-        gt::cols_label(
-          run_id = "Run ID",
-          project_name = "Project",
-          project_path = "Path",
-          data_file = "Data File",
-          model_file = "Model File",
-          thread = "Threads",
-          tool = "Tool",
-          mode = "Mode",
-          config = "Config File",
-          project_file_timestamp = "Project Modified",
-          project_file_sha256 = "Project SHA-256",
-          submitted_at = "Submitted",
-          completed_at = "Completed",
-          state = "State",
-          recorded_late = "Late"
-        ) |>
-        gt::fmt_datetime(
-          columns = dplyr::any_of(c(
-            "submitted_at",
-            "completed_at",
-            "project_file_timestamp"
-          )),
-          date_style = "yMMMd",
-          time_style = "Hm"
-        )
-    }
-
-    gt_table <- gt_table |>
-      gt::tab_style(
-        style = gt::cell_text(font = gt::google_font("JetBrains Mono")),
-        locations = gt::cells_body(
-          columns = dplyr::contains(c("job_id", "path", "sha256"))
-        )
-      ) |>
-      gt::tab_options(
-        table.font.size = 12,
-        heading.title.font.size = 16
-      )
-
-    if (!is.null(output_file)) {
-      gt::gtsave(gt_table, output_file)
-      message("HTML written to: ", output_file)
-      return(invisible(gt_table))
-    } else {
-      return(gt_table)
-    }
-  }
 }
 
 #' Get file information for specific runs

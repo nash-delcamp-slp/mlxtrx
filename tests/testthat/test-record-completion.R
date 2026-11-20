@@ -200,3 +200,46 @@ test_that("a flagged summary.txt is not used for the version", {
   done <- jsonlite::read_json(file.path(s$run_dir, "completion", "done.json"))
   expect_null(done$software_version)
 })
+
+# A root holding a copy of the synthetic Simulx fixture and one run whose
+# run.json points at it, submitted one hour ago.
+local_smlx_run <- function(.env = parent.frame()) {
+  root <- withr::local_tempdir(.local_envir = .env)
+  file.copy(test_path("fixtures", "smlx"), root, recursive = TRUE)
+  project <- file.path(root, "smlx", "project.smlx")
+  out_dir <- file.path(root, "smlx", "sim")
+  Sys.setFileTime(
+    list.files(file.path(root, "smlx"), recursive = TRUE, full.names = TRUE),
+    Sys.time() - 7200
+  )
+  run <- fake_run_json(
+    "r1",
+    project = file_record(project, root),
+    output_dir = path_to_record(out_dir, root),
+    submitted_at = format_utc(Sys.time() - 3600),
+    cmd = "sim24"
+  )
+  s <- local_store_with_runs(
+    list(list(id = "r1", run = run)),
+    root = root,
+    .env = .env
+  )
+  c(s, list(out_dir = out_dir, run_dir = s$run_dirs[["r1"]]))
+}
+
+test_that("a Simulx run with simulation files is recorded with its tasks", {
+  s <- local_smlx_run()
+  dir.create(file.path(s$out_dir, "Simulation"))
+  writeLines("x", file.path(s$out_dir, "Simulation", "simulatedData.txt"))
+  Sys.setFileTime(file.path(s$out_dir, "Simulation", "simulatedData.txt"), Sys.time() - 1800)
+  record_completion(s$run_dir, s$store)
+  res <- store_read(s$store)
+  expect_equal(res$runs$state, "recorded")
+  expect_equal(res$summary$tasks, "simulation")
+})
+
+test_that("a Simulx run that wrote no simulation files is no_results", {
+  s <- local_smlx_run()
+  record_completion(s$run_dir, s$store)
+  expect_equal(store_read(s$store)$runs$state, "no_results")
+})

@@ -44,19 +44,21 @@ Parse project file and extract metadata
 \if{html}{\out{<a id="method-FileHandler-get_input_files"></a>}}
 \if{latex}{\out{\hypertarget{method-FileHandler-get_input_files}{}}}
 \subsection{Method \code{get_input_files()}}{
-Get input files from parsed content
+Input files of a project
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FileHandler$get_input_files(parsed_content, project_dir)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{FileHandler$get_input_files(path)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{parsed_content}}{Result from parse_file()}
-
-\item{\code{project_dir}}{Directory containing the project file}
+\item{\code{path}}{Path to project file}
 }
 \if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A list of \code{list(role, path)}, \code{role} one of \code{"data"},
+\code{"model"} or \code{"other"}
 }
 }
 \if{html}{\out{<hr>}}

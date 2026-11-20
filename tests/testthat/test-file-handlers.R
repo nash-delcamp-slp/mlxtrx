@@ -26,13 +26,118 @@ test_that(".pkx projects get the PKanalix handler", {
   expect_true(get_file_handler("pkx")$expects_summary())
 })
 
+# Role and path of each input of `path`, as from get_input_files().
+input_table <- function(handler, path) {
+  files <- handler$get_input_files(path)
+  data.frame(
+    role = vapply(files, `[[`, "", "role"),
+    path = vapply(files, `[[`, "", "path")
+  )
+}
+
 test_that("PKanalix input files are the data file and the model", {
   dir <- local_pkx_root()
-  path <- file.path(dir, "project.pkx")
-  handler <- PkanalixHandler$new()
-  files <- handler$get_input_files(handler$parse_file(path), dir)
-  expect_equal(files$data_file, normalizePath(file.path(dir, "data", "pk.csv")))
-  expect_equal(files$model_file, "lib:oral1_1cpt_kaVCl.txt")
+  files <- input_table(PkanalixHandler$new(), file.path(dir, "project.pkx"))
+  expect_equal(files$role, c("data", "model"))
+  expect_equal(files$path[1], normalizePath(file.path(dir, "data", "pk.csv")))
+  expect_equal(files$path[2], "lib:oral1_1cpt_kaVCl.txt")
+})
+
+test_that("other referenced files are inputs too", {
+  dir <- withr::local_tempdir()
+  dir.create(file.path(dir, "data"))
+  for (f in c("pk.csv", "regressors.txt", "doses.xlsx")) {
+    writeLines("x", file.path(dir, "data", f))
+  }
+  writeLines(c(
+    "<DATAFILE>", "[FILEINFO]", "file = 'data/pk.csv'",
+    "<MODEL>", "[LONGITUDINAL]", "file = 'lib:oral1_1cpt_kaVCl.txt'",
+    "<MONOLIX>", "[OPERATIONS]", "ADDITIONAL_COLUMNS:",
+    "additionalColumns = {{file='data/regressors.txt'}}",
+    "[SETTINGS]", "GLOBAL:", "exportpath = 'out'"
+  ), file.path(dir, "p.mlxtran"))
+  files <- input_table(MonolixHandler$new(), file.path(dir, "p.mlxtran"))
+  expect_equal(files$role, c("data", "model", "other"))
+  expect_equal(
+    files$path[3],
+    normalizePath(file.path(dir, "data", "regressors.txt"))
+  )
+
+  writeLines(c(
+    "<DATAFILE>", "[FILEINFO]", "file = 'data/pk.csv'",
+    "TREATMENTS:",
+    "administrations={{file={path='data/doses.xlsx', sheet='doses'}}}",
+    "<PKANALIX>", "[SETTINGS]", "GLOBAL:", "exportpath = 'out'"
+  ), file.path(dir, "p.pkx"))
+  files <- input_table(PkanalixHandler$new(), file.path(dir, "p.pkx"))
+  expect_equal(files$role, c("data", "other"))
+  expect_equal(files$path[2], normalizePath(file.path(dir, "data", "doses.xlsx")))
+})
+
+# A root holding a copy of the synthetic Simulx fixture.
+local_smlx_root <- function(.env = parent.frame()) {
+  root <- withr::local_tempdir(.local_envir = .env)
+  file.copy(test_path("fixtures", "smlx"), root, recursive = TRUE)
+  file.path(root, "smlx")
+}
+
+test_that("Simulx inputs are read from the project file", {
+  dir <- local_smlx_root()
+  files <- input_table(SimulxHandler$new(), file.path(dir, "project.smlx"))
+  expect_equal(files$role, c("data", "model", "other"))
+  expect_equal(
+    files$path,
+    normalizePath(file.path(
+      dir,
+      c("data/pk.csv", "model/pk_model.txt", "sim/ExternalFiles/treatment.txt")
+    ))
+  )
+})
+
+test_that("a missing referenced file keeps its path relative to the project", {
+  dir <- local_smlx_root()
+  file.remove(file.path(dir, "model", "pk_model.txt"))
+  files <- input_table(SimulxHandler$new(), file.path(dir, "project.smlx"))
+  expect_equal(files$path[2], file.path(dir, "model/pk_model.txt"))
+})
+
+test_that("the Simulx output dir is the exportpath, else the project name", {
+  dir <- local_smlx_root()
+  handler <- SimulxHandler$new()
+  expect_equal(
+    normalizePath(handler$get_output_dir(file.path(dir, "project.smlx"))),
+    normalizePath(file.path(dir, "sim"))
+  )
+  lines <- readLines(file.path(dir, "project.smlx"))
+  writeLines(lines[!grepl("exportpath", lines)], file.path(dir, "other.smlx"))
+  expect_equal(
+    handler$get_output_dir(file.path(dir, "other.smlx")),
+    file.path(dir, "other")
+  )
+})
+
+test_that("Simulx results are the Simulation and Endpoints files", {
+  dir <- local_smlx_root()
+  out <- file.path(dir, "sim")
+  handler <- SimulxHandler$new()
+  expect_true(handler$expects_summary())
+  expect_length(handler$result_files(out), 0L)
+  dir.create(file.path(out, "Simulation"))
+  dir.create(file.path(out, "Endpoints"))
+  writeLines("x", file.path(out, "Simulation", "simulatedData.txt"))
+  writeLines("x", file.path(out, "Endpoints", "endpoint_auc.txt"))
+  found <- handler$result_files(out)
+  expect_setequal(basename(found), c("simulatedData.txt", "endpoint_auc.txt"))
+  expect_equal(
+    handler$result_files(out, file.path(out, c("ExternalFiles/treatment.txt", "Simulation/simulatedData.txt"))),
+    file.path(out, "Simulation/simulatedData.txt")
+  )
+  parsed <- handler$parse_results(found)
+  expect_equal(parsed$summary_stats$tasks, "simulation,endpoint")
+  expect_equal(
+    handler$parse_results(file.path(out, "Simulation", "simulatedData.txt"))$summary_stats$tasks,
+    "simulation"
+  )
 })
 
 test_that("the PKanalix output dir is the exportpath, else the project name", {

@@ -11,7 +11,7 @@ results on disk still match the files that produced them.
 - Get one condition per model, file or folder: never run, failed, unfinished,
   inputs changed, output edited, or clean.
 - Check the export settings MonolixSuite needs before launching.
-- Collect every run in one sortable, exportable table.
+- Collect every run in one data frame to sort, filter or export.
 
 ## Installation
 
@@ -81,15 +81,21 @@ output files.
 
 ## Results table
 
+`runs_data()` returns every recorded run as one data frame, newest first:
+project, data and model files, settings, command, software version, user,
+times and state. Sort, filter or export it like any data frame.
+
 ```r
-runs_data(include_summary = TRUE, latest_only = TRUE)
-runs_table(include_summary = TRUE)
-runs_table(format = "csv", output_file = "runs.csv")
+runs <- runs_data(include_summary = TRUE, latest_only = TRUE)
+write.csv(runs, "runs.csv", row.names = FALSE)
+get_run_files(runs$run_id[1])
 ```
 
 Statistics include, for Monolix, the values from `summary.txt` and observation
 counts; for PKanalix, the tasks run, the number of individuals, the
-compartmental analysis criteria and the bioequivalence ratios.
+compartmental analysis criteria and the bioequivalence ratios; for Simulx, the
+tasks run. `get_run_files()` lists every input and output file of a run with
+its SHA-256 hash.
 
 ## When a session dies
 

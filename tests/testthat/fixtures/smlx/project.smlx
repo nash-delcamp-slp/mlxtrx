@@ -1,0 +1,35 @@
+<DATAFILE>
+
+[FILEINFO]
+file='data/pk.csv'
+delimiter = comma
+header={ID, TIME, CONC, AMT}
+
+[FILTER]
+data_1 = {origin='data/pk.csv', filter={{removeLines='ID==2'}}}
+
+<MODEL>
+
+[LONGITUDINAL]
+file = 'model/pk_model.txt'
+
+<SIMULX>
+
+[SETTINGS]
+GLOBAL:
+exportpath='sim'
+
+[DEFINITION]
+TREATMENT:
+'trt' = {file='sim/ExternalFiles/treatment.txt', adm=1}
+
+[SIMULATION]
+GROUPS:
+'simulationGroup1'={treatment={'trt'}}
+
+[TASKS]
+simulation()
+endpoint(run=false)
+
+[COMMENTS]
+; See "other_project.smlx" for a variant; file='not/a/reference.txt'
