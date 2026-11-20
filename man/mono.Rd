@@ -3,7 +3,8 @@
 \name{mono}
 \alias{mono}
 \alias{sim}
-\title{Submit Monolix and Simulx jobs to grid and record runs in the run store}
+\alias{pk}
+\title{Submit Monolix, Simulx and PKanalix jobs to grid and record runs in the run store}
 \usage{
 mono(
   path,
@@ -25,9 +26,19 @@ sim(
   store = default_store(),
   require_charts_data = FALSE
 )
+
+pk(
+  path,
+  thread = NULL,
+  mode = NULL,
+  cmd = getOption("mlxtrx.pkanalix_cmd", "pk24"),
+  store = default_store(),
+  require_charts_data = TRUE
+)
 }
 \arguments{
-\item{path}{Character vector. Paths to existing Monolix or Simulx project files.}
+\item{path}{Character vector. Paths to existing Monolix (\code{.mlxtran}),
+Simulx (\code{.smlx}) or PKanalix (\code{.pkx}) project files.}
 
 \item{output_dir}{Character vector or \code{NULL}. Directory for
 output files relative to the project path.
@@ -35,8 +46,8 @@ Passed as \code{--output-dir} argument to the Monolix command.
 If \code{NULL} (default), Monolix uses the export path from the project file.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
-\item{thread}{Integer vector or \code{NULL}. Number of threads used by Monolix/Simulx.
-Passed as \code{--thread} argument to the Monolix and Simulx commands.
+\item{thread}{Integer vector or \code{NULL}. Number of threads.
+Passed as \code{--thread} argument to the command.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{tool}{Character vector or \code{NULL}. Tool to launch assessment
@@ -47,17 +58,22 @@ Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{mode}{Character vector or \code{NULL}. Console mode
 (\code{"none"}, \code{"basic"}, or \code{"complete"}).
-Passed as \code{--mode} argument to the Monolix and Simulx commands.
-If \code{NULL} (default), Monolix and Simulx use \code{"basic"}.
+Passed as \code{--mode} argument to the command.
+If \code{NULL} (default), the command uses \code{"basic"}.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{config}{Character vector or \code{NULL}. Configuration file path.
 Passed as \code{--config} argument to the Monolix command.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
-\item{cmd}{Character vector. The Monolix or Simulx command to execute. Must be
-identifiable by \code{Sys.which()} and contain "mono" or "sim" in the name.
-Default is "mono24". Should be same length as \code{path} or length 1.}
+\item{cmd}{Character vector. The command to execute. Must be
+identifiable by \code{Sys.which()} and contain "mono", "sim" or "pk" in the
+name: a grid command such as \code{mono24}, \code{sim24} or \code{pk24}, or a local
+runner \code{monolix.sh}, \code{simulx.sh} or \code{pkanalix.sh}. Defaults to the
+\code{mlxtrx.monolix_cmd} option or "mono24" for \code{mono()}, the
+\code{mlxtrx.simulx_cmd} option or "sim24" for \code{sim()} and the
+\code{mlxtrx.pkanalix_cmd} option or "pk24" for \code{pk()}. Should be same length
+as \code{path} or length 1.}
 
 \item{store}{Character scalar. The run store directory (see
 \code{\link[=default_store]{default_store()}}). Defaults to \code{default_store()}. Created when the first
@@ -65,15 +81,16 @@ run is recorded.}
 
 \item{require_charts_data}{A logical indicating whether charts data must
 be exported. This requires the relevant config.ini file includes options
-\code{exportChartsData=true}, \code{export-charts-datasets=true}, and
-\code{exportVPCSimulations=true}.}
+\code{exportChartsData=true}, \code{export-charts-datasets=true}, and, except for
+PKanalix, \code{exportVPCSimulations=true} (see \code{\link[=check_config_ini]{check_config_ini()}}).}
 }
 \value{
 Character vector. The run IDs of all jobs, in the order of \code{path}.
 }
 \description{
-Executes one or more commands that submit Monolix/Simulx jobs to the grid and
-records each run in the run store.
+Executes one or more commands that submit Monolix, Simulx or PKanalix jobs
+to the grid and records each run in the run store. \code{sim()} and \code{pk()} call
+\code{mono()} with the Simulx and PKanalix commands.
 }
 \details{
 Jobs are submitted one at a time. For each job, this function:
@@ -97,8 +114,16 @@ A submission that yields no job ID and no local result is recorded with
 Once all jobs are submitted, the function polls the job queue until every
 submitted job has finished, then records each run's completion in a
 \verb{completion/} folder of the run: the output files written since submission
-(\code{outputs.json}), the parsed \code{summary.txt} (\code{summary.json}) and, last,
-\code{done.json}.
+(\code{outputs.json}), the statistics parsed from the run's results
+(\code{summary.json}: \code{summary.txt} for Monolix, the result tables under
+\code{PKanalix/IndividualParameters} for PKanalix) and, last, \code{done.json}.
+A Monolix or PKanalix run recorded without \code{summary.json} is in state
+\code{"no_results"} (see \code{\link[=runs_data]{runs_data()}}).
+
+The local runners \code{monolix.sh}, \code{simulx.sh} and \code{pkanalix.sh} run the
+project in the foreground with \code{--no-gui} (\code{monolix.sh} and \code{pkanalix.sh});
+the submission succeeded when the command exits with status 0, and the run
+is recorded straight away.
 
 Paths inside the store are relative to the folder that holds the store
 when the file is inside it, and absolute otherwise.
@@ -120,6 +145,10 @@ mono(
 
 # Record runs in a specific store
 mono("project.mlxtran", store = "path/to/monolix/.mlxtrx")
+
+# PKanalix project on the grid, or with the local runner
+pk("project.pkx")
+pk("project.pkx", cmd = "/path/to/MonolixSuite2024R1/bin/pkanalix.sh")
 }
 
 }

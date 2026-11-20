@@ -1,12 +1,13 @@
 # Records what a finished run produced into a completion folder of the run:
-# outputs.json, summary.json (when summary.txt parses) and, last, done.json.
-# Outputs are read from the output directory saved in run.json at launch.
-# Returns "recorded", or "claimed_elsewhere" when another process holds the
-# completion claim (nothing is written then). `late` marks a recording made
-# by someone other than the launching session; a retry is always late.
-# `until` is the submission time of a later run of the same project or into
-# the same output directory: outputs written at or after it may be that run's,
-# so they are flagged, and summary.txt among them is not parsed.
+# outputs.json, summary.json (when the handler's result files parse) and,
+# last, done.json. Outputs are read from the output directory saved in
+# run.json at launch. Only result files that are recorded outputs and are not
+# flagged are parsed. Returns "recorded", or "claimed_elsewhere" when another
+# process holds the completion claim (nothing is written then). `late` marks
+# a recording made by someone other than the launching session; a retry is
+# always late. `until` is the submission time of a later run of the same
+# project or into the same output directory: outputs written at or after it
+# may be that run's, so they are flagged.
 record_completion <- function(
   run_dir,
   store,
@@ -35,7 +36,6 @@ record_completion <- function(
   }
   handler <- get_file_handler(tools::file_ext(project_path))
   output_dir <- path_from_record(run$output_dir, root)
-  summary_path <- file.path(output_dir, "summary.txt")
 
   # Everything above can fail on a malformed run.json; the claim comes after
   # it so such a failure leaves no completion folder.
@@ -67,8 +67,9 @@ record_completion <- function(
     flagged <- union(flagged, files[mtimes >= until])
   }
 
-  if (summary_is_output(setdiff(files, flagged), summary_path)) {
-    parsed <- handler$parse_summary(summary_path)
+  result_files <- handler$result_files(output_dir, setdiff(files, flagged))
+  if (length(result_files) > 0L) {
+    parsed <- handler$parse_results(result_files)
     if (!is.null(parsed)) {
       parsed$summary_extracted_at <- format_utc(Sys.time())
       store_write_json(parsed, file.path(completion_dir, "summary.json"))
@@ -88,11 +89,6 @@ record_completion <- function(
     file.path(completion_dir, "done.json")
   )
   "recorded"
-}
-
-# Whether summary.txt is among the recorded outputs.
-summary_is_output <- function(files, summary_path) {
-  any(fs::path_norm(files) == fs::path_norm(summary_path))
 }
 
 # Outputs written more than `tolerance` seconds after the median output mtime.

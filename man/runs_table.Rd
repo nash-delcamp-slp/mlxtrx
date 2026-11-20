@@ -33,8 +33,8 @@ incomplete or \code{"no_results"} runs). Default is \code{FALSE}.}
 \item{latest_only}{Logical scalar. Whether to return only the latest run
 (by \code{submitted_at}) for each project file. Default is \code{FALSE}.}
 
-\item{include_summary}{Logical scalar. Whether to include information from the
-summary.txt file. Default is \code{FALSE}.}
+\item{include_summary}{Logical scalar. Whether to include the statistics
+parsed from the run's results (see \code{\link[=runs_data]{runs_data()}}). Default is \code{FALSE}.}
 }
 \value{
 When \code{format = "gt"}, returns a \code{gt_tbl} object. When \code{format = "csv"}
@@ -61,7 +61,7 @@ runs_table(ignore_failed_runs = TRUE)
 # Table showing only latest run per project file
 runs_table(latest_only = TRUE)
 
-# Table with summary.txt fields
+# Table with the parsed run statistics
 runs_table(include_summary = TRUE)
 
 # Export to CSV

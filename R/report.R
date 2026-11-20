@@ -6,7 +6,7 @@
 #' @param run_ids Character vector. Specific run IDs to check. If NULL (default),
 #'   checks all runs.
 #' @param ext Character vector. File extensions to consider as
-#'   project files. Defaults to c("mlxtran", "smlx").
+#'   project files. Defaults to c("mlxtran", "smlx", "pkx").
 #' @param output_files Character vector. Optional output file paths to validate
 #'   alignment with latest runs. If NULL (default), no output file alignment
 #'   check is performed.
@@ -28,7 +28,7 @@
 generate_project_report <- function(
   directory = ".",
   run_ids = NULL,
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   output_files = NULL,
   store = default_store()
 ) {
@@ -169,7 +169,7 @@ generate_project_report <- function(
 #' @param run_ids Character vector. Specific run IDs to check. If NULL (default),
 #'   checks all runs.
 #' @param ext Character vector. File extensions to consider as
-#'   project files. Defaults to c("mlxtran", "smlx").
+#'   project files. Defaults to c("mlxtran", "smlx", "pkx").
 #' @param output_files Character vector. Optional output file paths to validate
 #'   alignment with latest runs. If NULL (default), no output file alignment
 #'   section is included in the report.
@@ -182,7 +182,7 @@ generate_project_report <- function(
 print_report_summary <- function(
   directory = ".",
   run_ids = NULL,
-  ext = c("mlxtran", "smlx"),
+  ext = c("mlxtran", "smlx", "pkx"),
   output_files = NULL,
   store = default_store()
 ) {

@@ -13,8 +13,9 @@
 #'   incomplete or `"no_results"` runs). Default is `FALSE`.
 #' @param latest_only Logical scalar. Whether to return only the latest run
 #'   (by `submitted_at`) for each project file. Default is `FALSE`.
-#' @param include_summary Logical scalar. Whether to include information from the
-#'   summary.txt file. Default is `FALSE`.
+#' @param include_summary Logical scalar. Whether to include the statistics
+#'   parsed from the run's results (`summary.txt` for Monolix, the result
+#'   tables for PKanalix). Default is `FALSE`.
 #'
 #' @return A data frame with run information, newest submission first. Contains
 #'   columns: `run_id` (character), `job_id`, `project_name`, `project_path`,
@@ -22,14 +23,23 @@
 #'   `project_file_timestamp`, `project_file_sha256`, `cmd`, `submitted_at`,
 #'   `completed_at`, `state`, `recorded_late`. `state` is one of `"submit_failed"`,
 #'   `"unrecorded"`, `"completion_crashed"`, `"recorded"`, `"recorded_late"` or
-#'   `"no_results"` (recorded, but a Monolix run without a summary).
+#'   `"no_results"` (recorded, but a Monolix or PKanalix run without parsed
+#'   results).
 #'   When `include_files = TRUE`, additionally contains one row per input and
 #'   output file with `io_type`, `file_name`, `file_path`, `file_timestamp` and
 #'   `sha256`.
-#'   When `include_summary = TRUE`, additionally contains run summary from
-#'   summary.txt and one `n_obs_<type>` column per observation type. Characters in
-#'   `<type>` other than letters, digits and `_` are replaced by `_`, so
-#'   `"obsid 1"` gives `n_obs_obsid_1`.
+#'   When `include_summary = TRUE`, additionally contains the run statistics:
+#'   for Monolix, those of summary.txt and one `n_obs_<type>` column per
+#'   observation type; for PKanalix, `tasks` (the tasks with results, e.g.
+#'   `"nca,ca,be"`), `n_individuals`, the compartmental analysis criteria
+#'   `ofv` (-2LL), `aic`, `bic` and `ca_cost`, and per bioequivalence
+#'   parameter the columns `be_<parameter>_ratio`, `be_<parameter>_ci_lower`,
+#'   `be_<parameter>_ci_upper` and `be_<parameter>_bioequivalent` (logical).
+#'   A run with more than one formulation gets
+#'   `be_<formulation>_<parameter>_...` columns. Columns of the other tool
+#'   are `NA`. Characters in `<type>`, `<parameter>` and `<formulation>`
+#'   other than letters, digits and `_` are replaced by `_`, so `"obsid 1"`
+#'   gives `n_obs_obsid_1`.
 #'   Timestamps are in the session time zone. Returns `NULL` invisibly, with a
 #'   message, when there are no runs.
 #'
@@ -88,9 +98,14 @@ runs_data <- function(
     if (!is.null(observations_wide)) {
       runs <- dplyr::left_join(runs, observations_wide, by = "run_id")
     }
+    bioequivalence_wide <- pivot_bioequivalence(data$bioequivalence)
+    if (!is.null(bioequivalence_wide)) {
+      runs <- dplyr::left_join(runs, bioequivalence_wide, by = "run_id")
+    }
   }
 
   summary_columns <- c(
+    "tasks",
     "exploratory_iterations",
     "smoothing_iterations",
     "fisher_matrix_estimation",
@@ -100,6 +115,7 @@ runs_data <- function(
     "aic",
     "bicc",
     "bic",
+    "ca_cost",
     "n_individuals",
     "n_doses",
     "summary_extracted_at"
@@ -177,7 +193,8 @@ runs_data <- function(
   out <- dplyr::select(
     runs,
     dplyr::any_of(columns),
-    dplyr::starts_with("n_obs_")
+    dplyr::starts_with("n_obs_"),
+    dplyr::starts_with("be_")
   )
   rownames(out) <- NULL
   out
@@ -196,10 +213,7 @@ pivot_observations <- function(observations) {
     stringsAsFactors = FALSE
   )
   types <- unique(observations$obs_type)
-  col_names <- make.unique(
-    paste0("n_obs_", gsub("^_+|_+$", "", gsub("[^A-Za-z0-9_]+", "_", types))),
-    sep = "_"
-  )
+  col_names <- make.unique(paste0("n_obs_", syntactic_part(types)), sep = "_")
   for (i in seq_along(types)) {
     type <- types[[i]]
     of_type <- observations[observations$obs_type == type, , drop = FALSE]
@@ -207,6 +221,49 @@ pivot_observations <- function(observations) {
       of_type$n_observations[match(wide$run_id, of_type$run_id)]
   }
   wide
+}
+
+# Bioequivalence rows as one row per run with `be_<parameter>_ratio`,
+# `_ci_lower`, `_ci_upper` and `_bioequivalent` columns per parameter; NULL
+# when there are none. A run with more than one formulation gets
+# `be_<formulation>_<parameter>_...` columns. Names are cleaned as in
+# pivot_observations(), and parameters that end up with the same name are
+# made unique with a "_<n>" suffix.
+pivot_bioequivalence <- function(bioequivalence) {
+  if (nrow(bioequivalence) == 0) {
+    return(NULL)
+  }
+  n_formulations <- tapply(
+    bioequivalence$formulation,
+    bioequivalence$run_id,
+    function(x) length(unique(x))
+  )
+  several <- n_formulations[bioequivalence$run_id] > 1L
+  label <- ifelse(
+    several,
+    paste(bioequivalence$formulation, bioequivalence$parameter, sep = "_"),
+    bioequivalence$parameter
+  )
+  wide <- data.frame(
+    run_id = unique(bioequivalence$run_id),
+    stringsAsFactors = FALSE
+  )
+  labels <- unique(label)
+  prefixes <- make.unique(paste0("be_", syntactic_part(labels)), sep = "_")
+  for (i in seq_along(labels)) {
+    of_label <- bioequivalence[label == labels[[i]], , drop = FALSE]
+    rows <- match(wide$run_id, of_label$run_id)
+    for (stat in c("ratio", "ci_lower", "ci_upper", "bioequivalent")) {
+      wide[[paste0(prefixes[[i]], "_", stat)]] <- of_label[[stat]][rows]
+    }
+  }
+  wide
+}
+
+# `x` with each run of characters outside [A-Za-z0-9_] replaced by "_" and
+# leading and trailing "_" dropped.
+syntactic_part <- function(x) {
+  gsub("^_+|_+$", "", gsub("[^A-Za-z0-9_]+", "_", x))
 }
 
 # Rows of `df` holding the largest `time` within each value of `key`; the
@@ -235,8 +292,8 @@ latest_by <- function(df, key, time) {
 #'   incomplete or `"no_results"` runs). Default is `FALSE`.
 #' @param latest_only Logical scalar. Whether to return only the latest run
 #'   (by `submitted_at`) for each project file. Default is `FALSE`.
-#' @param include_summary Logical scalar. Whether to include information from the
-#'   summary.txt file. Default is `FALSE`.
+#' @param include_summary Logical scalar. Whether to include the statistics
+#'   parsed from the run's results (see [runs_data()]). Default is `FALSE`.
 #'
 #' @return When `format = "gt"`, returns a `gt_tbl` object. When `format = "csv"`
 #'   and `output_file` is specified, returns the data frame invisibly after writing
@@ -257,7 +314,7 @@ latest_by <- function(df, key, time) {
 #' # Table showing only latest run per project file
 #' runs_table(latest_only = TRUE)
 #'
-#' # Table with summary.txt fields
+#' # Table with the parsed run statistics
 #' runs_table(include_summary = TRUE)
 #'
 #' # Export to CSV

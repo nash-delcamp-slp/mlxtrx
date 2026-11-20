@@ -32,7 +32,8 @@ execute_job(
 \value{
 A list with \code{job_id} (integer, \code{NA} when no job ID was found),
 \code{ok} (logical) and \code{output} (character, the command's output). For the
-local runners \code{monolix.sh} and \code{simulx.sh}, \code{ok} is \code{TRUE} when the
+local runners \code{monolix.sh}, \code{simulx.sh} and \code{pkanalix.sh}, \code{ok} is
+\code{TRUE} when the
 command exits with status 0. For other commands, \code{ok} is \code{TRUE} when a
 job ID was found or the command reports that results have been loaded.
 }

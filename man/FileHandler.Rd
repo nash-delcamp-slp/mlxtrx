@@ -18,7 +18,8 @@ Base file handler class
 \item \href{#method-FileHandler-can_monitor}{\code{FileHandler$can_monitor()}}
 \item \href{#method-FileHandler-parse_summary}{\code{FileHandler$parse_summary()}}
 \item \href{#method-FileHandler-expects_summary}{\code{FileHandler$expects_summary()}}
-\item \href{#method-FileHandler-get_summary_file_path}{\code{FileHandler$get_summary_file_path()}}
+\item \href{#method-FileHandler-result_files}{\code{FileHandler$result_files()}}
+\item \href{#method-FileHandler-parse_results}{\code{FileHandler$parse_results()}}
 \item \href{#method-FileHandler-clone}{\code{FileHandler$clone()}}
 }
 }
@@ -108,29 +109,57 @@ Parse summary file
 \if{html}{\out{<a id="method-FileHandler-expects_summary"></a>}}
 \if{latex}{\out{\hypertarget{method-FileHandler-expects_summary}{}}}
 \subsection{Method \code{expects_summary()}}{
-Whether a finished run of this project type produces a summary
+Whether a finished run of this project type produces
+results (a \code{summary.json} in its completion record)
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{FileHandler$expects_summary()}\if{html}{\out{</div>}}
 }
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-FileHandler-get_summary_file_path"></a>}}
-\if{latex}{\out{\hypertarget{method-FileHandler-get_summary_file_path}{}}}
-\subsection{Method \code{get_summary_file_path()}}{
-Get path to summary file
+\if{html}{\out{<a id="method-FileHandler-result_files"></a>}}
+\if{latex}{\out{\hypertarget{method-FileHandler-result_files}{}}}
+\subsection{Method \code{result_files()}}{
+Result files of a run into \code{output_dir}: the files this
+handler parses into \code{summary.json}. The default is \code{summary.txt} in
+the output directory.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FileHandler$get_summary_file_path(project_path, output_dir = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{FileHandler$result_files(output_dir, files = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{project_path}}{Path to project file}
+\item{\code{output_dir}}{Output directory of the run}
 
-\item{\code{output_dir}}{Optional output directory override}
+\item{\code{files}}{Character vector of candidate file paths, such as the
+recorded outputs of a run. \code{NULL} (default) looks in \code{output_dir}.}
 }
 \if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The result files among \code{files}, or those that exist in
+\code{output_dir} when \code{files} is \code{NULL}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-FileHandler-parse_results"></a>}}
+\if{latex}{\out{\hypertarget{method-FileHandler-parse_results}{}}}
+\subsection{Method \code{parse_results()}}{
+Parse result files into the content of \code{summary.json}
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{FileHandler$parse_results(files)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{files}}{Result files to parse, as returned by \code{result_files()}}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A list, or \code{NULL} when nothing could be parsed
 }
 }
 \if{html}{\out{<hr>}}

@@ -26,8 +26,9 @@ Generic file handler for unknown file types
 <details open><summary>Inherited methods</summary>
 <ul>
 <li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="expects_summary"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-expects_summary'><code>mlxtrx::FileHandler$expects_summary()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="get_summary_file_path"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-get_summary_file_path'><code>mlxtrx::FileHandler$get_summary_file_path()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_results"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-parse_results'><code>mlxtrx::FileHandler$parse_results()</code></a></span></li>
 <li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_summary"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-parse_summary'><code>mlxtrx::FileHandler$parse_summary()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="result_files"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-result_files'><code>mlxtrx::FileHandler$result_files()</code></a></span></li>
 </ul>
 </details>
 }}
