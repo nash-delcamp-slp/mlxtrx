@@ -4,66 +4,41 @@ Simulx file handler
 
 Simulx file handler
 
-## Super class
+## Details
+
+Reads `.smlx` projects, which share the `.mlxtran` section syntax. The
+input files are every file the project references. The output directory
+is the `exportpath` of `<SIMULX>` `[SETTINGS]`, or the project name next
+to the project file without one. A run has results when it wrote files
+under `Simulation/` or `Endpoints/` in the output directory; `tasks`
+names the tasks with results (`simulation`, `endpoint`).
+
+## Super classes
 
 [`mlxtrx::FileHandler`](https://nash-delcamp-slp.github.io/mlxtrx/reference/FileHandler.md)
+-\>
+[`mlxtrx::MonolixHandler`](https://nash-delcamp-slp.github.io/mlxtrx/reference/MonolixHandler.md)
 -\> `SimulxHandler`
 
 ## Methods
 
 ### Public methods
 
-- [`SimulxHandler$parse_file()`](#method-SimulxHandler-parse_file)
-
-- [`SimulxHandler$get_input_files()`](#method-SimulxHandler-get_input_files)
-
 - [`SimulxHandler$get_output_dir()`](#method-SimulxHandler-get_output_dir)
+
+- [`SimulxHandler$result_files()`](#method-SimulxHandler-result_files)
+
+- [`SimulxHandler$parse_results()`](#method-SimulxHandler-parse_results)
 
 - [`SimulxHandler$clone()`](#method-SimulxHandler-clone)
 
 Inherited methods
 
 - [`mlxtrx::FileHandler$can_monitor()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/FileHandler.html#method-can_monitor)
-- [`mlxtrx::FileHandler$expects_summary()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/FileHandler.html#method-expects_summary)
-- [`mlxtrx::FileHandler$parse_results()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/FileHandler.html#method-parse_results)
-- [`mlxtrx::FileHandler$parse_summary()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/FileHandler.html#method-parse_summary)
-- [`mlxtrx::FileHandler$result_files()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/FileHandler.html#method-result_files)
-
-------------------------------------------------------------------------
-
-### Method `parse_file()`
-
-Parse project file and extract metadata
-
-#### Usage
-
-    SimulxHandler$parse_file(path)
-
-#### Arguments
-
-- `path`:
-
-  Path to project file
-
-------------------------------------------------------------------------
-
-### Method `get_input_files()`
-
-Get input files from parsed content
-
-#### Usage
-
-    SimulxHandler$get_input_files(parsed_content, project_dir)
-
-#### Arguments
-
-- `parsed_content`:
-
-  Result from parse_file()
-
-- `project_dir`:
-
-  Directory containing the project file
+- [`mlxtrx::MonolixHandler$expects_summary()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/MonolixHandler.html#method-expects_summary)
+- [`mlxtrx::MonolixHandler$get_input_files()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/MonolixHandler.html#method-get_input_files)
+- [`mlxtrx::MonolixHandler$parse_file()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/MonolixHandler.html#method-parse_file)
+- [`mlxtrx::MonolixHandler$parse_summary()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/MonolixHandler.html#method-parse_summary)
 
 ------------------------------------------------------------------------
 
@@ -84,6 +59,55 @@ Get expected output directory
 - `output_dir`:
 
   User-specified output directory (may be NULL)
+
+------------------------------------------------------------------------
+
+### Method `result_files()`
+
+Result files of a run into `output_dir`: the files under `Simulation/`
+and `Endpoints/`
+
+#### Usage
+
+    SimulxHandler$result_files(output_dir, files = NULL)
+
+#### Arguments
+
+- `output_dir`:
+
+  Output directory of the run
+
+- `files`:
+
+  Character vector of candidate file paths, such as the recorded outputs
+  of a run. `NULL` (default) looks in `output_dir`.
+
+#### Returns
+
+The result files among `files`, or those that exist in `output_dir` when
+`files` is `NULL`
+
+------------------------------------------------------------------------
+
+### Method `parse_results()`
+
+Parse Simulx result files into the content of `summary.json`: the tasks
+with results
+
+#### Usage
+
+    SimulxHandler$parse_results(files)
+
+#### Arguments
+
+- `files`:
+
+  Result files, as returned by `result_files()`
+
+#### Returns
+
+A list with `summary_stats` (`tasks`) and `observations` (empty), or
+`NULL` when `files` is empty
 
 ------------------------------------------------------------------------
 

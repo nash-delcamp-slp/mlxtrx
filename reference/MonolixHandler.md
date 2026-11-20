@@ -51,21 +51,22 @@ Parse project file and extract metadata
 
 ### Method `get_input_files()`
 
-Get input files from parsed content
+Input files of a project: every file the project references (see
+[`project_file_references()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/project_file_references.md))
 
 #### Usage
 
-    MonolixHandler$get_input_files(parsed_content, project_dir)
+    MonolixHandler$get_input_files(path)
 
 #### Arguments
 
-- `parsed_content`:
+- `path`:
 
-  Result from parse_file()
+  Path to project file
 
-- `project_dir`:
+#### Returns
 
-  Directory containing the project file
+A list of `list(role, path)`
 
 ------------------------------------------------------------------------
 

@@ -2,8 +2,8 @@
 
 Validates that all project files in a directory have successful run
 records. A successful run is one whose latest run (by `submitted_at`)
-has a completion timestamp and, for Monolix and PKanalix projects,
-parsed results.
+has a completion timestamp and, for Monolix, PKanalix and Simulx
+projects, parsed results.
 
 ## Usage
 

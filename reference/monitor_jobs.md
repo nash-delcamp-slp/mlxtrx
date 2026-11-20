@@ -4,7 +4,7 @@ Polls every `poll_interval` seconds until each submitted job has
 finished, then records its completion in the run store with
 `record_completion()`. A job with a job ID has finished when it is no
 longer in the queue; a job run by the local runners `monolix.sh`,
-`simulx.sh` or `pkanalix.sh` has finished already; any other job without
+`pkanalix.sh` or `simulx.sh` has finished already; any other job without
 a job ID has finished when one of its project type's result files
 (`summary.txt` for Monolix) exists in the output directory saved in its
 `run.json`. Runs whose submission failed are skipped. A run whose

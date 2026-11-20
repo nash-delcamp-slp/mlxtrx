@@ -43,8 +43,10 @@ PKanalix file handler"></head><body>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Reads <code>.pkx</code> projects, which share the <code>.mlxtran</code> section syntax. The input
-files are the data file and the model used by compartmental analysis
-(<code>&lt;MODEL&gt;</code> <code>[LONGITUDINAL]</code>), when the project has one. The output
+files are every file the project references (see
+<code><a href="project_file_references.html">project_file_references()</a></code>): the data file, the model used by
+compartmental analysis when the project has one, and files such as
+separate dose tables. The output
 directory is the <code>exportpath</code> of <code>&lt;PKANALIX&gt;</code> <code>[SETTINGS]</code>, or the project
 name next to the project file without one.</p>
 <p>Results are read from <code>PKanalix/IndividualParameters/</code> in the output

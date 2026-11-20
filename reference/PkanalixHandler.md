@@ -7,10 +7,12 @@ PKanalix file handler
 ## Details
 
 Reads `.pkx` projects, which share the `.mlxtran` section syntax. The
-input files are the data file and the model used by compartmental
-analysis (`<MODEL>` `[LONGITUDINAL]`), when the project has one. The
-output directory is the `exportpath` of `<PKANALIX>` `[SETTINGS]`, or
-the project name next to the project file without one.
+input files are every file the project references (see
+[`project_file_references()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/project_file_references.md)):
+the data file, the model used by compartmental analysis when the project
+has one, and files such as separate dose tables. The output directory is
+the `exportpath` of `<PKANALIX>` `[SETTINGS]`, or the project name next
+to the project file without one.
 
 Results are read from `PKanalix/IndividualParameters/` in the output
 directory, one folder per task: `nca/ncaIndividualParameters.txt`,

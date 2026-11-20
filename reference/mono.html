@@ -116,7 +116,9 @@ Should be same length as <code>path</code>, length 1, or <code>NULL</code>.</p><
 
 <dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
 <dd><p>Character vector or <code>NULL</code>. Configuration file path.
-Passed as <code>--config</code> argument to the Monolix command.
+Passed as <code>--config</code> argument to the Monolix command, and recorded as an
+input of the run (role <code>"config"</code>) so a later edit shows as a changed
+input.
 Should be same length as <code>path</code>, length 1, or <code>NULL</code>.</p></dd>
 
 
@@ -167,11 +169,12 @@ submitted job has finished, then records each run's completion in a
 <code>completion/</code> folder of the run: the output files written since submission
 (<code>outputs.json</code>), the statistics parsed from the run's results
 (<code>summary.json</code>: <code>summary.txt</code> for Monolix, the result tables under
-<code>PKanalix/IndividualParameters</code> for PKanalix) and, last, <code>done.json</code>.
-A Monolix or PKanalix run recorded without <code>summary.json</code> is in state
-<code>"no_results"</code> (see <code><a href="runs_data.html">runs_data()</a></code>).</p>
-<p>The local runners <code>monolix.sh</code>, <code>simulx.sh</code> and <code>pkanalix.sh</code> run the
-project in the foreground with <code>--no-gui</code> (<code>monolix.sh</code> and <code>pkanalix.sh</code>);
+<code>PKanalix/IndividualParameters</code> for PKanalix, the files under
+<code>Simulation/</code> and <code>Endpoints/</code> for Simulx) and, last, <code>done.json</code>.
+A Monolix, PKanalix or Simulx run recorded without <code>summary.json</code> is in
+state <code>"no_results"</code> (see <code><a href="runs_data.html">runs_data()</a></code>).</p>
+<p>The local runners <code>monolix.sh</code>, <code>pkanalix.sh</code> and <code>simulx.sh</code> run the
+project in the foreground with <code>--no-gui</code>;
 the submission succeeded when the command exits with status 0, and the run
 is recorded straight away.</p>
 <p>Paths inside the store are relative to the folder that holds the store

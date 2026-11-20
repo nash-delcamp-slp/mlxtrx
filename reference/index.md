@@ -36,12 +36,10 @@ Per-file and per-project checks against the recorded runs.
 
 ## Results
 
-Recorded runs and their statistics as one table.
+Recorded runs, their files and statistics as data frames.
 
 - [`runs_data()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/runs_data.md)
   : Extract data about executed Monolix runs
-- [`runs_table()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/runs_table.md)
-  : Generate a table with details about executed Monolix runs
 - [`get_run_files()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/get_run_files.md)
   : Get file information for specific runs
 

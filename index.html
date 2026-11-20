@@ -53,7 +53,7 @@
 <li>Detect whether each run succeeded and extract its fit statistics.</li>
 <li>Get one condition per model, file or folder: never run, failed, unfinished, inputs changed, output edited, or clean.</li>
 <li>Check the export settings MonolixSuite needs before launching.</li>
-<li>Collect every run in one sortable, exportable table.</li>
+<li>Collect every run in one data frame to sort, filter or export.</li>
 </ul>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -104,11 +104,12 @@
 <div class="section level2">
 <h2 id="results-table">Results table<a class="anchor" aria-label="anchor" href="#results-table"></a>
 </h2>
+<p><code><a href="reference/runs_data.html">runs_data()</a></code> returns every recorded run as one data frame, newest first: project, data and model files, settings, command, software version, user, times and state. Sort, filter or export it like any data frame.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/runs_data.html">runs_data</a></span><span class="op">(</span>include_summary <span class="op">=</span> <span class="cn">TRUE</span>, latest_only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/runs_table.html">runs_table</a></span><span class="op">(</span>include_summary <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/runs_table.html">runs_table</a></span><span class="op">(</span>format <span class="op">=</span> <span class="st">"csv"</span>, output_file <span class="op">=</span> <span class="st">"runs.csv"</span><span class="op">)</span></span></code></pre></div>
-<p>Statistics include, for Monolix, the values from <code>summary.txt</code> and observation counts; for PKanalix, the tasks run, the number of individuals, the compartmental analysis criteria and the bioequivalence ratios.</p>
+<code class="sourceCode R"><span><span class="va">runs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runs_data.html">runs_data</a></span><span class="op">(</span>include_summary <span class="op">=</span> <span class="cn">TRUE</span>, latest_only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">runs</span>, <span class="st">"runs.csv"</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/get_run_files.html">get_run_files</a></span><span class="op">(</span><span class="va">runs</span><span class="op">$</span><span class="va">run_id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<p>Statistics include, for Monolix, the values from <code>summary.txt</code> and observation counts; for PKanalix, the tasks run, the number of individuals, the compartmental analysis criteria and the bioequivalence ratios; for Simulx, the tasks run. <code><a href="reference/get_run_files.html">get_run_files()</a></code> lists every input and output file of a run with its SHA-256 hash.</p>
 </div>
 <div class="section level2">
 <h2 id="when-a-session-dies">When a session dies<a class="anchor" aria-label="anchor" href="#when-a-session-dies"></a>

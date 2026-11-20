@@ -75,8 +75,9 @@ sim(
 - config:
 
   Character vector or `NULL`. Configuration file path. Passed as
-  `--config` argument to the Monolix command. Should be same length as
-  `path`, length 1, or `NULL`.
+  `--config` argument to the Monolix command, and recorded as an input
+  of the run (role `"config"`) so a later edit shows as a changed input.
+  Should be same length as `path`, length 1, or `NULL`.
 
 - cmd:
 
@@ -137,15 +138,15 @@ every submitted job has finished, then records each run's completion in
 a `completion/` folder of the run: the output files written since
 submission (`outputs.json`), the statistics parsed from the run's
 results (`summary.json`: `summary.txt` for Monolix, the result tables
-under `PKanalix/IndividualParameters` for PKanalix) and, last,
-`done.json`. A Monolix or PKanalix run recorded without `summary.json`
-is in state `"no_results"` (see
+under `PKanalix/IndividualParameters` for PKanalix, the files under
+`Simulation/` and `Endpoints/` for Simulx) and, last, `done.json`. A
+Monolix, PKanalix or Simulx run recorded without `summary.json` is in
+state `"no_results"` (see
 [`runs_data()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/runs_data.md)).
 
-The local runners `monolix.sh`, `simulx.sh` and `pkanalix.sh` run the
-project in the foreground with `--no-gui` (`monolix.sh` and
-`pkanalix.sh`); the submission succeeded when the command exits with
-status 0, and the run is recorded straight away.
+The local runners `monolix.sh`, `pkanalix.sh` and `simulx.sh` run the
+project in the foreground with `--no-gui`; the submission succeeded when
+the command exits with status 0, and the run is recorded straight away.
 
 Paths inside the store are relative to the folder that holds the store
 when the file is inside it, and absolute otherwise.

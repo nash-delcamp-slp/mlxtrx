@@ -32,7 +32,7 @@ data."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Extract data about executed Monolix runs</h1>
-      <small class="dont-index">Source: <a href="https://github.com/nash-delcamp-slp/mlxtrx/blob/main/R/runs_table.R" class="external-link"><code>R/runs_table.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/nash-delcamp-slp/mlxtrx/blob/main/R/runs_data.R" class="external-link"><code>R/runs_data.R</code></a></small>
       <div class="d-none name"><code>runs_data.Rd</code></div>
     </div>
 
@@ -81,7 +81,8 @@ incomplete or <code>"no_results"</code> runs). Default is <code>FALSE</code>.</p
 <dt id="arg-include-summary">include_summary<a class="anchor" aria-label="anchor" href="#arg-include-summary"></a></dt>
 <dd><p>Logical scalar. Whether to include the statistics
 parsed from the run's results (<code>summary.txt</code> for Monolix, the result
-tables for PKanalix). Default is <code>FALSE</code>.</p></dd>
+tables for PKanalix, the <code>Simulation/</code> and <code>Endpoints/</code> files for
+Simulx). Default is <code>FALSE</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -97,7 +98,7 @@ columns: <code>run_id</code> (character), <code>job_id</code>, <code>project_nam
 by the command (e.g. <code>"2024R1"</code> for <code>mono24</code>), else <code>NA</code>.
 <code>state</code> is one of <code>"submit_failed"</code>, <code>"unrecorded"</code>,
 <code>"completion_crashed"</code>, <code>"recorded"</code>, <code>"recorded_late"</code> or <code>"no_results"</code>
-(recorded, but a Monolix or PKanalix run without parsed results).
+(recorded, but a Monolix, PKanalix or Simulx run without results).
 When <code>include_files = TRUE</code>, additionally contains one row per input and
 output file with <code>io_type</code>, <code>file_name</code>, <code>file_path</code>, <code>file_timestamp</code> and
 <code>sha256</code>.
@@ -109,7 +110,8 @@ observation type; for PKanalix, <code>tasks</code> (the tasks with results, e.g.
 parameter the columns <code>be_&lt;parameter&gt;_ratio</code>, <code>be_&lt;parameter&gt;_ci_lower</code>,
 <code>be_&lt;parameter&gt;_ci_upper</code> and <code>be_&lt;parameter&gt;_bioequivalent</code> (logical).
 A run with more than one formulation gets
-<code>be_&lt;formulation&gt;_&lt;parameter&gt;_...</code> columns. Columns of the other tool
+<code>be_&lt;formulation&gt;_&lt;parameter&gt;_...</code> columns. For Simulx, <code>tasks</code>
+(<code>"simulation"</code>, <code>"simulation,endpoint"</code>). Columns of the other tools
 are <code>NA</code>. Characters in <code>&lt;type&gt;</code>, <code>&lt;parameter&gt;</code> and <code>&lt;formulation&gt;</code>
 other than letters, digits and <code>_</code> are replaced by <code>_</code>, so <code>"obsid 1"</code>
 gives <code>n_obs_obsid_1</code>.

@@ -41,8 +41,17 @@ Simulx file handler"></head><body>
 
 
     <div class="section level2">
-    <h2 id="super-class">Super class<a class="anchor" aria-label="anchor" href="#super-class"></a></h2>
-    <p><code><a href="FileHandler.html">mlxtrx::FileHandler</a></code> -&gt; <code>SimulxHandler</code></p>
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Reads <code>.smlx</code> projects, which share the <code>.mlxtran</code> section syntax. The
+input files are every file the project references. The output directory is
+the <code>exportpath</code> of <code>&lt;SIMULX&gt;</code> <code>[SETTINGS]</code>, or the project name next to the
+project file without one. A run has results when it wrote files under
+<code>Simulation/</code> or <code>Endpoints/</code> in the output directory; <code>tasks</code> names the
+tasks with results (<code>simulation</code>, <code>endpoint</code>).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="super-classes">Super classes<a class="anchor" aria-label="anchor" href="#super-classes"></a></h2>
+    <p><code><a href="FileHandler.html">mlxtrx::FileHandler</a></code> -&gt; <code><a href="MonolixHandler.html">mlxtrx::MonolixHandler</a></code> -&gt; <code>SimulxHandler</code></p>
     </div>
     <div class="section level2">
     <h2 id="methods">Methods<a class="anchor" aria-label="anchor" href="#methods"></a></h2>
@@ -50,60 +59,24 @@ Simulx file handler"></head><body>
 <div class="section">
 <h3 id="public-methods">Public methods<a class="anchor" aria-label="anchor" href="#public-methods"></a></h3>
 
-<ul><li><p><a href="#method-SimulxHandler-parse_file"><code>SimulxHandler$parse_file()</code></a></p></li>
-<li><p><a href="#method-SimulxHandler-get_input_files"><code>SimulxHandler$get_input_files()</code></a></p></li>
-<li><p><a href="#method-SimulxHandler-get_output_dir"><code>SimulxHandler$get_output_dir()</code></a></p></li>
+<ul><li><p><a href="#method-SimulxHandler-get_output_dir"><code>SimulxHandler$get_output_dir()</code></a></p></li>
+<li><p><a href="#method-SimulxHandler-result_files"><code>SimulxHandler$result_files()</code></a></p></li>
+<li><p><a href="#method-SimulxHandler-parse_results"><code>SimulxHandler$parse_results()</code></a></p></li>
 <li><p><a href="#method-SimulxHandler-clone"><code>SimulxHandler$clone()</code></a></p></li>
 </ul></div><p><details open><summary>Inherited methods</summary><ul><li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="can_monitor"><a href="FileHandler.html#method-can_monitor"><code>mlxtrx::FileHandler$can_monitor()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="expects_summary"><a href="FileHandler.html#method-expects_summary"><code>mlxtrx::FileHandler$expects_summary()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_results"><a href="FileHandler.html#method-parse_results"><code>mlxtrx::FileHandler$parse_results()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_summary"><a href="FileHandler.html#method-parse_summary"><code>mlxtrx::FileHandler$parse_summary()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="result_files"><a href="FileHandler.html#method-result_files"><code>mlxtrx::FileHandler$result_files()</code></a></span></li>
-</ul></details></p><hr><a id="method-SimulxHandler-parse_file"></a><div class="section">
-<h3 id="method-parse-file-">Method <code>parse_file()</code><a class="anchor" aria-label="anchor" href="#method-parse-file-"></a></h3>
-<p>Parse project file and extract metadata</p><div class="section">
-<h4 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">SimulxHandler</span><span class="op">$</span><span class="fu">parse_file</span><span class="op">(</span><span class="va">path</span><span class="op">)</span></span></code></pre></div><p></p></div>
-</div>
-
-<div class="section">
-<h4 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h4>
-<p></p><div class="arguments"><dl><dt><code>path</code></dt>
-<dd><p>Path to project file</p></dd>
-
-
-</dl><p></p></div>
-</div>
-
-</div><p></p><hr><a id="method-SimulxHandler-get_input_files"></a><div class="section">
-<h3 id="method-get-input-files-">Method <code>get_input_files()</code><a class="anchor" aria-label="anchor" href="#method-get-input-files-"></a></h3>
-<p>Get input files from parsed content</p><div class="section">
-<h4 id="usage-1">Usage<a class="anchor" aria-label="anchor" href="#usage-1"></a></h4>
-<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">SimulxHandler</span><span class="op">$</span><span class="fu">get_input_files</span><span class="op">(</span><span class="va">parsed_content</span>, <span class="va">project_dir</span><span class="op">)</span></span></code></pre></div><p></p></div>
-</div>
-
-<div class="section">
-<h4 id="arguments-1">Arguments<a class="anchor" aria-label="anchor" href="#arguments-1"></a></h4>
-<p></p><div class="arguments"><dl><dt><code>parsed_content</code></dt>
-<dd><p>Result from parse_file()</p></dd>
-
-
-<dt><code>project_dir</code></dt>
-<dd><p>Directory containing the project file</p></dd>
-
-
-</dl><p></p></div>
-</div>
-
-</div><p></p><hr><a id="method-SimulxHandler-get_output_dir"></a><div class="section">
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="expects_summary"><a href="MonolixHandler.html#method-expects_summary"><code>mlxtrx::MonolixHandler$expects_summary()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="get_input_files"><a href="MonolixHandler.html#method-get_input_files"><code>mlxtrx::MonolixHandler$get_input_files()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="parse_file"><a href="MonolixHandler.html#method-parse_file"><code>mlxtrx::MonolixHandler$parse_file()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="parse_summary"><a href="MonolixHandler.html#method-parse_summary"><code>mlxtrx::MonolixHandler$parse_summary()</code></a></span></li>
+</ul></details></p><hr><a id="method-SimulxHandler-get_output_dir"></a><div class="section">
 <h3 id="method-get-output-dir-">Method <code>get_output_dir()</code><a class="anchor" aria-label="anchor" href="#method-get-output-dir-"></a></h3>
 <p>Get expected output directory</p><div class="section">
-<h4 id="usage-2">Usage<a class="anchor" aria-label="anchor" href="#usage-2"></a></h4>
+<h4 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">SimulxHandler</span><span class="op">$</span><span class="fu">get_output_dir</span><span class="op">(</span><span class="va">path</span>, output_dir <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
-<h4 id="arguments-2">Arguments<a class="anchor" aria-label="anchor" href="#arguments-2"></a></h4>
+<h4 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>path</code></dt>
 <dd><p>Path to project file</p></dd>
 
@@ -113,6 +86,55 @@ Simulx file handler"></head><body>
 
 
 </dl><p></p></div>
+</div>
+
+</div><p></p><hr><a id="method-SimulxHandler-result_files"></a><div class="section">
+<h3 id="method-result-files-">Method <code>result_files()</code><a class="anchor" aria-label="anchor" href="#method-result-files-"></a></h3>
+<p>Result files of a run into <code>output_dir</code>: the files under
+<code>Simulation/</code> and <code>Endpoints/</code></p><div class="section">
+<h4 id="usage-1">Usage<a class="anchor" aria-label="anchor" href="#usage-1"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">SimulxHandler</span><span class="op">$</span><span class="fu">result_files</span><span class="op">(</span><span class="va">output_dir</span>, files <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+<div class="section">
+<h4 id="arguments-1">Arguments<a class="anchor" aria-label="anchor" href="#arguments-1"></a></h4>
+<p></p><div class="arguments"><dl><dt><code>output_dir</code></dt>
+<dd><p>Output directory of the run</p></dd>
+
+
+<dt><code>files</code></dt>
+<dd><p>Character vector of candidate file paths, such as the
+recorded outputs of a run. <code>NULL</code> (default) looks in <code>output_dir</code>.</p></dd>
+
+
+</dl><p></p></div>
+</div>
+<div class="section">
+<h4 id="returns">Returns<a class="anchor" aria-label="anchor" href="#returns"></a></h4>
+<p>The result files among <code>files</code>, or those that exist in
+<code>output_dir</code> when <code>files</code> is <code>NULL</code></p>
+</div>
+
+</div><p></p><hr><a id="method-SimulxHandler-parse_results"></a><div class="section">
+<h3 id="method-parse-results-">Method <code>parse_results()</code><a class="anchor" aria-label="anchor" href="#method-parse-results-"></a></h3>
+<p>Parse Simulx result files into the content of
+<code>summary.json</code>: the tasks with results</p><div class="section">
+<h4 id="usage-2">Usage<a class="anchor" aria-label="anchor" href="#usage-2"></a></h4>
+<p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">SimulxHandler</span><span class="op">$</span><span class="fu">parse_results</span><span class="op">(</span><span class="va">files</span><span class="op">)</span></span></code></pre></div><p></p></div>
+</div>
+
+<div class="section">
+<h4 id="arguments-2">Arguments<a class="anchor" aria-label="anchor" href="#arguments-2"></a></h4>
+<p></p><div class="arguments"><dl><dt><code>files</code></dt>
+<dd><p>Result files, as returned by <code>result_files()</code></p></dd>
+
+
+</dl><p></p></div>
+</div>
+<div class="section">
+<h4 id="returns-1">Returns<a class="anchor" aria-label="anchor" href="#returns-1"></a></h4>
+<p>A list with <code>summary_stats</code> (<code>tasks</code>) and <code>observations</code>
+(empty), or <code>NULL</code> when <code>files</code> is empty</p>
 </div>
 
 </div><p></p><hr><a id="method-SimulxHandler-clone"></a><div class="section">

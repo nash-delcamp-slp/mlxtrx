@@ -50,6 +50,6 @@ execute_job(
 
 A list with `job_id` (integer, `NA` when no job ID was found), `ok`
 (logical) and `output` (character, the command's output). For the local
-runners `monolix.sh`, `simulx.sh` and `pkanalix.sh`, `ok` is `TRUE` when
+runners `monolix.sh`, `pkanalix.sh` and `simulx.sh`, `ok` is `TRUE` when
 the command exits with status 0. For other commands, `ok` is `TRUE` when
 a job ID was found or the command reports that results have been loaded.

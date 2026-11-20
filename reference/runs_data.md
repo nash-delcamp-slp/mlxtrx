@@ -46,7 +46,8 @@ runs_data(
 
   Logical scalar. Whether to include the statistics parsed from the
   run's results (`summary.txt` for Monolix, the result tables for
-  PKanalix). Default is `FALSE`.
+  PKanalix, the `Simulation/` and `Endpoints/` files for Simulx).
+  Default is `FALSE`.
 
 ## Value
 
@@ -61,7 +62,7 @@ columns: `run_id` (character), `job_id`, `project_name`, `project_path`,
 implied by the command (e.g. `"2024R1"` for `mono24`), else `NA`.
 `state` is one of `"submit_failed"`, `"unrecorded"`,
 `"completion_crashed"`, `"recorded"`, `"recorded_late"` or
-`"no_results"` (recorded, but a Monolix or PKanalix run without parsed
+`"no_results"` (recorded, but a Monolix, PKanalix or Simulx run without
 results). When `include_files = TRUE`, additionally contains one row per
 input and output file with `io_type`, `file_name`, `file_path`,
 `file_timestamp` and `sha256`. When `include_summary = TRUE`,
@@ -73,7 +74,8 @@ PKanalix, `tasks` (the tasks with results, e.g. `"nca,ca,be"`),
 `be_<parameter>_ratio`, `be_<parameter>_ci_lower`,
 `be_<parameter>_ci_upper` and `be_<parameter>_bioequivalent` (logical).
 A run with more than one formulation gets
-`be_<formulation>_<parameter>_...` columns. Columns of the other tool
+`be_<formulation>_<parameter>_...` columns. For Simulx, `tasks`
+(`"simulation"`, `"simulation,endpoint"`). Columns of the other tools
 are `NA`. Characters in `<type>`, `<parameter>` and `<formulation>`
 other than letters, digits and `_` are replaced by `_`, so `"obsid 1"`
 gives `n_obs_obsid_1`. Timestamps are in the session time zone. Returns

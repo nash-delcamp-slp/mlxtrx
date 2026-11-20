@@ -50,21 +50,17 @@ Parse project file and extract metadata
 
 ### Method `get_input_files()`
 
-Get input files from parsed content
+Input files of a project: none for unknown types
 
 #### Usage
 
-    GenericHandler$get_input_files(parsed_content, project_dir)
+    GenericHandler$get_input_files(path)
 
 #### Arguments
 
-- `parsed_content`:
+- `path`:
 
-  Result from parse_file()
-
-- `project_dir`:
-
-  Directory containing the project file
+  Path to project file
 
 ------------------------------------------------------------------------
 
