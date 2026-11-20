@@ -24,10 +24,15 @@ with columns:
 \item \code{condition} (character): The most serious condition that applies
 \item \code{other_conditions} (character): The other conditions that apply,
 comma-separated, most serious first (NA if none)
-\item \code{details} (character): Short notes on the files behind the
-conditions, separated by \code{"; "}, naming files relative to the folder
+\item \code{details} (character): Short notes behind the conditions,
+separated by \code{"; "}. A failed or unfinished run's state comes first
+(\code{"submit failed"}, \code{"no results"}, \code{"completion not recorded"} or
+\code{"completion crashed"}), then the files, named relative to the folder
 that holds the store where possible, e.g.
-\code{"data/pk.csv modified; run1/summary.txt missing"} (NA if none)
+\code{"data/pk.csv modified; run1/summary.txt missing"}; \code{"recorded late"}
+for \code{"clean_late"}; for an untracked path that only older runs
+recorded, \code{"recorded only by an older run (<run_id>)"} naming the
+most recent of them (NA if none)
 \item \code{submitted_at} (POSIXct): When the latest run was submitted
 \item \code{completed_at} (POSIXct): When the latest run completed (NA if
 not completed)
@@ -37,7 +42,7 @@ not completed)
 Tells, for each model a path covers, whether the results on disk still
 match the files that produced them. Each model is judged by its latest run
 (the run with the latest \code{submitted_at} for that project file, whatever its
-state), the same rule the \verb{check_*()} functions use. Only file content
+state), the same rule as \code{\link[=check_completion_status]{check_completion_status()}}. Only file content
 (SHA-256) counts: a changed timestamp with the same content is not a change.
 }
 \details{

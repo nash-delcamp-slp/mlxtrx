@@ -3,7 +3,7 @@
 #' Tells, for each model a path covers, whether the results on disk still
 #' match the files that produced them. Each model is judged by its latest run
 #' (the run with the latest `submitted_at` for that project file, whatever its
-#' state), the same rule the `check_*()` functions use. Only file content
+#' state), the same rule as [check_completion_status()]. Only file content
 #' (SHA-256) counts: a changed timestamp with the same content is not a change.
 #'
 #' What `path` covers:
@@ -53,10 +53,15 @@
 #'     \item `condition` (character): The most serious condition that applies
 #'     \item `other_conditions` (character): The other conditions that apply,
 #'       comma-separated, most serious first (NA if none)
-#'     \item `details` (character): Short notes on the files behind the
-#'       conditions, separated by `"; "`, naming files relative to the folder
+#'     \item `details` (character): Short notes behind the conditions,
+#'       separated by `"; "`. A failed or unfinished run's state comes first
+#'       (`"submit failed"`, `"no results"`, `"completion not recorded"` or
+#'       `"completion crashed"`), then the files, named relative to the folder
 #'       that holds the store where possible, e.g.
-#'       `"data/pk.csv modified; run1/summary.txt missing"` (NA if none)
+#'       `"data/pk.csv modified; run1/summary.txt missing"`; `"recorded late"`
+#'       for `"clean_late"`; for an untracked path that only older runs
+#'       recorded, `"recorded only by an older run (<run_id>)"` naming the
+#'       most recent of them (NA if none)
 #'     \item `submitted_at` (POSIXct): When the latest run was submitted
 #'     \item `completed_at` (POSIXct): When the latest run completed (NA if
 #'       not completed)
@@ -76,13 +81,19 @@ run_status <- function(path = ".", store = default_store()) {
   files <- data$files[data$files$run_id %in% latest$run_id, , drop = FALSE]
   files$key <- path_key(files$path)
   files$project_file <- latest$project_file[match(files$run_id, latest$run_id)]
-  known <- c(runs$project_file, path_key(data$files$path))
+  known <- data$files
+  known$key <- path_key(known$path)
+  known$submitted_at <- runs$submitted_at[match(known$run_id, runs$run_id)]
 
   targets <- lapply(status_path_key(path), function(p) {
     status_targets(p, files, known)
   })
   targets <- do.call(rbind, c(
-    list(data.frame(path = character(), project_file = character())),
+    list(data.frame(
+      path = character(),
+      project_file = character(),
+      note = character()
+    )),
     targets
   ))
   targets <- targets[!duplicated(targets[c("path", "project_file")]), , drop = FALSE]
@@ -92,7 +103,8 @@ run_status <- function(path = ".", store = default_store()) {
   sha_cache <- new.env(parent = emptyenv())
   judged <- lapply(seq_len(nrow(targets)), function(i) {
     if (is.na(targets$project_file[[i]])) {
-      return(list(conditions = "untracked", details = character()))
+      note <- targets$note[[i]]
+      return(list(conditions = "untracked", details = note[!is.na(note)]))
     }
     if (is.na(idx[[i]])) {
       return(list(conditions = "never_run", details = character()))
@@ -127,22 +139,25 @@ status_path_key <- function(path) {
   path_key(as.character(fs::path_norm(fs::path_abs(path))))
 }
 
-# Rows (path, project_file) one path covers. `files` holds the file records
-# of each model's latest run with `key` and `project_file`; `known` is every
-# path recorded in the store.
+# Rows (path, project_file, note) one path covers. `files` holds the file
+# records of each model's latest run with `key` and `project_file`; `known`
+# holds every file record in the store with `key` and its run's
+# `submitted_at`. An untracked path that older runs recorded gets a note
+# naming the most recent of them.
 status_targets <- function(p, files, known) {
   ext <- c("mlxtran", "smlx", "pkx")
-  rows <- function(project_file) {
+  rows <- function(project_file, note = NA_character_) {
     data.frame(
       path = rep(p, length(project_file)),
       project_file = project_file,
+      note = rep(note, length(project_file)),
       stringsAsFactors = FALSE
     )
   }
   if (dir.exists(p)) {
     return(rows(find_project_files(p, ext)))
   }
-  if (!file.exists(p) && !p %in% known) {
+  if (!file.exists(p) && !p %in% known$key) {
     stop("Path not found: ", p, call. = FALSE)
   }
   if (grepl(paste0("\\.", ext, "$", collapse = "|"), p)) {
@@ -151,7 +166,14 @@ status_targets <- function(p, files, known) {
   hits <- files$io_type %in% c("input", "output") & files$key == p
   models <- sort(unique(files$project_file[hits]))
   if (length(models) == 0L) {
-    return(rows(NA_character_))
+    older <- known[known$key == p, , drop = FALSE]
+    note <- if (nrow(older) > 0L) {
+      newest <- older$run_id[order(older$submitted_at, decreasing = TRUE)][[1]]
+      paste0("recorded only by an older run (", newest, ")")
+    } else {
+      NA_character_
+    }
+    return(rows(NA_character_, note))
   }
   rows(models)
 }
@@ -175,7 +197,14 @@ judge_run <- function(run, files, root, sha_cache) {
     output_suspect = any(flagged)
   )
   conditions <- names(conditions)[conditions]
+  state_note <- c(
+    submit_failed = "submit failed",
+    no_results = "no results",
+    unrecorded = "completion not recorded",
+    completion_crashed = "completion crashed"
+  )[state]
   details <- c(
+    unname(state_note[!is.na(state_note)]),
     paste(rel_to(inputs$key, root), input_change)[!is.na(input_change)],
     paste(rel_to(outputs$key, root), output_change)[!is.na(output_change)],
     paste(rel_to(outputs$key, root), "flagged late")[flagged]

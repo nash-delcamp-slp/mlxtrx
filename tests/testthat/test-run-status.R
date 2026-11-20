@@ -26,13 +26,17 @@ test_that("failed: latest run submit_failed or no_results", {
   spec$run$submission <- list(ok = FALSE, output = list("error"))
   spec$completions <- NULL
   s <- local_store_with_runs(list(spec), root = root)
-  expect_equal(run_status(s$root, store = s$store)$condition, "failed")
+  res <- run_status(s$root, store = s$store)
+  expect_equal(res$condition, "failed")
+  expect_equal(res$details, "submit failed")
 
   root <- local_theoph_root()
   spec <- theoph_run_spec(root, "r1")
   spec$completions$completion$summary <- NULL
   s <- local_store_with_runs(list(spec), root = root)
-  expect_equal(run_status(s$root, store = s$store)$condition, "failed")
+  res <- run_status(s$root, store = s$store)
+  expect_equal(res$condition, "failed")
+  expect_equal(res$details, "no results")
 })
 
 test_that("unfinished: the latest run decides, even over an older clean run", {
@@ -40,7 +44,17 @@ test_that("unfinished: the latest run decides, even over an older clean run", {
   spec <- theoph_run_spec(root, "r1")
   spec$completions <- NULL
   s <- local_store_with_runs(list(spec), root = root)
-  expect_equal(run_status(s$root, store = s$store)$condition, "unfinished")
+  res <- run_status(s$root, store = s$store)
+  expect_equal(res$condition, "unfinished")
+  expect_equal(res$details, "completion not recorded")
+
+  root <- local_theoph_root()
+  spec <- theoph_run_spec(root, "r1")
+  spec$completions$completion$done <- NULL
+  s <- local_store_with_runs(list(spec), root = root)
+  res <- run_status(s$root, store = s$store)
+  expect_equal(res$condition, "unfinished")
+  expect_equal(res$details, "completion crashed")
 
   root <- local_theoph_root()
   older <- theoph_run_spec(root, "r1", submitted_at = Sys.time() - 7200)
@@ -56,6 +70,10 @@ test_that("unfinished: the latest run decides, even over an older clean run", {
   res <- run_status(s$root, store = s$store)
   expect_equal(res$condition, "unfinished")
   expect_equal(res$other_conditions, "inputs_changed")
+  expect_equal(
+    res$details,
+    "completion not recorded; theoph/data/theoph.csv modified"
+  )
 })
 
 test_that("inputs changed: data file modified or missing", {
@@ -194,4 +212,37 @@ test_that("columns: names in order, also for zero rows", {
   expect_named(res, cols)
   expect_type(res$condition, "character")
   expect_s3_class(res$submitted_at, "POSIXct")
+})
+
+test_that("deleted input given as path: inputs_changed, noted missing", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  unlink(s$data)
+  res <- run_status(s$data, store = s$store)
+  expect_equal(nrow(res), 1L)
+  expect_equal(res$condition, "inputs_changed")
+  expect_match(res$details, "theoph/data/theoph.csv missing", fixed = TRUE)
+})
+
+test_that("untracked path recorded only by older runs names the newest of them", {
+  root <- local_theoph_root()
+  p <- theoph_paths(root)
+  old_data <- file.path(root, "theoph", "data", "old.csv")
+  file.copy(p$data, old_data)
+  older <- theoph_run_spec(root, "r1", submitted_at = Sys.time() - 10800)
+  older$run$inputs[[1]] <- c(list(role = "data"), file_record(old_data, root))
+  old2 <- theoph_run_spec(root, "r2", submitted_at = Sys.time() - 7200)
+  old2$run$inputs[[1]] <- c(list(role = "data"), file_record(old_data, root))
+  latest <- theoph_run_spec(root, "r3", submitted_at = Sys.time() - 3600)
+  s <- local_store_with_runs(list(older, old2, latest), root = root)
+
+  res <- run_status(old_data, store = s$store)
+  expect_equal(nrow(res), 1L)
+  expect_equal(res$condition, "untracked")
+  expect_true(is.na(res$project_file))
+  expect_equal(res$details, "recorded only by an older run (r2)")
+
+  unlink(old_data)
+  res <- run_status(old_data, store = s$store)
+  expect_equal(res$condition, "untracked")
+  expect_equal(res$details, "recorded only by an older run (r2)")
 })
