@@ -577,8 +577,14 @@ monitor_jobs <- function(
     }
     running_jobs <- setdiff(running_jobs, completed_now)
 
-    if (sq_failures >= sq_failure_limit) {
-      abandoned <- running_jobs[!is.na(job_id[running_jobs])]
+    # Runs with a job ID are given up once; runs without one (found by their
+    # result files) keep being monitored.
+    abandoned <- if (sq_failures >= sq_failure_limit) {
+      running_jobs[!is.na(job_id[running_jobs])]
+    } else {
+      integer()
+    }
+    if (length(abandoned) > 0L) {
       running_jobs <- setdiff(running_jobs, abandoned)
       message(
         "sq failed ",

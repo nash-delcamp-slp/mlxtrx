@@ -149,3 +149,9 @@ test_that("check_completion_status and check_project_file_status include .pkx by
   files <- check_project_file_status(file.path(s$root, "pkx"), store = s$store)
   expect_equal(nrow(files), 1L)
 })
+
+test_that("path_key() ignores the case of a Windows drive letter only", {
+  expect_equal(path_key("c:/proj/run1.mlxtran"), path_key("C:/proj/run1.mlxtran"))
+  expect_false(path_key("C:/proj/Run1.mlxtran") == path_key("C:/proj/run1.mlxtran"))
+  expect_false(path_key("/tmp/Proj/a.txt") == path_key("/tmp/proj/a.txt"))
+})

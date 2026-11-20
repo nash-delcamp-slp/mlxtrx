@@ -171,3 +171,9 @@ test_that("a retry whose attempt another retrier took returns NULL", {
   expect_null(claim_completion(d, retry = TRUE))
   expect_false(dir.exists(file.path(d, "completion-3")))
 })
+
+test_that("path_to_record() matches the store folder whatever the drive letter case", {
+  rec <- path_to_record("c:/proj/data/pk.csv", "C:/proj")
+  expect_false(rec$absolute)
+  expect_equal(rec$path, "data/pk.csv")
+})

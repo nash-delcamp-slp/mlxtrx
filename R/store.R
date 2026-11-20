@@ -131,8 +131,8 @@ path_to_record <- function(path, root) {
   if (is_builtin_path(path)) {
     return(list(path = path, absolute = FALSE, builtin = TRUE))
   }
-  p <- fs::path_norm(fs::path_abs(path))
-  r <- fs::path_norm(fs::path_abs(root))
+  p <- fs::path_norm(fs::path_abs(upper_drive_letter(path)))
+  r <- fs::path_norm(fs::path_abs(upper_drive_letter(root)))
   if (fs::path_has_parent(p, r)) {
     list(path = as.character(fs::path_rel(p, r)), absolute = FALSE)
   } else {
@@ -207,4 +207,11 @@ highest_completion_attempt <- function(run_dir) {
 # Software version such as "2024R1" for a command, or NA when not recognised.
 cmd_software_version <- function(cmd) {
   stringr::str_extract(cmd_version_dir(cmd), "20\\d\\dR\\d")
+}
+
+# `path` with a leading Windows drive letter in upper case ("c:/x" becomes
+# "C:/x"). Windows treats drive letters case-insensitively; the rest of the
+# path keeps its case.
+upper_drive_letter <- function(path) {
+  sub("^([a-z]):", "\\U\\1:", path, perl = TRUE)
 }
