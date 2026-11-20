@@ -8,7 +8,7 @@
 #'
 #' What `path` covers:
 #' \itemize{
-#'   \item a directory: every `.mlxtran`, `.smlx` and `.pkx` file under it,
+#'   \item a directory: every `.mlxtran`, `.pkx` and `.smlx` file under it,
 #'     recursively, one row each (as in [check_completion_status()]);
 #'   \item a project file: one row;
 #'   \item a file recorded as an input or output of the latest run of some
@@ -146,7 +146,7 @@ status_path_key <- function(path) {
 # `submitted_at`. An untracked path that older runs recorded gets a note
 # naming the most recent of them.
 status_targets <- function(p, files, known) {
-  ext <- c("mlxtran", "smlx", "pkx")
+  ext <- c("mlxtran", "pkx", "smlx")
   rows <- function(project_file, note = NA_character_) {
     data.frame(
       path = rep(p, length(project_file)),

@@ -48,7 +48,7 @@ state), the same rule as \code{\link[=check_completion_status]{check_completion_
 \details{
 What \code{path} covers:
 \itemize{
-\item a directory: every \code{.mlxtran}, \code{.smlx} and \code{.pkx} file under it,
+\item a directory: every \code{.mlxtran}, \code{.pkx} and \code{.smlx} file under it,
 recursively, one row each (as in \code{\link[=check_completion_status]{check_completion_status()}});
 \item a project file: one row;
 \item a file recorded as an input or output of the latest run of some

@@ -1,11 +1,11 @@
-#' Check Monolix/Simulx/PKanalix config file
+#' Check Monolix/PKanalix/Simulx config file
 #'
 #' Checks if the relevant config.ini file contains required export settings
 #' for charts data: `exportChartsData=true` and `export-charts-datasets=true`
 #' in `[misc]`, plus `exportVPCSimulations=true` for Monolix and Simulx.
 #' In interactive sessions, offers to fix missing settings.
 #'
-#' @param cmd Monolix, Simulx or PKanalix command being executed. Defaults to
+#' @param cmd Monolix, PKanalix or Simulx command being executed. Defaults to
 #'   `"mono24"`
 #' @param offer_fix Whether to offer interactive fixes. Defaults to `interactive()`
 #'
@@ -292,8 +292,8 @@ show_ini_diff <- function(
 
 #' Lixoft version directory for a command
 #'
-#' Maps a Monolix, Simulx or PKanalix command (grid wrapper such as `mono24`
-#' or `pk24`, or a `monolix.sh`/`simulx.sh`/`pkanalix.sh` path) to its
+#' Maps a Monolix, PKanalix or Simulx command (grid wrapper such as `mono24`
+#' or `pk24`, or a `monolix.sh`/`pkanalix.sh`/`simulx.sh` path) to its
 #' directory under `~/lixoft`, e.g.
 #' `"monolix/monolix2024R1"`.
 #'

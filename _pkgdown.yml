@@ -1,0 +1,37 @@
+url: https://nash-delcamp-slp.github.io/mlxtrx/
+template:
+  bootstrap: 5
+
+reference:
+  - title: Launch runs
+    desc: Submit Monolix, PKanalix and Simulx projects and record each run.
+    contents:
+      - mono
+      - pk
+      - sim
+  - title: Status
+    desc: One condition per model, as a data frame or a printed report.
+    contents:
+      - run_status
+      - print_report_summary
+  - title: File checks
+    desc: Per-file and per-project checks against the recorded runs.
+    contents:
+      - check_completion_status
+      - check_project_file_status
+      - check_input_file_status
+      - check_output_file_status
+      - check_output_files
+  - title: Results
+    desc: Recorded runs and their statistics as one table.
+    contents:
+      - runs_data
+      - runs_table
+      - get_run_files
+  - title: Store and recovery
+    contents:
+      - default_store
+      - finalize_runs
+  - title: Setup
+    contents:
+      - check_config_ini

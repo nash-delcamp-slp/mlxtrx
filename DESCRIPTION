@@ -1,9 +1,11 @@
 Package: mlxtrx
-Title: Track Monolix Runs
+Title: Track MonolixSuite Runs
 Version: 0.0.0.9000
 Authors@R: 
     person("Nash", "Delcamp", , "nash.delcamp@simulations-plus.com", role = c("aut", "cre"))
-Description: Track grid execution of Monolix, Simulx and PKanalix runs.
+Description: Track grid execution of Monolix, PKanalix and Simulx runs.
+URL: https://nash-delcamp-slp.github.io/mlxtrx/, https://github.com/nash-delcamp-slp/mlxtrx
+BugReports: https://github.com/nash-delcamp-slp/mlxtrx/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -15,12 +17,13 @@ Imports:
     fs,
     gt,
     jsonlite,
-    lixoftConnectors,
     lubridate,
+    R6,
     readr,
     rlang,
     stringr
 Suggests:
+    lixoftConnectors,
     testthat (>= 3.0.0),
     withr
 Config/testthat/edition: 3

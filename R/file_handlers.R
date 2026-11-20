@@ -1,5 +1,6 @@
 #' Base file handler class
 #' @keywords internal
+#' @importFrom R6 R6Class
 FileHandler <- R6::R6Class(
   "FileHandler",
   public = list(
@@ -354,6 +355,13 @@ SimulxHandler <- R6::R6Class(
       if (!dir.exists(monolix_suite_path)) {
         warning(
           "Monolix Suite installation not detected in the `mlxtrx.monolix_suite` option.",
+          call. = FALSE
+        )
+        return(list())
+      }
+      if (!requireNamespace("lixoftConnectors", quietly = TRUE)) {
+        warning(
+          "Package lixoftConnectors is needed to read Simulx project inputs.",
           call. = FALSE
         )
         return(list())

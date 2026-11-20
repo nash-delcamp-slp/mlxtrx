@@ -1,11 +1,11 @@
-#' Submit Monolix, Simulx and PKanalix jobs to grid and record runs in the run store
+#' Submit Monolix, PKanalix and Simulx jobs to grid and record runs in the run store
 #'
-#' Executes one or more commands that submit Monolix, Simulx or PKanalix jobs
-#' to the grid and records each run in the run store. `sim()` and `pk()` call
-#' `mono()` with the Simulx and PKanalix commands.
+#' Executes one or more commands that submit Monolix, PKanalix or Simulx jobs
+#' to the grid and records each run in the run store. `pk()` and `sim()` call
+#' `mono()` with the PKanalix and Simulx commands.
 #'
 #' @param path Character vector. Paths to existing Monolix (`.mlxtran`),
-#'   Simulx (`.smlx`) or PKanalix (`.pkx`) project files.
+#'   PKanalix (`.pkx`) or Simulx (`.smlx`) project files.
 #' @param output_dir Character vector or `NULL`. Directory for
 #'   output files relative to the project path.
 #'   Passed as `--output-dir` argument to the Monolix command.
@@ -28,12 +28,12 @@
 #'   Passed as `--config` argument to the Monolix command.
 #'   Should be same length as `path`, length 1, or `NULL`.
 #' @param cmd Character vector. The command to execute. Must be
-#'   identifiable by `Sys.which()` and contain "mono", "sim" or "pk" in the
-#'   name: a grid command such as `mono24`, `sim24` or `pk24`, or a local
-#'   runner `monolix.sh`, `simulx.sh` or `pkanalix.sh`. Defaults to the
+#'   identifiable by `Sys.which()` and contain "mono", "pk" or "sim" in the
+#'   name: a grid command such as `mono24`, `pk24` or `sim24`, or a local
+#'   runner `monolix.sh`, `pkanalix.sh` or `simulx.sh`. Defaults to the
 #'   `mlxtrx.monolix_cmd` option or "mono24" for `mono()`, the
-#'   `mlxtrx.simulx_cmd` option or "sim24" for `sim()` and the
-#'   `mlxtrx.pkanalix_cmd` option or "pk24" for `pk()`. Should be same length
+#'   `mlxtrx.pkanalix_cmd` option or "pk24" for `pk()` and the
+#'   `mlxtrx.simulx_cmd` option or "sim24" for `sim()`. Should be same length
 #'   as `path` or length 1.
 #' @param store Character scalar. The run store directory (see
 #'   [default_store()]). Defaults to `default_store()`. Created when the first
@@ -118,14 +118,14 @@ mono <- function(
 ) {
   assertthat::assert_that(
     all(file.exists(path)),
-    msg = "All `path`s should be paths to existing Monolix, Simulx or PKanalix project files."
+    msg = "All `path`s should be paths to existing Monolix, PKanalix or Simulx project files."
   )
 
   assertthat::assert_that(
     is.character(cmd),
     all(Sys.which(cmd) != ""),
-    all(grepl("mono|sim|pk", cmd, ignore.case = TRUE)),
-    msg = "All `cmd` commands must be 'mono', 'sim' or 'pk' commands that can be identified by `Sys.which()`."
+    all(grepl("mono|pk|sim", cmd, ignore.case = TRUE)),
+    msg = "All `cmd` commands must be 'mono', 'pk' or 'sim' commands that can be identified by `Sys.which()`."
   )
 
   assertthat::assert_that(
@@ -250,30 +250,10 @@ mono <- function(
   return(run_ids)
 }
 
-#' @rdname mono
-#' @export
-sim <- function(
-  path,
-  thread = NULL,
-  mode = NULL,
-  cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
-  store = default_store(),
-  require_charts_data = FALSE
-) {
-  mono(
-    path = path,
-    thread = thread,
-    mode = mode,
-    cmd = cmd,
-    store = store,
-    require_charts_data = require_charts_data
-  )
-}
-
 # Whether `cmd` is a local runner, which runs the project in the foreground
 # and has finished when it returns.
 is_local_runner <- function(cmd) {
-  basename(cmd) %in% c("monolix.sh", "simulx.sh", "pkanalix.sh")
+  basename(cmd) %in% c("monolix.sh", "pkanalix.sh", "simulx.sh")
 }
 
 #' @rdname mono
@@ -285,6 +265,26 @@ pk <- function(
   cmd = getOption("mlxtrx.pkanalix_cmd", "pk24"),
   store = default_store(),
   require_charts_data = TRUE
+) {
+  mono(
+    path = path,
+    thread = thread,
+    mode = mode,
+    cmd = cmd,
+    store = store,
+    require_charts_data = require_charts_data
+  )
+}
+
+#' @rdname mono
+#' @export
+sim <- function(
+  path,
+  thread = NULL,
+  mode = NULL,
+  cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
+  store = default_store(),
+  require_charts_data = FALSE
 ) {
   mono(
     path = path,
