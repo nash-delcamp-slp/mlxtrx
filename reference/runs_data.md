@@ -53,19 +53,24 @@ runs_data(
 A data frame with run information, newest submission first. Contains
 columns: `run_id` (character), `job_id`, `project_name`, `project_path`,
 `data_file`, `model_file`, `thread`, `tool`, `mode`, `config`,
-`project_file_timestamp`, `project_file_sha256`, `cmd`, `submitted_at`,
-`completed_at`, `state`, `recorded_late`. `state` is one of
-`"submit_failed"`, `"unrecorded"`, `"completion_crashed"`, `"recorded"`,
-`"recorded_late"` or `"no_results"` (recorded, but a Monolix or PKanalix
-run without parsed results). When `include_files = TRUE`, additionally
-contains one row per input and output file with `io_type`, `file_name`,
-`file_path`, `file_timestamp` and `sha256`. When
-`include_summary = TRUE`, additionally contains the run statistics: for
-Monolix, those of summary.txt and one `n_obs_<type>` column per
-observation type; for PKanalix, `tasks` (the tasks with results, e.g.
-`"nca,ca,be"`), `n_individuals`, the compartmental analysis criteria
-`ofv` (-2LL), `aic`, `bic` and `ca_cost`, and per bioequivalence
-parameter the columns `be_<parameter>_ratio`, `be_<parameter>_ci_lower`,
+`project_file_timestamp`, `project_file_sha256`, `cmd`,
+`software_version`, `user`, `submitted_at`, `completed_at`, `state`,
+`recorded_late`. `user` is the account that launched the run.
+`software_version` is the MonolixSuite version stated in the run's
+`summary.txt` (Monolix, PKanalix) when recorded, else the version
+implied by the command (e.g. `"2024R1"` for `mono24`), else `NA`.
+`state` is one of `"submit_failed"`, `"unrecorded"`,
+`"completion_crashed"`, `"recorded"`, `"recorded_late"` or
+`"no_results"` (recorded, but a Monolix or PKanalix run without parsed
+results). When `include_files = TRUE`, additionally contains one row per
+input and output file with `io_type`, `file_name`, `file_path`,
+`file_timestamp` and `sha256`. When `include_summary = TRUE`,
+additionally contains the run statistics: for Monolix, those of
+summary.txt and one `n_obs_<type>` column per observation type; for
+PKanalix, `tasks` (the tasks with results, e.g. `"nca,ca,be"`),
+`n_individuals`, the compartmental analysis criteria `ofv` (-2LL),
+`aic`, `bic` and `ca_cost`, and per bioequivalence parameter the columns
+`be_<parameter>_ratio`, `be_<parameter>_ci_lower`,
 `be_<parameter>_ci_upper` and `be_<parameter>_bioequivalent` (logical).
 A run with more than one formulation gets
 `be_<formulation>_<parameter>_...` columns. Columns of the other tool

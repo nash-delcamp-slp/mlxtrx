@@ -89,11 +89,15 @@ tables for PKanalix). Default is <code>FALSE</code>.</p></dd>
     <p>A data frame with run information, newest submission first. Contains
 columns: <code>run_id</code> (character), <code>job_id</code>, <code>project_name</code>, <code>project_path</code>,
 <code>data_file</code>, <code>model_file</code>, <code>thread</code>, <code>tool</code>, <code>mode</code>, <code>config</code>,
-<code>project_file_timestamp</code>, <code>project_file_sha256</code>, <code>cmd</code>, <code>submitted_at</code>,
-<code>completed_at</code>, <code>state</code>, <code>recorded_late</code>. <code>state</code> is one of <code>"submit_failed"</code>,
-<code>"unrecorded"</code>, <code>"completion_crashed"</code>, <code>"recorded"</code>, <code>"recorded_late"</code> or
-<code>"no_results"</code> (recorded, but a Monolix or PKanalix run without parsed
-results).
+<code>project_file_timestamp</code>, <code>project_file_sha256</code>, <code>cmd</code>, <code>software_version</code>,
+<code>user</code>, <code>submitted_at</code>, <code>completed_at</code>, <code>state</code>, <code>recorded_late</code>.
+<code>user</code> is the account that launched the run.
+<code>software_version</code> is the MonolixSuite version stated in the run's
+<code>summary.txt</code> (Monolix, PKanalix) when recorded, else the version implied
+by the command (e.g. <code>"2024R1"</code> for <code>mono24</code>), else <code>NA</code>.
+<code>state</code> is one of <code>"submit_failed"</code>, <code>"unrecorded"</code>,
+<code>"completion_crashed"</code>, <code>"recorded"</code>, <code>"recorded_late"</code> or <code>"no_results"</code>
+(recorded, but a Monolix or PKanalix run without parsed results).
 When <code>include_files = TRUE</code>, additionally contains one row per input and
 output file with <code>io_type</code>, <code>file_name</code>, <code>file_path</code>, <code>file_timestamp</code> and
 <code>sha256</code>.
