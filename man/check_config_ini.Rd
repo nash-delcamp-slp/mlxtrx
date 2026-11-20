@@ -2,7 +2,7 @@
 % Please edit documentation in R/check_config_ini.R
 \name{check_config_ini}
 \alias{check_config_ini}
-\title{Check Monolix/Simulx/PKanalix config file}
+\title{Check Monolix/PKanalix/Simulx config file}
 \usage{
 check_config_ini(
   cmd = getOption("mlxtrx.monolix_cmd", "mono24"),
@@ -10,7 +10,7 @@ check_config_ini(
 )
 }
 \arguments{
-\item{cmd}{Monolix, Simulx or PKanalix command being executed. Defaults to
+\item{cmd}{Monolix, PKanalix or Simulx command being executed. Defaults to
 \code{"mono24"}}
 
 \item{offer_fix}{Whether to offer interactive fixes. Defaults to \code{interactive()}}

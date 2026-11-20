@@ -2,9 +2,9 @@
 % Please edit documentation in R/mono.R
 \name{mono}
 \alias{mono}
-\alias{sim}
 \alias{pk}
-\title{Submit Monolix, Simulx and PKanalix jobs to grid and record runs in the run store}
+\alias{sim}
+\title{Submit Monolix, PKanalix and Simulx jobs to grid and record runs in the run store}
 \usage{
 mono(
   path,
@@ -18,15 +18,6 @@ mono(
   require_charts_data = TRUE
 )
 
-sim(
-  path,
-  thread = NULL,
-  mode = NULL,
-  cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
-  store = default_store(),
-  require_charts_data = FALSE
-)
-
 pk(
   path,
   thread = NULL,
@@ -35,10 +26,19 @@ pk(
   store = default_store(),
   require_charts_data = TRUE
 )
+
+sim(
+  path,
+  thread = NULL,
+  mode = NULL,
+  cmd = getOption("mlxtrx.simulx_cmd", "sim24"),
+  store = default_store(),
+  require_charts_data = FALSE
+)
 }
 \arguments{
 \item{path}{Character vector. Paths to existing Monolix (\code{.mlxtran}),
-Simulx (\code{.smlx}) or PKanalix (\code{.pkx}) project files.}
+PKanalix (\code{.pkx}) or Simulx (\code{.smlx}) project files.}
 
 \item{output_dir}{Character vector or \code{NULL}. Directory for
 output files relative to the project path.
@@ -67,12 +67,12 @@ Passed as \code{--config} argument to the Monolix command.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{cmd}{Character vector. The command to execute. Must be
-identifiable by \code{Sys.which()} and contain "mono", "sim" or "pk" in the
-name: a grid command such as \code{mono24}, \code{sim24} or \code{pk24}, or a local
-runner \code{monolix.sh}, \code{simulx.sh} or \code{pkanalix.sh}. Defaults to the
+identifiable by \code{Sys.which()} and contain "mono", "pk" or "sim" in the
+name: a grid command such as \code{mono24}, \code{pk24} or \code{sim24}, or a local
+runner \code{monolix.sh}, \code{pkanalix.sh} or \code{simulx.sh}. Defaults to the
 \code{mlxtrx.monolix_cmd} option or "mono24" for \code{mono()}, the
-\code{mlxtrx.simulx_cmd} option or "sim24" for \code{sim()} and the
-\code{mlxtrx.pkanalix_cmd} option or "pk24" for \code{pk()}. Should be same length
+\code{mlxtrx.pkanalix_cmd} option or "pk24" for \code{pk()} and the
+\code{mlxtrx.simulx_cmd} option or "sim24" for \code{sim()}. Should be same length
 as \code{path} or length 1.}
 
 \item{store}{Character scalar. The run store directory (see
@@ -88,9 +88,9 @@ PKanalix, \code{exportVPCSimulations=true} (see \code{\link[=check_config_ini]{c
 Character vector. The run IDs of all jobs, in the order of \code{path}.
 }
 \description{
-Executes one or more commands that submit Monolix, Simulx or PKanalix jobs
-to the grid and records each run in the run store. \code{sim()} and \code{pk()} call
-\code{mono()} with the Simulx and PKanalix commands.
+Executes one or more commands that submit Monolix, PKanalix or Simulx jobs
+to the grid and records each run in the run store. \code{pk()} and \code{sim()} call
+\code{mono()} with the PKanalix and Simulx commands.
 }
 \details{
 Jobs are submitted one at a time. For each job, this function:
