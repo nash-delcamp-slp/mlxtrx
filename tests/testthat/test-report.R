@@ -1,72 +1,74 @@
-local_report_store <- function(.env = parent.frame()) {
-  local_theoph_store(
-    list(
-      list(id = "r1", submitted_at = Sys.time() - 7200),
-      list(
-        id = "r2",
-        submitted_at = Sys.time() - 3600,
-        recorded_late = TRUE,
-        flag_summary = TRUE
-      )
-    ),
-    .env = .env
-  )
+# A theoph root with one clean model and a second, never-run model.
+local_two_model_store <- function(.env = parent.frame()) {
+  s <- local_theoph_store(list(list(id = "r1")), .env = .env)
+  file.copy(s$project, file.path(dirname(s$project), "other.mlxtran"))
+  s
 }
 
-test_that("generate_project_report counts late completions and outputs", {
-  s <- local_report_store()
-  report <- generate_project_report(
-    s$root,
-    output_files = s$summary,
-    store = s$store
-  )
-  expect_equal(report$summary$total_project_files, 1L)
-  expect_equal(report$summary$project_files_completed, 1L)
-  expect_equal(report$summary$project_files_completed_late, 1L)
-  expect_equal(report$summary$output_files_late, 0L)
-  expect_equal(report$summary$output_files_suspect, 1L)
-  expect_equal(report$summary$output_files_alignment_issues, 1L)
+report_lines <- function(...) {
+  capture.output(print_report_summary(...))
+}
+
+test_that("the counts block lists each condition with padded names", {
+  s <- local_two_model_store()
+  out <- report_lines(s$root, store = s$store)
+  expect_equal(out[[1]], "=== RUN STATUS REPORT ===")
+  expect_match(out[[2]], paste0("^Path: ", s$root), fixed = FALSE)
+  expect_match(out[[3]], "^Generated: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} ")
+  expect_true("Models: 2" %in% out)
+  expect_true("  never_run  1" %in% out)
+  expect_true("  clean      1" %in% out)
 })
 
-test_that("generate_project_report counts outputs recorded late", {
-  s <- local_theoph_store(list(list(id = "r1", recorded_late = TRUE)))
-  report <- generate_project_report(s$root, store = s$store)
-  expect_equal(report$summary$output_files_late, 1L)
-  expect_equal(report$summary$output_files_suspect, 0L)
-})
-
-test_that("print_report_summary prints late recordings", {
-  s <- local_report_store()
-  expect_output(
-    print_report_summary(s$root, store = s$store),
-    "of which recorded late: 1",
-    fixed = TRUE
+test_that("a not-clean model shows other conditions and details", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  writeLines("changed", s$data)
+  writeLines("changed", s$summary)
+  out <- report_lines(s$root, store = s$store)
+  expect_true("Needs attention:" %in% out)
+  expect_true(
+    "  theoph/theoph.mlxtran  inputs_changed (output_edited)" %in% out
   )
-  expect_output(
-    print_report_summary(s$root, store = s$store),
-    "Outputs flagged suspect: 1",
-    fixed = TRUE
-  )
-  s2 <- local_theoph_store(list(list(id = "r1", recorded_late = TRUE)))
-  expect_output(
-    print_report_summary(s2$root, store = s2$store),
-    "Outputs recorded late: 1",
-    fixed = TRUE
+  expect_true(
+    "    theoph/data/theoph.csv modified; theoph/theoph/summary.txt modified" %in%
+      out
   )
 })
 
-test_that("a run without results is counted and printed apart from incomplete", {
-  root <- local_theoph_root()
-  spec <- theoph_run_spec(root, "r1")
-  spec$completions$completion$summary <- NULL
-  s <- local_store_with_runs(list(spec), root = root)
-  report <- generate_project_report(root, store = s$store)
-  expect_equal(report$summary$project_files_no_results, 1L)
-  expect_equal(report$summary$project_files_incomplete, 0L)
-  expect_equal(report$summary$project_files_completed, 0L)
-  expect_output(
-    print_report_summary(root, store = s$store),
-    "Finished without results: 1",
-    fixed = TRUE
-  )
+test_that("a model without details has no details line", {
+  s <- local_two_model_store()
+  out <- report_lines(s$root, store = s$store)
+  expect_equal(out[[length(out)]], "  theoph/other.mlxtran  never_run")
+  expect_false(any(grepl("^  theoph/theoph.mlxtran", out)))
+})
+
+test_that("all clean prints one line and no attention block", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  out <- report_lines(s$root, store = s$store)
+  expect_true("All models clean." %in% out)
+  expect_false(any(grepl("Needs attention", out)))
+})
+
+test_that("an empty directory reports no models", {
+  root <- withr::local_tempdir()
+  s <- local_store_with_runs(list(), root = root)
+  out <- report_lines(root, store = s$store)
+  expect_true("Models: 0" %in% out)
+  expect_true("No models found." %in% out)
+})
+
+test_that("untracked paths are shown by path", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  stray <- file.path(s$root, "notes.txt")
+  writeLines("x", stray)
+  out <- report_lines(stray, store = s$store)
+  expect_true(any(grepl("notes.txt  untracked$", out)))
+})
+
+test_that("the invisible return equals run_status()", {
+  s <- local_two_model_store()
+  capture.output(r <- print_report_summary(s$root, store = s$store))
+  expect_equal(r, run_status(s$root, store = s$store))
+  capture.output(v <- withVisible(print_report_summary(s$root, store = s$store)))
+  expect_false(v$visible)
 })
