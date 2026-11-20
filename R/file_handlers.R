@@ -10,11 +10,12 @@ FileHandler <- R6::R6Class(
       stop("parse_file must be implemented by subclass")
     },
 
-    #' @description Get input files from parsed content
-    #' @param parsed_content Result from parse_file()
-    #' @param project_dir Directory containing the project file
-    get_input_files = function(parsed_content, project_dir) {
-      stop("get_input_files must be implemented by subclass")
+    #' @description Input files of a project
+    #' @param path Path to project file
+    #' @return A list of `list(role, path)`, `role` one of `"data"`,
+    #'   `"model"` or `"other"`
+    get_input_files = function(path) {
+      list()
     },
 
     #' @description Get expected output directory
@@ -133,25 +134,12 @@ MonolixHandler <- R6::R6Class(
 
       return(result)
     },
-    #' @description Get input files from parsed content
-    #' @param parsed_content Result from parse_file()
-    #' @param project_dir Directory containing the project file
-    get_input_files = function(parsed_content, project_dir) {
-      files <- list()
-
-      # Data file
-      data_file <- parsed_content$DATAFILE$FILEINFO$file
-      if (!is.null(data_file)) {
-        files$data_file <- resolve_file_path(data_file, project_dir)
-      }
-
-      # Model file
-      model_file <- parsed_content$MODEL$LONGITUDINAL$file
-      if (!is.null(model_file)) {
-        files$model_file <- resolve_file_path(model_file, project_dir)
-      }
-
-      files
+    #' @description Input files of a project: every file the project
+    #'   references (see [project_file_references()])
+    #' @param path Path to project file
+    #' @return A list of `list(role, path)`
+    get_input_files = function(path) {
+      project_file_references(path)
     },
     #' @description Get expected output directory
     #' @param path Path to project file
@@ -340,98 +328,70 @@ MonolixHandler <- R6::R6Class(
 )
 
 #' Simulx file handler
+#'
+#' Reads `.smlx` projects, which share the `.mlxtran` section syntax. The
+#' input files are every file the project references. The output directory is
+#' the `exportpath` of `<SIMULX>` `[SETTINGS]`, or the project name next to the
+#' project file without one. A run has results when it wrote files under
+#' `Simulation/` or `Endpoints/` in the output directory; `tasks` names the
+#' tasks with results (`simulation`, `endpoint`).
 #' @keywords internal
 SimulxHandler <- R6::R6Class(
   "SimulxHandler",
-  inherit = FileHandler,
+  inherit = MonolixHandler,
   public = list(
-    #' @description Parse project file and extract metadata
-    #' @param path Path to project file
-    parse_file = function(path) {
-      monolix_suite_path <- getOption(
-        "mlxtrx.monolix_suite",
-        "/srv/Lixoft/MonolixSuite2024R1/"
-      )
-      if (!dir.exists(monolix_suite_path)) {
-        warning(
-          "Monolix Suite installation not detected in the `mlxtrx.monolix_suite` option.",
-          call. = FALSE
-        )
-        return(list())
-      }
-      if (!requireNamespace("lixoftConnectors", quietly = TRUE)) {
-        warning(
-          "Package lixoftConnectors is needed to read Simulx project inputs.",
-          call. = FALSE
-        )
-        return(list())
-      }
-      suppressMessages({
-        lixoftConnectors::initializeLixoftConnectors(
-          "simulx",
-          path = monolix_suite_path,
-          force = TRUE
-        )
-      })
-      loaded <- lixoftConnectors::loadProject(path)
-      if (loaded) {
-        # for the sake of matching parsed mlxtran output, return a similar structure.
-        result <- list(
-          MODEL = list(
-            LONGITUDINAL = list(
-              file = lixoftConnectors::getStructuralModel()
-            )
-          )
-        )
-        # initialize to another software to unload the project.
-        suppressMessages({
-          lixoftConnectors::initializeLixoftConnectors(
-            "monolix",
-            path = monolix_suite_path,
-            force = TRUE
-          )
-          lixoftConnectors::initializeLixoftConnectors(
-            "simulx",
-            path = monolix_suite_path,
-            force = TRUE
-          )
-        })
-      } else {
-        return(list())
-        warning(
-          "Could not load project for input extraction: ",
-          path,
-          call. = FALSE
-        )
-      }
-      result
-    },
-    #' @description Get input files from parsed content
-    #' @param parsed_content Result from parse_file()
-    #' @param project_dir Directory containing the project file
-    get_input_files = function(parsed_content, project_dir) {
-      # Simulx has different input file structure
-      files <- list()
-
-      # Model file
-      model_file <- parsed_content$MODEL$LONGITUDINAL$file
-      if (!is.null(model_file)) {
-        files$model_file <- resolve_file_path(model_file, project_dir)
-      }
-
-      files
-    },
     #' @description Get expected output directory
     #' @param path Path to project file
     #' @param output_dir User-specified output directory (may be NULL)
     get_output_dir = function(path, output_dir = NULL) {
+      exportpath <- self$parse_file(path)$SIMULX$SETTINGS$GLOBAL$exportpath
       path_based_output_dir <- file.path(
         dirname(path),
-        fs::path_ext_remove(basename(path))
+        exportpath %||% fs::path_ext_remove(basename(path))
       )
-      current_output_dir <- output_dir %||%
-        path_based_output_dir
-      resolve_output_dir(path = path, output_dir = current_output_dir)
+      resolve_output_dir(
+        path = path,
+        output_dir = output_dir %||% path_based_output_dir
+      )
+    },
+
+    #' @description Result files of a run into `output_dir`: the files under
+    #'   `Simulation/` and `Endpoints/`
+    #' @param output_dir Output directory of the run
+    #' @param files Character vector of candidate file paths, such as the
+    #'   recorded outputs of a run. `NULL` (default) looks in `output_dir`.
+    #' @return The result files among `files`, or those that exist in
+    #'   `output_dir` when `files` is `NULL`
+    result_files = function(output_dir, files = NULL) {
+      if (is.null(files)) {
+        files <- list.files(
+          file.path(output_dir, c("Simulation", "Endpoints")),
+          recursive = TRUE,
+          full.names = TRUE
+        )
+      }
+      if (length(files) == 0L) {
+        return(character())
+      }
+      rel <- as.character(fs::path_rel(fs::path_norm(files), fs::path_norm(output_dir)))
+      files[grepl("^(Simulation|Endpoints)/", rel)]
+    },
+
+    #' @description Parse Simulx result files into the content of
+    #'   `summary.json`: the tasks with results
+    #' @param files Result files, as returned by `result_files()`
+    #' @return A list with `summary_stats` (`tasks`) and `observations`
+    #'   (empty), or `NULL` when `files` is empty
+    parse_results = function(files) {
+      if (length(files) == 0L) {
+        return(NULL)
+      }
+      has <- function(folder) any(grepl(paste0("(^|[/\\\\])", folder, "[/\\\\]"), files))
+      tasks <- c("simulation", "endpoint")[c(has("Simulation"), has("Endpoints"))]
+      list(
+        summary_stats = list(tasks = paste(tasks, collapse = ",")),
+        observations = stats::setNames(list(), character())
+      )
     }
   )
 )
@@ -439,8 +399,10 @@ SimulxHandler <- R6::R6Class(
 #' PKanalix file handler
 #'
 #' Reads `.pkx` projects, which share the `.mlxtran` section syntax. The input
-#' files are the data file and the model used by compartmental analysis
-#' (`<MODEL>` `[LONGITUDINAL]`), when the project has one. The output
+#' files are every file the project references (see
+#' [project_file_references()]): the data file, the model used by
+#' compartmental analysis when the project has one, and files such as
+#' separate dose tables. The output
 #' directory is the `exportpath` of `<PKANALIX>` `[SETTINGS]`, or the project
 #' name next to the project file without one.
 #'
@@ -609,18 +571,72 @@ count_pkanalix_ids <- function(path) {
   length(unique(ids))
 }
 
-# Helper function to resolve file paths
-resolve_file_path <- function(file_path, project_dir) {
-  if (fs::is_absolute_path(file_path) || file.exists(file_path)) {
-    return(normalizePath(file_path, mustWork = FALSE))
+#' Files referenced by a MonolixSuite project file
+#'
+#' Scans a `.mlxtran`, `.pkx` or `.smlx` project for quoted values of `file`,
+#' `origin` and `path` keys, e.g. `file = 'data/pk.csv'`,
+#' `additionalColumns = {{file='data/regressors.txt'}}` or
+#' `administrations={{file={path='data/doses.xlsx', sheet='doses'}}}`.
+#' Comment lines (starting with `;`) are skipped. A line `file = ...` under
+#' `[FILEINFO]` gives role `"data"`, under `[LONGITUDINAL]` role `"model"`;
+#' every other reference has role `"other"`. A file referenced more than once
+#' keeps its first role.
+#' Paths are resolved against the project's folder; built-in library models
+#' (`lib:...`) are kept as written.
+#'
+#' @param path Path to the project file.
+#' @return A list of `list(role, path)` in the order of the project file.
+#' @keywords internal
+project_file_references <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  section <- ""
+  refs <- list()
+  seen <- character()
+  for (line in trimws(lines)) {
+    if (grepl("^\\[.*\\]$", line)) {
+      section <- gsub("^\\[|\\]$", "", line)
+      next
+    }
+    if (grepl("^<.*>$", line)) {
+      section <- ""
+      next
+    }
+    if (startsWith(line, ";")) {
+      next
+    }
+    values <- stringr::str_match_all(
+      line,
+      "\\b(?:file|origin|path)\\s*=\\s*(['\"])(.*?)\\1"
+    )[[1]][, 3]
+    role <- if (grepl("^file\\s*=", line)) {
+      switch(section, FILEINFO = "data", LONGITUDINAL = "model", "other")
+    } else {
+      "other"
+    }
+    for (value in values) {
+      resolved <- if (is_builtin_path(value)) {
+        value
+      } else {
+        project_relative_path(value, dirname(path))
+      }
+      if (!resolved %in% seen) {
+        seen <- c(seen, resolved)
+        refs[[length(refs) + 1L]] <- list(role = role, path = resolved)
+      }
+    }
   }
+  refs
+}
 
-  candidate_path <- file.path(project_dir, file_path)
-  if (file.exists(candidate_path)) {
-    return(normalizePath(candidate_path))
+# A path from a project file as an absolute path: normalised when it exists,
+# else joined to the project folder (or kept when already absolute).
+project_relative_path <- function(file_path, project_dir) {
+  candidate <- if (fs::is_absolute_path(file_path)) {
+    file_path
+  } else {
+    file.path(project_dir, file_path)
   }
-
-  file_path # Return original if not found
+  if (file.exists(candidate)) normalizePath(candidate) else candidate
 }
 
 #' Get appropriate file handler for a given file extension
@@ -655,10 +671,9 @@ GenericHandler <- R6::R6Class(
     parse_file = function(path) {
       list()
     },
-    #' @description Get input files from parsed content
-    #' @param parsed_content Result from parse_file()
-    #' @param project_dir Directory containing the project file
-    get_input_files = function(parsed_content, project_dir) {
+    #' @description Input files of a project: none for unknown types
+    #' @param path Path to project file
+    get_input_files = function(path) {
       list()
     },
     #' @description Get expected output directory

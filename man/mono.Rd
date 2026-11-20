@@ -63,7 +63,9 @@ If \code{NULL} (default), the command uses \code{"basic"}.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{config}{Character vector or \code{NULL}. Configuration file path.
-Passed as \code{--config} argument to the Monolix command.
+Passed as \code{--config} argument to the Monolix command, and recorded as an
+input of the run (role \code{"config"}) so a later edit shows as a changed
+input.
 Should be same length as \code{path}, length 1, or \code{NULL}.}
 
 \item{cmd}{Character vector. The command to execute. Must be
@@ -116,12 +118,13 @@ submitted job has finished, then records each run's completion in a
 \verb{completion/} folder of the run: the output files written since submission
 (\code{outputs.json}), the statistics parsed from the run's results
 (\code{summary.json}: \code{summary.txt} for Monolix, the result tables under
-\code{PKanalix/IndividualParameters} for PKanalix) and, last, \code{done.json}.
-A Monolix or PKanalix run recorded without \code{summary.json} is in state
-\code{"no_results"} (see \code{\link[=runs_data]{runs_data()}}).
+\code{PKanalix/IndividualParameters} for PKanalix, the files under
+\verb{Simulation/} and \verb{Endpoints/} for Simulx) and, last, \code{done.json}.
+A Monolix, PKanalix or Simulx run recorded without \code{summary.json} is in
+state \code{"no_results"} (see \code{\link[=runs_data]{runs_data()}}).
 
-The local runners \code{monolix.sh}, \code{simulx.sh} and \code{pkanalix.sh} run the
-project in the foreground with \code{--no-gui} (\code{monolix.sh} and \code{pkanalix.sh});
+The local runners \code{monolix.sh}, \code{pkanalix.sh} and \code{simulx.sh} run the
+project in the foreground with \code{--no-gui};
 the submission succeeded when the command exits with status 0, and the run
 is recorded straight away.
 

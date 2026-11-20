@@ -329,3 +329,29 @@ test_that("completion reads outputs from the output dir resolved at launch", {
   expect_equal(outs$path, file.path(e$root, "a", "theoph", "theoph", "summary.txt"))
   expect_equal(res$summary$n_individuals, 12L)
 })
+
+test_that("a config file given to mono() is fingerprinted as an input", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  config <- file.path(dirname(e$paths[1]), "settings.ini")
+  writeLines("[misc]", config)
+  suppressMessages(
+    id <- mono(
+      e$paths[1],
+      config = "settings.ini",
+      store = e$store,
+      require_charts_data = FALSE
+    )
+  )
+  run <- read_run_json(e$store, id)
+  roles <- vapply(run$inputs, `[[`, "", "role")
+  expect_true("config" %in% roles)
+  rec <- run$inputs[[which(roles == "config")]]
+  expect_equal(rec$path, "a/theoph/settings.ini")
+  expect_equal(rec$sha256, calculate_sha256(config))
+
+  cat("verbose=true\n", file = config, append = TRUE)
+  status <- run_status(e$paths[1], store = e$store)
+  expect_equal(status$condition, "inputs_changed")
+  expect_match(status$details, "settings.ini modified")
+})

@@ -15,7 +15,6 @@ Imports:
     digest,
     dplyr,
     fs,
-    gt,
     jsonlite,
     lubridate,
     R6,
@@ -23,7 +22,6 @@ Imports:
     rlang,
     stringr
 Suggests:
-    lixoftConnectors,
     testthat (>= 3.0.0),
     withr
 Config/testthat/edition: 3

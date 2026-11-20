@@ -56,13 +56,6 @@ test_that("include_files gives one row per input and output file with sha256", {
   expect_false("md5_checksum" %in% names(d))
 })
 
-test_that("runs_table returns a gt table", {
-  s <- local_theoph_store(list(list(id = "r1")))
-  expect_s3_class(runs_table(s$store), "gt_tbl")
-  expect_s3_class(runs_table(s$store, include_files = TRUE), "gt_tbl")
-  expect_s3_class(runs_table(s$store, include_summary = TRUE), "gt_tbl")
-})
-
 test_that("get_run_files returns the files of the given runs", {
   root <- local_theoph_root()
   s <- local_store_with_runs(

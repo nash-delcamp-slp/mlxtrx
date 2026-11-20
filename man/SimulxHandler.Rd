@@ -8,16 +8,24 @@ Simulx file handler
 
 Simulx file handler
 }
+\details{
+Reads \code{.smlx} projects, which share the \code{.mlxtran} section syntax. The
+input files are every file the project references. The output directory is
+the \code{exportpath} of \verb{<SIMULX>} \verb{[SETTINGS]}, or the project name next to the
+project file without one. A run has results when it wrote files under
+\verb{Simulation/} or \verb{Endpoints/} in the output directory; \code{tasks} names the
+tasks with results (\code{simulation}, \code{endpoint}).
+}
 \keyword{internal}
-\section{Super class}{
-\code{\link[mlxtrx:FileHandler]{mlxtrx::FileHandler}} -> \code{SimulxHandler}
+\section{Super classes}{
+\code{\link[mlxtrx:FileHandler]{mlxtrx::FileHandler}} -> \code{\link[mlxtrx:MonolixHandler]{mlxtrx::MonolixHandler}} -> \code{SimulxHandler}
 }
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
-\item \href{#method-SimulxHandler-parse_file}{\code{SimulxHandler$parse_file()}}
-\item \href{#method-SimulxHandler-get_input_files}{\code{SimulxHandler$get_input_files()}}
 \item \href{#method-SimulxHandler-get_output_dir}{\code{SimulxHandler$get_output_dir()}}
+\item \href{#method-SimulxHandler-result_files}{\code{SimulxHandler$result_files()}}
+\item \href{#method-SimulxHandler-parse_results}{\code{SimulxHandler$parse_results()}}
 \item \href{#method-SimulxHandler-clone}{\code{SimulxHandler$clone()}}
 }
 }
@@ -25,49 +33,13 @@ Simulx file handler
 <details open><summary>Inherited methods</summary>
 <ul>
 <li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="can_monitor"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-can_monitor'><code>mlxtrx::FileHandler$can_monitor()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="expects_summary"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-expects_summary'><code>mlxtrx::FileHandler$expects_summary()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_results"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-parse_results'><code>mlxtrx::FileHandler$parse_results()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="parse_summary"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-parse_summary'><code>mlxtrx::FileHandler$parse_summary()</code></a></span></li>
-<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="FileHandler" data-id="result_files"><a href='../../mlxtrx/html/FileHandler.html#method-FileHandler-result_files'><code>mlxtrx::FileHandler$result_files()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="expects_summary"><a href='../../mlxtrx/html/MonolixHandler.html#method-MonolixHandler-expects_summary'><code>mlxtrx::MonolixHandler$expects_summary()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="get_input_files"><a href='../../mlxtrx/html/MonolixHandler.html#method-MonolixHandler-get_input_files'><code>mlxtrx::MonolixHandler$get_input_files()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="parse_file"><a href='../../mlxtrx/html/MonolixHandler.html#method-MonolixHandler-parse_file'><code>mlxtrx::MonolixHandler$parse_file()</code></a></span></li>
+<li><span class="pkg-link" data-pkg="mlxtrx" data-topic="MonolixHandler" data-id="parse_summary"><a href='../../mlxtrx/html/MonolixHandler.html#method-MonolixHandler-parse_summary'><code>mlxtrx::MonolixHandler$parse_summary()</code></a></span></li>
 </ul>
 </details>
 }}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-SimulxHandler-parse_file"></a>}}
-\if{latex}{\out{\hypertarget{method-SimulxHandler-parse_file}{}}}
-\subsection{Method \code{parse_file()}}{
-Parse project file and extract metadata
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SimulxHandler$parse_file(path)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{path}}{Path to project file}
-}
-\if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-SimulxHandler-get_input_files"></a>}}
-\if{latex}{\out{\hypertarget{method-SimulxHandler-get_input_files}{}}}
-\subsection{Method \code{get_input_files()}}{
-Get input files from parsed content
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SimulxHandler$get_input_files(parsed_content, project_dir)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{parsed_content}}{Result from parse_file()}
-
-\item{\code{project_dir}}{Directory containing the project file}
-}
-\if{html}{\out{</div>}}
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-SimulxHandler-get_output_dir"></a>}}
 \if{latex}{\out{\hypertarget{method-SimulxHandler-get_output_dir}{}}}
@@ -85,6 +57,53 @@ Get expected output directory
 \item{\code{output_dir}}{User-specified output directory (may be NULL)}
 }
 \if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-SimulxHandler-result_files"></a>}}
+\if{latex}{\out{\hypertarget{method-SimulxHandler-result_files}{}}}
+\subsection{Method \code{result_files()}}{
+Result files of a run into \code{output_dir}: the files under
+\verb{Simulation/} and \verb{Endpoints/}
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SimulxHandler$result_files(output_dir, files = NULL)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{output_dir}}{Output directory of the run}
+
+\item{\code{files}}{Character vector of candidate file paths, such as the
+recorded outputs of a run. \code{NULL} (default) looks in \code{output_dir}.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+The result files among \code{files}, or those that exist in
+\code{output_dir} when \code{files} is \code{NULL}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-SimulxHandler-parse_results"></a>}}
+\if{latex}{\out{\hypertarget{method-SimulxHandler-parse_results}{}}}
+\subsection{Method \code{parse_results()}}{
+Parse Simulx result files into the content of
+\code{summary.json}: the tasks with results
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SimulxHandler$parse_results(files)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{files}}{Result files, as returned by \code{result_files()}}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A list with \code{summary_stats} (\code{tasks}) and \code{observations}
+(empty), or \code{NULL} when \code{files} is empty
 }
 }
 \if{html}{\out{<hr>}}

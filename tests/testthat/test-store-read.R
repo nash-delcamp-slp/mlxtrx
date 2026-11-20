@@ -252,7 +252,7 @@ test_that("a parseable run.json that is malformed warns for its folder only", {
   expect_identical(res$runs$run_id, "good")
 })
 
-test_that("a Monolix run recorded without summary.json is no_results", {
+test_that("a Monolix or Simulx run recorded without summary.json is no_results", {
   no_summary <- function(done = fake_done_json()) {
     list(
       outputs = list(out_rec("out/run001/summary.txt")),
@@ -284,7 +284,7 @@ test_that("a Monolix run recorded without summary.json is no_results", {
     )
   ))
   runs <- store_read(s$store)$runs
-  expect_identical(runs$state, c("recorded", "no_results", "no_results", "recorded"))
+  expect_identical(runs$state, c("recorded", "no_results", "no_results", "no_results"))
   expect_identical(runs$recorded_late, c(FALSE, FALSE, TRUE, FALSE))
   expect_false(anyNA(runs$completed_at))
 })

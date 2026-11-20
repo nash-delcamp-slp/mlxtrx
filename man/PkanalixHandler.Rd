@@ -10,8 +10,10 @@ PKanalix file handler
 }
 \details{
 Reads \code{.pkx} projects, which share the \code{.mlxtran} section syntax. The input
-files are the data file and the model used by compartmental analysis
-(\verb{<MODEL>} \verb{[LONGITUDINAL]}), when the project has one. The output
+files are every file the project references (see
+\code{\link[=project_file_references]{project_file_references()}}): the data file, the model used by
+compartmental analysis when the project has one, and files such as
+separate dose tables. The output
 directory is the \code{exportpath} of \verb{<PKANALIX>} \verb{[SETTINGS]}, or the project
 name next to the project file without one.
 
