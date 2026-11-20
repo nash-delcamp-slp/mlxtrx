@@ -2,35 +2,32 @@
 % Please edit documentation in R/report.R
 \name{print_report_summary}
 \alias{print_report_summary}
-\title{Print project report summary}
+\title{Print a run status report}
 \usage{
-print_report_summary(
-  directory = ".",
-  run_ids = NULL,
-  ext = c("mlxtran", "smlx", "pkx"),
-  output_files = NULL,
-  store = default_store()
-)
+print_report_summary(path = ".", store = default_store())
 }
 \arguments{
-\item{directory}{Character scalar. Directory path to check for project files.}
-
-\item{run_ids}{Character vector. Specific run IDs to check. If NULL (default),
-checks all runs.}
-
-\item{ext}{Character vector. File extensions to consider as
-project files. Defaults to c("mlxtran", "smlx", "pkx").}
-
-\item{output_files}{Character vector. Optional output file paths to validate
-alignment with latest runs. If NULL (default), no output file alignment
-section is included in the report.}
+\item{path}{Character vector. Files or directories to report on, as in
+\code{\link[=run_status]{run_status()}}. Defaults to \code{"."}.}
 
 \item{store}{Character scalar. The run store directory (see \code{\link[=default_store]{default_store()}}).
 Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
-NULL (invisible). Called for side effects (printing).
+The data frame from \code{\link[=run_status]{run_status()}}, invisibly.
 }
 \description{
-Prints a formatted summary of the project report to the console.
+Prints a plain-text report of \code{\link[=run_status]{run_status()}} for \code{path}: the path, the time
+of the report, how many models are in each condition, and, for every model
+that is not \code{"clean"}, its condition (with any other conditions in
+parentheses) and its details. It is a printed view of \code{\link[=run_status]{run_status()}}, which
+it calls once, so the two always agree.
+}
+\details{
+Conditions are listed most serious first, as in \code{\link[=run_status]{run_status()}}. Project
+files are shown relative to \code{path} when \code{path} is a directory and they are
+under it; untracked paths are shown as given.
+}
+\seealso{
+\code{\link[=run_status]{run_status()}}
 }

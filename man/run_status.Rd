@@ -78,3 +78,6 @@ applies.
 latest run of any model.
 }
 }
+\seealso{
+\code{\link[=print_report_summary]{print_report_summary()}}
+}

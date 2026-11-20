@@ -67,6 +67,7 @@
 #'       not completed)
 #'   }
 #'
+#' @seealso [print_report_summary()]
 #' @export
 run_status <- function(path = ".", store = default_store()) {
   assertthat::assert_that(
