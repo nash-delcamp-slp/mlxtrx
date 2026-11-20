@@ -386,10 +386,8 @@ SimulxHandler <- R6::R6Class(
       if (length(files) == 0L) {
         return(NULL)
       }
-      folders <- basename(dirname(files))
-      tasks <- c("simulation", "endpoint")[
-        c("Simulation", "Endpoints") %in% folders
-      ]
+      has <- function(folder) any(grepl(paste0("(^|[/\\\\])", folder, "[/\\\\]"), files))
+      tasks <- c("simulation", "endpoint")[c(has("Simulation"), has("Endpoints"))]
       list(
         summary_stats = list(tasks = paste(tasks, collapse = ",")),
         observations = stats::setNames(list(), character())

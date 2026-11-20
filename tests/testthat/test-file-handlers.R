@@ -138,6 +138,11 @@ test_that("Simulx results are the Simulation and Endpoints files", {
     handler$parse_results(file.path(out, "Simulation", "simulatedData.txt"))$summary_stats$tasks,
     "simulation"
   )
+  nested <- file.path(out, c("Simulation/g1/s.txt", "Endpoints/sub/e.txt"))
+  expect_equal(
+    handler$parse_results(nested)$summary_stats$tasks,
+    "simulation,endpoint"
+  )
 })
 
 test_that("the PKanalix output dir is the exportpath, else the project name", {
