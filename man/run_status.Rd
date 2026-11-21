@@ -60,6 +60,9 @@ A path that does not exist and is not recorded in the store is an error.
 Conditions, most serious first:
 \enumerate{
 \item \code{"never_run"}: no run of the model is recorded.
+\item \code{"untracked_results"}: results exist in the model's output folder
+but no recorded run produced them, e.g. a run from the GUI or
+lixoftConnectors.
 \item \code{"failed"}: the latest run failed to submit or finished without
 results.
 \item \code{"unfinished"}: the latest run's completion was not recorded, or

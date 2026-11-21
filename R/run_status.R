@@ -20,6 +20,9 @@
 #' Conditions, most serious first:
 #' \enumerate{
 #'   \item `"never_run"`: no run of the model is recorded.
+#'   \item `"untracked_results"`: results exist in the model's output folder
+#'     but no recorded run produced them, e.g. a run from the GUI or
+#'     lixoftConnectors.
 #'   \item `"failed"`: the latest run failed to submit or finished without
 #'     results.
 #'   \item `"unfinished"`: the latest run's completion was not recorded, or
@@ -108,7 +111,7 @@ run_status <- function(path = ".", store = default_store()) {
       return(list(conditions = "untracked", details = note[!is.na(note)]))
     }
     if (is.na(idx[[i]])) {
-      return(list(conditions = "never_run", details = character()))
+      return(judge_unrun(targets$project_file[[i]], root))
     }
     run <- latest[idx[[i]], , drop = FALSE]
     judge_run(run, files[files$run_id == run$run_id, , drop = FALSE], root, sha_cache)
@@ -177,6 +180,32 @@ status_targets <- function(p, files, known) {
     return(rows(NA_character_, note))
   }
   rows(models)
+}
+
+# Conditions and detail notes for a model with no recorded run: results in
+# its output folder make it "untracked_results", otherwise "never_run". A
+# project file that cannot be parsed, or an unknown extension, counts as
+# having no results.
+judge_unrun <- function(project_file, root) {
+  out <- tryCatch(
+    {
+      handler <- suppressMessages(get_file_handler(fs::path_ext(project_file)))
+      dir <- handler$get_output_dir(project_file)
+      if (length(handler$result_files(dir)) > 0L) dir else NULL
+    },
+    error = function(e) NULL,
+    warning = function(w) NULL
+  )
+  if (is.null(out)) {
+    return(list(conditions = "never_run", details = character()))
+  }
+  list(
+    conditions = "untracked_results",
+    details = paste0(
+      "results in ", rel_to(path_key(out), root),
+      " not produced by a recorded run"
+    )
+  )
 }
 
 # Conditions (most serious first) and detail notes for one latest run, from

@@ -1,7 +1,11 @@
 # A theoph root with one clean model and a second, never-run model.
 local_two_model_store <- function(.env = parent.frame()) {
   s <- local_theoph_store(list(list(id = "r1")), .env = .env)
-  file.copy(s$project, file.path(dirname(s$project), "other.mlxtran"))
+  other <- file.path(dirname(s$project), "other.mlxtran")
+  writeLines(
+    sub("exportpath = 'theoph'", "exportpath = 'other'", readLines(s$project), fixed = TRUE),
+    other
+  )
   s
 }
 
@@ -71,4 +75,13 @@ test_that("the invisible return equals run_status()", {
   expect_equal(r, run_status(s$root, store = s$store))
   capture.output(v <- withVisible(print_report_summary(s$root, store = s$store)))
   expect_false(v$visible)
+})
+
+test_that("untracked results are counted and listed as needing attention", {
+  root <- local_theoph_root()
+  s <- local_store_with_runs(list(), root = root)
+  out <- report_lines(root, store = s$store)
+  expect_true("  untracked_results  1" %in% out)
+  expect_true("Needs attention:" %in% out)
+  expect_true(any(grepl("^  theoph/theoph.mlxtran  untracked_results", out)))
 })

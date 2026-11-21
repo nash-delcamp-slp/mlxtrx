@@ -25,8 +25,8 @@ print_report_summary <- function(path = ".", store = default_store()) {
   roots <- roots[dir.exists(roots)]
 
   order_of <- c(
-    "never_run", "failed", "unfinished", "inputs_changed", "output_edited",
-    "output_suspect", "clean_late", "clean", "untracked"
+    "never_run", "untracked_results", "failed", "unfinished", "inputs_changed",
+    "output_edited", "output_suspect", "clean_late", "clean", "untracked"
   )
   cat("=== RUN STATUS REPORT ===\n")
   cat("Path: ", paste(status_path_key(path), collapse = ", "), "\n", sep = "")
