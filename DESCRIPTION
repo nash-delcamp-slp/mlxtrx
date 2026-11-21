@@ -1,6 +1,6 @@
 Package: mlxtrx
 Title: Track MonolixSuite Runs
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: 
     person("Nash", "Delcamp", , "nash.delcamp@simulations-plus.com", role = c("aut", "cre"))
 Description: Track grid execution of Monolix, PKanalix and Simulx runs.
