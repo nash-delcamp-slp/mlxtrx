@@ -287,7 +287,8 @@ show_ini_diff <- function(
 #' Lixoft version directory for a command
 #'
 #' Maps a Monolix, PKanalix or Simulx command (grid wrapper such as `mono24`
-#' or `pk24`, or a `monolix.sh`/`pkanalix.sh`/`simulx.sh` path) to its
+#' or `pk24`, or a `monolix.sh`/`pkanalix.sh`/`simulx.sh` path, or such a name found
+#' on PATH, symlinks followed) to its
 #' directory under `~/lixoft`, e.g.
 #' `"monolix/monolix2024R1"`.
 #'
@@ -296,10 +297,18 @@ show_ini_diff <- function(
 #' @keywords internal
 #' @noRd
 cmd_version_dir <- function(cmd) {
+  # A runner given by name is located on PATH, following symlinks, so its
+  # MonolixSuite folder can be read from the real path.
+  if (fs::path_ext(cmd) == "sh" && !grepl("[/\\\\]", cmd)) {
+    found <- unname(Sys.which(cmd))
+    if (nzchar(found)) {
+      cmd <- normalizePath(found, winslash = "/", mustWork = FALSE)
+    }
+  }
   cmd_ext <- fs::path_ext(cmd)
 
   if (cmd_ext == "") {
-    version_dir <- switch(
+    return(switch(
       basename(cmd),
       mono24 = "monolix/monolix2024R1",
       sim24 = "simulx/simulx2024R1",
@@ -314,38 +323,18 @@ cmd_version_dir <- function(cmd) {
       pk21 = "pkanalix/pkanalix2021R1",
       pk20 = "pkanalix/pkanalix2020R1",
       NA_character_
-    )
-  } else if (basename(cmd) == "monolix.sh") {
-    version_dir <- file.path(
-      "monolix",
-      stringr::str_replace(
-        cmd,
-        ".*M(onolix)Suite(20\\d\\dR\\d)/.*",
-        "m\\1\\2"
-      )
-    )
-  } else if (basename(cmd) == "simulx.sh") {
-    version_dir <- file.path(
-      "simulx",
-      stringr::str_replace(
-        cmd,
-        ".*MonolixSuite(20\\d\\dR\\d)/.*",
-        "simulx\\1"
-      )
-    )
-  } else if (basename(cmd) == "pkanalix.sh") {
-    version_dir <- file.path(
-      "pkanalix",
-      stringr::str_replace(
-        cmd,
-        ".*MonolixSuite(20\\d\\dR\\d)/.*",
-        "pkanalix\\1"
-      )
-    )
-  } else {
-    version_dir <- NA_character_
+    ))
   }
-  version_dir
+  tool <- c(
+    monolix.sh = "monolix",
+    simulx.sh = "simulx",
+    pkanalix.sh = "pkanalix"
+  )[basename(cmd)]
+  version <- stringr::str_match(cmd, "MonolixSuite(20\\d\\dR\\d)[/\\\\]")[, 2]
+  if (is.na(tool) || is.na(version)) {
+    return(NA_character_)
+  }
+  file.path(tool, paste0(tool, version))
 }
 
 # Path of the user preferences file of the tool `cmd` launches, or NA when the

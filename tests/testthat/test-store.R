@@ -177,3 +177,20 @@ test_that("path_to_record() matches the store folder whatever the drive letter c
   expect_false(rec$absolute)
   expect_equal(rec$path, "data/pk.csv")
 })
+
+test_that("a local runner found on PATH maps to its MonolixSuite version", {
+  skip_on_os("windows")
+  suite_bin <- file.path(withr::local_tempdir(), "MonolixSuite2024R1", "bin")
+  dir.create(suite_bin, recursive = TRUE)
+  runner <- file.path(suite_bin, "monolix.sh")
+  writeLines("#!/bin/sh", runner)
+  Sys.chmod(runner, "755")
+  # A symlink on PATH, as installs often provide.
+  link_dir <- withr::local_tempdir()
+  file.symlink(runner, file.path(link_dir, "monolix.sh"))
+  withr::local_path(link_dir)
+  expect_identical(cmd_version_dir("monolix.sh"), "monolix/monolix2024R1")
+  expect_identical(cmd_software_version("monolix.sh"), "2024R1")
+  expect_identical(cmd_version_dir("mono24"), "monolix/monolix2024R1")
+  expect_true(is.na(cmd_version_dir("not-a-command-anywhere.sh")))
+})
