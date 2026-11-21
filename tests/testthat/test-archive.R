@@ -192,3 +192,60 @@ test_that("archived: FALSE before archiving, NA for untracked rows", {
   res <- run_status(c(s$project, other), store = s$store)
   expect_identical(res$archived, c(FALSE, NA))
 })
+
+test_that("verify_archive: intact archive is all ok", {
+  s <- local_archive_store()
+  suppressMessages(archive_run(s$project, store = s$store))
+  expect_message(res <- verify_archive(s$store), "4 archived files: 4 ok, 0 missing, 0 mismatch")
+  expect_named(res, c("run_id", "path", "sha256", "status"))
+  expect_equal(nrow(res), 4L)
+  expect_true(all(res$status == "ok"))
+  expect_true(all(res$run_id == "r1"))
+  expect_setequal(
+    path_key(res$path),
+    path_key(c(s$project, s$data, s$summary, s$ini))
+  )
+})
+
+test_that("verify_archive: a deleted object is missing, a changed one is a mismatch", {
+  s <- local_archive_store()
+  suppressMessages(archive_run(s$project, store = s$store))
+  unlink(archive_object_path(s$store, calculate_sha256(s$data)))
+  writeLines("tampered", archive_object_path(s$store, calculate_sha256(s$summary)))
+  res <- suppressMessages(verify_archive(s$store))
+  status <- stats::setNames(res$status, path_key(res$path))
+  expect_identical(status[[path_key(s$data)]], "missing")
+  expect_identical(status[[path_key(s$summary)]], "mismatch")
+  expect_identical(status[[path_key(s$project)]], "ok")
+  expect_message(verify_archive(s$store), "2 ok, 1 missing, 1 mismatch")
+})
+
+test_that("verify_archive: leftover temporary files are ignored; no archives gives zero rows", {
+  s <- local_archive_store()
+  expect_message(res <- verify_archive(s$store), "0 archived files")
+  expect_equal(nrow(res), 0L)
+  expect_named(res, c("run_id", "path", "sha256", "status"))
+  suppressMessages(archive_run(s$project, store = s$store))
+  obj <- archive_object_path(s$store, calculate_sha256(s$data))
+  writeLines("partial", paste0(obj, ".tmp-abcd1234"))
+  res <- suppressMessages(verify_archive(s$store))
+  expect_true(all(res$status == "ok"))
+})
+
+test_that("verify_archive: an object shared by two runs is hashed once", {
+  s <- local_archive_store()
+  suppressMessages(archive_run(s$project, store = s$store))
+  m <- read_manifest(s)
+  dir <- file.path(s$store, "runs", "r2")
+  dir.create(dir)
+  store_write_json(m, file.path(dir, "archive.json"))
+  calls <- 0L
+  real <- calculate_sha256
+  local_mocked_bindings(calculate_sha256 = function(...) {
+    calls <<- calls + 1L
+    real(...)
+  })
+  res <- suppressMessages(verify_archive(s$store))
+  expect_equal(nrow(res), 8L)
+  expect_equal(calls, 4L)
+})

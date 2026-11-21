@@ -95,6 +95,9 @@ for another folder), so a data set shared by several runs is stored once.
 The run must be `clean` or `clean_late`. The project folder is not touched
 and stays usable.
 
+`verify_archive()` re-hashes every archived file and reports each one as `ok`,
+`missing` or `mismatch`.
+
 ## Results table
 
 `runs_data()` returns every recorded run as one data frame, newest first:

@@ -125,6 +125,74 @@ archive_run <- function(
   ))
 }
 
+#' Check archived copies against their hashes
+#'
+#' Reads the `archive.json` manifest of every run in the store, finds each
+#' listed file's object in the archive the manifest names, and hashes it
+#' against the recorded SHA-256. An object shared by several manifests is
+#' hashed once per call. Temporary files left in `objects` by an interrupted
+#' write are not referenced by any manifest and are ignored. Nothing is
+#' changed.
+#'
+#' @param store Character scalar. The run store directory (see
+#'   [default_store()]). Defaults to `default_store()`.
+#'
+#' @return A data frame with one row per manifest entry and columns `run_id`
+#'   (the run's folder name), `path` (the archived file's original path),
+#'   `sha256` (the recorded hash) and `status`: `"ok"` (the object matches),
+#'   `"missing"` (no object) or `"mismatch"` (the object's content has a
+#'   different hash). A one-line summary is printed as a message.
+#'
+#' @examples
+#' \dontrun{
+#' verify_archive()
+#' }
+#'
+#' @export
+verify_archive <- function(store = default_store()) {
+  root <- store_root_dir(store)
+  manifests <- Sys.glob(file.path(store, "runs", "*", "archive.json"))
+  manifests <- manifests[order(manifests)]
+
+  run_id <- character()
+  path <- character()
+  sha256 <- character()
+  object <- character()
+  for (m in manifests) {
+    manifest <- jsonlite::read_json(m, simplifyVector = FALSE)
+    archive <- path_from_record(manifest$archive, root)
+    for (f in manifest$files) {
+      run_id <- c(run_id, basename(dirname(m)))
+      path <- c(path, path_from_record(f$path, root))
+      sha256 <- c(sha256, f$sha256)
+      object <- c(object, archive_object_path(archive, f$sha256))
+    }
+  }
+
+  actual <- character(length(unique(object)))
+  names(actual) <- unique(object)
+  for (o in names(actual)) {
+    actual[[o]] <- if (file.exists(o)) calculate_sha256(o) else NA_character_
+  }
+  found <- unname(actual[object])
+  status <- ifelse(is.na(found), "missing", ifelse(found == sha256, "ok", "mismatch"))
+
+  message(
+    length(status), " archived files: ",
+    sum(status == "ok"), " ok, ",
+    sum(status == "missing"), " missing, ",
+    sum(status == "mismatch"), " mismatch"
+  )
+  data.frame(
+    run_id = run_id,
+    path = path,
+    sha256 = sha256,
+    status = status,
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+}
+
 # Files to archive for one run: its project, inputs (except library models)
 # and outputs from `run_files` (rows of store_read()$files), plus the
 # config.ini copy recorded in run.json. Each entry is list(io_type, role,

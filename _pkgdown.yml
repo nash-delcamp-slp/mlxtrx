@@ -32,6 +32,7 @@ reference:
     desc: Exact copies of key runs, kept in a content-addressed archive.
     contents:
       - archive_run
+      - verify_archive
   - title: Store and recovery
     contents:
       - default_store
