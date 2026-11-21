@@ -27,6 +27,7 @@ reference:
     contents:
       - runs_data
       - get_run_files
+      - source_note
   - title: Store and recovery
     contents:
       - default_store

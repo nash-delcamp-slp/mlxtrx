@@ -95,7 +95,8 @@ Statistics include, for Monolix, the values from `summary.txt` and observation
 counts; for PKanalix, the tasks run, the number of individuals, the
 compartmental analysis criteria and the bioequivalence ratios; for Simulx, the
 tasks run. `get_run_files()` lists every input and output file of a run with
-its SHA-256 hash.
+its SHA-256 hash. `source_note()` turns the plot or table data files behind a
+figure or table into a one-line footnote naming their runs, for TFL footnotes.
 
 ## When a session dies
 

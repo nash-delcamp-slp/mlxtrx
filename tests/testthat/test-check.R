@@ -155,3 +155,11 @@ test_that("path_key() ignores the case of a Windows drive letter only", {
   expect_false(path_key("C:/proj/Run1.mlxtran") == path_key("C:/proj/run1.mlxtran"))
   expect_false(path_key("/tmp/Proj/a.txt") == path_key("/tmp/proj/a.txt"))
 })
+
+test_that("check_output_files gives the project path of the recording run", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  res <- check_output_files(c(s$summary, s$project), store = s$store)
+  expect_equal(res$project_path[[1]], path_key(s$project))
+  expect_true(is.na(res$project_path[[2]]))
+  expect_equal(names(res)[match("project_path", names(res)) - 1L], "run_id")
+})

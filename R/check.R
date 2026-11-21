@@ -263,6 +263,8 @@ check_output_file_status <- function(
 #'     \item `file_name` (character): File name (basename)
 #'     \item `run_id` (character): Most recently submitted run that recorded
 #'       this file (NA if not found)
+#'     \item `project_path` (character): Project file of that run (NA if not
+#'       found)
 #'     \item `run_submitted_at` (POSIXct): When the generating run was submitted
 #'     \item `run_completed_at` (POSIXct): When the generating run completed
 #'     \item `recorded_timestamp` (POSIXct): File timestamp when recorded in the store
@@ -316,6 +318,7 @@ check_output_files <- function(
     file_path = file_paths,
     file_name = basename(file_paths),
     run_id = run_id,
+    project_path = latest$project_path[idx],
     run_submitted_at = run_submitted_at,
     run_completed_at = run_completed_at,
     recorded_timestamp = latest$timestamp[idx],
@@ -358,7 +361,7 @@ check_run_ids <- function(run_ids) {
 }
 
 # File records of one io_type with their run's submitted_at, completed_at,
-# recorded_late and late_flags, ordered by run_id and path. `run_ids` NULL
+# recorded_late, late_flags and project_path, ordered by run_id and path. `run_ids` NULL
 # keeps all runs.
 run_file_records <- function(data, io_type, run_ids) {
   files <- data$files[data$files$io_type == io_type, , drop = FALSE]
@@ -371,6 +374,7 @@ run_file_records <- function(data, io_type, run_ids) {
   files$completed_at <- data$runs$completed_at[run]
   files$recorded_late <- data$runs$recorded_late[run]
   files$late_flags <- data$runs$late_flags[run]
+  files$project_path <- data$runs$project_path[run]
   rownames(files) <- NULL
   files
 }
