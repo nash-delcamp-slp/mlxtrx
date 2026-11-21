@@ -395,3 +395,34 @@ test_that("giving up on a failing sq is reported once", {
   )
   expect_equal(sum(grepl("no longer monitoring", msgs)), 1L)
 })
+
+test_that("each run keeps a copy of the tool's config.ini", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  home <- local_config_ini("monolix/monolix2024R1", "exportChartsData=true")
+  ini <- file.path(home, "lixoft/monolix/monolix2024R1/config/config.ini")
+  suppressMessages(
+    id <- mono(e$paths[1], store = e$store, require_charts_data = FALSE)
+  )
+  run <- read_run_json(e$store, id)
+  copy <- file.path(e$store, "runs", id, "config.ini")
+  expect_identical(readLines(copy), readLines(ini))
+  expect_equal(run$config_ini$sha256, calculate_sha256(ini))
+  expect_equal(run$config_ini$copy, "config.ini")
+
+  cat("extra=1\n", file = ini, append = TRUE)
+  expect_equal(run_status(e$paths[1], store = e$store)$condition, "clean")
+})
+
+test_that("a missing config.ini is not recorded and does not warn", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  withr::local_envvar(HOME = withr::local_tempdir())
+  expect_no_warning(
+    suppressMessages(
+      id <- mono(e$paths[1], store = e$store, require_charts_data = FALSE)
+    )
+  )
+  run <- read_run_json(e$store, id)
+  expect_null(run$config_ini)
+})

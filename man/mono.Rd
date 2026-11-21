@@ -106,6 +106,13 @@ submission output
 job ID, software version, submission time and output, user and host
 }
 
+Each run also keeps a copy of the tool's user preferences file
+(\code{config.ini}) as \verb{<run folder>/config.ini}, taken just before the job is
+submitted, and \code{run.json} records the file (path, SHA-256, size,
+modification time) as \code{config_ini}. The copy is not compared by
+\code{\link[=run_status]{run_status()}}. A run is recorded without \code{config_ini} when the file cannot
+be found or copied.
+
 If a step fails, no further jobs are submitted and the error names the
 runs already submitted, which \code{\link[=finalize_runs]{finalize_runs()}} can record once they
 finish.

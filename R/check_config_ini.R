@@ -34,15 +34,9 @@ check_config_ini <- function(
     required_settings[["exportVPCSimulations"]] <- "true"
   }
 
-  ini_path <- file.path(
-    "~/lixoft",
-    version_dir,
-    "config/config.ini"
-  )
+  ini_path <- config_ini_path(cmd)
 
-  ini_path <- normalizePath(ini_path, mustWork = FALSE)
-
-  if (!file.exists(ini_path)) {
+  if (is.na(ini_path) || !file.exists(ini_path)) {
     stop("config.ini file not found for cmd: ", cmd, call. = FALSE)
   } else {
     message("Identified config.ini file at: ", ini_path)
@@ -352,4 +346,17 @@ cmd_version_dir <- function(cmd) {
     version_dir <- NA_character_
   }
   version_dir
+}
+
+# Path of the user preferences file of the tool `cmd` launches, or NA when the
+# version of the tool is unknown.
+config_ini_path <- function(cmd) {
+  version_dir <- cmd_version_dir(cmd)
+  if (is.na(version_dir)) {
+    return(NA_character_)
+  }
+  normalizePath(
+    file.path("~/lixoft", version_dir, "config/config.ini"),
+    mustWork = FALSE
+  )
 }
