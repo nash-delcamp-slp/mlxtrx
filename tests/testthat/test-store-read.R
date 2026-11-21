@@ -288,3 +288,12 @@ test_that("a Monolix or Simulx run recorded without summary.json is no_results",
   expect_identical(runs$recorded_late, c(FALSE, FALSE, TRUE, FALSE))
   expect_false(anyNA(runs$completed_at))
 })
+
+test_that("files frame gives each input's role, NA for project and outputs", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  f <- store_read(s$store)$files
+  expect_type(f$role, "character")
+  expect_identical(f$role[f$io_type == "input" & path_key(f$path) == path_key(s$data)], "data")
+  expect_identical(f$role[f$io_type == "input" & f$builtin], "model")
+  expect_true(all(is.na(f$role[f$io_type %in% c("project", "output")])))
+})

@@ -65,6 +65,8 @@
 #'       for `"clean_late"`; for an untracked path that only older runs
 #'       recorded, `"recorded only by an older run (<run_id>)"` naming the
 #'       most recent of them (NA if none)
+#'     \item `archived` (logical): Whether the latest run has been archived
+#'       with [archive_run()] (FALSE when there is no run; NA when untracked)
 #'     \item `submitted_at` (POSIXct): When the latest run was submitted
 #'     \item `completed_at` (POSIXct): When the latest run completed (NA if
 #'       not completed)
@@ -121,15 +123,21 @@ run_status <- function(path = ".", store = default_store()) {
     if (length(j$details) == 0L) NA_character_ else paste(j$details, collapse = "; ")
   }, character(1))
 
+  condition <- vapply(conditions, `[[`, character(1), 1L)
+  run_dir <- latest$run_dir[idx]
+  archived <- !is.na(run_dir) & file.exists(file.path(run_dir, "archive.json"))
+  archived[condition == "untracked"] <- NA
+
   data.frame(
     path = targets$path,
     project_file = targets$project_file,
     run_id = latest$run_id[idx],
-    condition = vapply(conditions, `[[`, character(1), 1L),
+    condition = condition,
     other_conditions = vapply(conditions, function(x) {
       if (length(x) < 2L) NA_character_ else paste(x[-1], collapse = ", ")
     }, character(1)),
     details = details,
+    archived = archived,
     submitted_at = latest$submitted_at[idx],
     completed_at = latest$completed_at[idx],
     stringsAsFactors = FALSE,

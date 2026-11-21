@@ -14,8 +14,10 @@ Defaults to \code{default_store()}. Nothing is written to it.}
 }
 \value{
 A data frame with columns: \code{run_id}, \code{io_type} (\code{"project"},
-\code{"input"} or \code{"output"}), \code{path}, \code{name}, \code{timestamp}, \code{sha256}, \code{size}
-and \code{builtin}, ordered by \code{run_id}, \code{io_type} and \code{path}. Timestamps are in
+\code{"input"} or \code{"output"}), \code{path}, \code{name}, \code{timestamp}, \code{sha256}, \code{size},
+\code{builtin} and \code{role} (an input's role: \code{"data"}, \code{"model"}, \code{"other"} or
+\code{"config"}; NA for project and output rows), ordered by \code{run_id},
+\code{io_type} and \code{path}. Timestamps are in
 the session time zone. Has no rows when none of the runs have file records.
 }
 \description{
