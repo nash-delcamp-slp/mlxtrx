@@ -1,5 +1,6 @@
 test_that("never run: an unrun project file in a directory", {
   root <- local_theoph_root()
+  unlink(dirname(theoph_paths(root)$summary), recursive = TRUE)
   s <- local_store_with_runs(list(), root = root)
   res <- run_status(root, store = s$store)
   expect_equal(nrow(res), 1L)
@@ -7,6 +8,38 @@ test_that("never run: an unrun project file in a directory", {
   expect_equal(res$condition, "never_run")
   expect_true(is.na(res$run_id))
   expect_true(is.na(res$details))
+})
+
+test_that("untracked results: output files without a recorded run", {
+  root <- local_theoph_root()
+  s <- local_store_with_runs(list(), root = root)
+  res <- run_status(root, store = s$store)
+  expect_equal(res$condition, "untracked_results")
+  expect_true(is.na(res$run_id))
+  expect_match(res$details, "theoph/theoph")
+  expect_match(res$details, "not produced by a recorded run")
+})
+
+test_that("never run: a copied project whose output folder holds another run's results", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  copy <- file.path(dirname(s$project), "run2.mlxtran")
+  file.copy(s$project, copy)
+  res <- run_status(copy, store = s$store)
+  expect_equal(res$condition, "never_run")
+  expect_true(is.na(res$run_id))
+  expect_equal(
+    res$details,
+    "output folder theoph/theoph holds results of theoph/theoph.mlxtran (run r1)"
+  )
+})
+
+test_that("never run: an unparseable project file is not an error", {
+  root <- withr::local_tempdir()
+  writeLines("garbage {{ not a project", file.path(root, "bad.mlxtran"))
+  s <- local_store_with_runs(list(), root = root)
+  expect_no_error(res <- run_status(root, store = s$store))
+  expect_no_warning(run_status(root, store = s$store))
+  expect_equal(res$condition, "never_run")
 })
 
 test_that("clean: a recorded run with nothing changed", {

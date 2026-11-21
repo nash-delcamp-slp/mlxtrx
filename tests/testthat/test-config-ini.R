@@ -1,14 +1,3 @@
-# A temporary HOME holding ~/lixoft/<version_dir>/config/config.ini with the
-# given [misc] lines. `~` expands from HOME on Linux and macOS only.
-local_config_ini <- function(version_dir, misc, .env = parent.frame()) {
-  home <- withr::local_tempdir(.local_envir = .env)
-  dir <- file.path(home, "lixoft", version_dir, "config")
-  dir.create(dir, recursive = TRUE)
-  writeLines(c("[misc]", misc), file.path(dir, "config.ini"))
-  withr::local_envvar(HOME = home, .local_envir = .env)
-  home
-}
-
 test_that("PKanalix needs export-charts-datasets but not exportVPCSimulations", {
   skip_on_os("windows")
   local_config_ini("pkanalix/pkanalix2024R1", "exportChartsData=true")
@@ -49,4 +38,16 @@ test_that("Simulx still needs all three chart settings", {
     "export-charts-datasets=true"
   )
   expect_match(conditionMessage(err), "exportVPCSimulations=true")
+})
+
+test_that("config_ini_path() locates the tool's config.ini or gives NA", {
+  skip_on_os("windows")
+  home <- local_config_ini("monolix/monolix2024R1", "exportChartsData=true")
+  expect_equal(
+    config_ini_path("mono24"),
+    normalizePath(
+      file.path(home, "lixoft/monolix/monolix2024R1/config/config.ini")
+    )
+  )
+  expect_identical(config_ini_path("nonexistent-cmd"), NA_character_)
 })

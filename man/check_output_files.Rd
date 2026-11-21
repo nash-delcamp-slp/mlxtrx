@@ -19,6 +19,8 @@ A data frame with columns:
 \item \code{file_name} (character): File name (basename)
 \item \code{run_id} (character): Most recently submitted run that recorded
 this file (NA if not found)
+\item \code{project_path} (character): Project file of that run (NA if not
+found)
 \item \code{run_submitted_at} (POSIXct): When the generating run was submitted
 \item \code{run_completed_at} (POSIXct): When the generating run completed
 \item \code{recorded_timestamp} (POSIXct): File timestamp when recorded in the store

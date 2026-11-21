@@ -20,6 +20,9 @@
 #' Conditions, most serious first:
 #' \enumerate{
 #'   \item `"never_run"`: no run of the model is recorded.
+#'   \item `"untracked_results"`: results exist in the model's output folder
+#'     but no recorded run produced them, e.g. a run from the GUI or
+#'     lixoftConnectors.
 #'   \item `"failed"`: the latest run failed to submit or finished without
 #'     results.
 #'   \item `"unfinished"`: the latest run's completion was not recorded, or
@@ -108,7 +111,7 @@ run_status <- function(path = ".", store = default_store()) {
       return(list(conditions = "untracked", details = note[!is.na(note)]))
     }
     if (is.na(idx[[i]])) {
-      return(list(conditions = "never_run", details = character()))
+      return(judge_unrun(targets$project_file[[i]], root, known, runs))
     }
     run <- latest[idx[[i]], , drop = FALSE]
     judge_run(run, files[files$run_id == run$run_id, , drop = FALSE], root, sha_cache)
@@ -177,6 +180,46 @@ status_targets <- function(p, files, known) {
     return(rows(NA_character_, note))
   }
   rows(models)
+}
+
+# Conditions and detail notes for a model with no recorded run of its own.
+# Results in its output folder that some run recorded as outputs (e.g. a copy
+# of a project file sharing the export path) make it "never_run" with a note
+# naming that run; results no run recorded make it "untracked_results". A
+# project file that cannot be parsed, or an unknown extension, counts as
+# having no results. `known` holds every file record in the store with `key`
+# and `submitted_at`; `runs` has `run_id` and `project_file`.
+judge_unrun <- function(project_file, root, known, runs) {
+  found <- tryCatch(
+    {
+      handler <- suppressMessages(get_file_handler(fs::path_ext(project_file)))
+      dir <- handler$get_output_dir(project_file)
+      list(dir = dir, files = path_key(handler$result_files(dir)))
+    },
+    error = function(e) NULL,
+    warning = function(w) NULL
+  )
+  if (is.null(found) || length(found$files) == 0L) {
+    return(list(conditions = "never_run", details = character()))
+  }
+  out_dir <- rel_to(path_key(found$dir), root)
+  recorded <- known[known$io_type == "output" & known$key %in% found$files, ,
+    drop = FALSE]
+  if (all(found$files %in% recorded$key)) {
+    run_id <- recorded$run_id[order(recorded$submitted_at, decreasing = TRUE)][[1]]
+    owner <- runs$project_file[match(run_id, runs$run_id)]
+    return(list(
+      conditions = "never_run",
+      details = paste0(
+        "output folder ", out_dir, " holds results of ",
+        rel_to(owner, root), " (run ", run_id, ")"
+      )
+    ))
+  }
+  list(
+    conditions = "untracked_results",
+    details = paste0("results in ", out_dir, " not produced by a recorded run")
+  )
 }
 
 # Conditions (most serious first) and detail notes for one latest run, from

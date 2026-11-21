@@ -59,6 +59,13 @@
 #'     job ID, software version, submission time and output, user and host
 #' }
 #'
+#' Each run also keeps a copy of the tool's user preferences file
+#' (`config.ini`) as `<run folder>/config.ini`, taken just before the job is
+#' submitted, and `run.json` records the file (path, SHA-256, size,
+#' modification time) as `config_ini`. The copy is not compared by
+#' [run_status()]. A run is recorded without `config_ini` when the file cannot
+#' be found or copied.
+#'
 #' If a step fails, no further jobs are submitted and the error names the
 #' runs already submitted, which [finalize_runs()] can record once they
 #' finish.
@@ -180,25 +187,27 @@ mono <- function(
         config = config_path
       )
       run <- store_create_run(store)
-
-      submitted_at <- Sys.time()
-      # A launch that errors or is interrupted leaves no run.json, so its run
-      # folder is removed before the condition carries on.
+      # A snapshot or launch that errors or is interrupted leaves no run.json,
+      # so its run folder is removed before the condition carries on.
       remove_unwritten_run <- function(cnd) {
         if (!file.exists(file.path(run$run_dir, "run.json"))) {
           unlink(run$run_dir, recursive = TRUE)
         }
       }
-      submission <- withCallingHandlers(
-        execute_job(
-          path = path[i],
-          output_dir = output_dir_recycled[i],
-          thread = thread_recycled[i],
-          tool = tool_recycled[i],
-          mode = mode_recycled[i],
-          config = config_recycled[i],
-          cmd = cmd_recycled[i]
-        ),
+      withCallingHandlers(
+        {
+          config_ini <- snapshot_config_ini(cmd_recycled[i], run$run_dir, root)
+          submitted_at <- Sys.time()
+          submission <- execute_job(
+            path = path[i],
+            output_dir = output_dir_recycled[i],
+            thread = thread_recycled[i],
+            tool = tool_recycled[i],
+            mode = mode_recycled[i],
+            config = config_recycled[i],
+            cmd = cmd_recycled[i]
+          )
+        },
         error = remove_unwritten_run,
         interrupt = remove_unwritten_run
       )
@@ -214,6 +223,7 @@ mono <- function(
           launcher = "cli",
           project = project,
           inputs = inputs,
+          config_ini = config_ini,
           settings = settings,
           output_dir = resolved_output_dir,
           cmd = cmd_recycled[i],
@@ -602,4 +612,18 @@ monitor_jobs <- function(
   }
 
   invisible(NULL)
+}
+
+# Copies the tool's config.ini into `run_dir` and returns its record for
+# run.json, or NULL when the file is missing or cannot be copied.
+snapshot_config_ini <- function(cmd, run_dir, root) {
+  ini <- config_ini_path(cmd)
+  if (is.na(ini) || !file.exists(ini)) {
+    return(NULL)
+  }
+  copy <- file.path(run_dir, "config.ini")
+  if (!isTRUE(suppressWarnings(file.copy(ini, copy)))) {
+    return(NULL)
+  }
+  c(file_record(ini, root), list(copy = "config.ini"))
 }

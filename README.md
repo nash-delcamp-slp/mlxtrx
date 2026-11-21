@@ -71,8 +71,10 @@ print_report_summary("base")
 ```
 
 `run_status()` returns one row per model with a single condition, most serious
-first: `never_run`, `failed`, `unfinished`, `inputs_changed`, `output_edited`,
-`output_suspect`, `clean_late`, `clean`. A file that no run recorded is
+first: `never_run`, `untracked_results` (results in the model's output folder
+that no recorded run produced, e.g. from the GUI or lixoftConnectors),
+`failed`, `unfinished`, `inputs_changed`, `output_edited`, `output_suspect`,
+`clean_late`, `clean`. A file that no run recorded is
 `untracked`. Pass a folder, a project file, or any input or output file.
 `print_report_summary()` prints the same result as a report.
 
@@ -95,7 +97,8 @@ Statistics include, for Monolix, the values from `summary.txt` and observation
 counts; for PKanalix, the tasks run, the number of individuals, the
 compartmental analysis criteria and the bioequivalence ratios; for Simulx, the
 tasks run. `get_run_files()` lists every input and output file of a run with
-its SHA-256 hash.
+its SHA-256 hash. `source_note()` turns the plot or table data files behind a
+figure or table into a one-line footnote naming their runs, for TFL footnotes.
 
 ## When a session dies
 
