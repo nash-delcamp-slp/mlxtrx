@@ -61,8 +61,10 @@ Defaults to <code><a href="default_store.html">default_store()</a></code>. Nothi
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with columns: <code>run_id</code>, <code>io_type</code> (<code>"project"</code>,
-<code>"input"</code> or <code>"output"</code>), <code>path</code>, <code>name</code>, <code>timestamp</code>, <code>sha256</code>, <code>size</code>
-and <code>builtin</code>, ordered by <code>run_id</code>, <code>io_type</code> and <code>path</code>. Timestamps are in
+<code>"input"</code> or <code>"output"</code>), <code>path</code>, <code>name</code>, <code>timestamp</code>, <code>sha256</code>, <code>size</code>,
+<code>builtin</code> and <code>role</code> (an input's role: <code>"data"</code>, <code>"model"</code>, <code>"other"</code> or
+<code>"config"</code>; NA for project and output rows), ordered by <code>run_id</code>,
+<code>io_type</code> and <code>path</code>. Timestamps are in
 the session time zone. Has no rows when none of the runs have file records.</p>
     </div>
 

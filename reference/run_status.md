@@ -56,6 +56,10 @@ columns:
   recorded, `"recorded only by an older run (<run_id>)"` naming the most
   recent of them (NA if none)
 
+- `archived` (logical): Whether the latest run has been archived with
+  [`archive_run()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/archive_run.md)
+  (FALSE when there is no run; NA when untracked)
+
 - `submitted_at` (POSIXct): When the latest run was submitted
 
 - `completed_at` (POSIXct): When the latest run completed (NA if not

@@ -97,6 +97,59 @@ prints the same result as a report.
 The `check_*()` functions answer narrower questions about project, input
 and output files.
 
+## Archive key runs
+
+``` r
+
+archive_run("base/run3.mlxtran")
+run_status("base")$archived
+```
+
+[`archive_run()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/archive_run.md)
+keeps an exact copy of a model’s latest run: the project file, its
+inputs, its outputs and the run’s `config.ini` copy. Each file is stored
+once under its SHA-256 in `<store>/objects` (set
+`options(mlxtrx.archive = )` for another folder), so a data set shared
+by several runs is stored once. The run must be `clean` or `clean_late`.
+The project folder is not touched and stays usable.
+
+[`verify_archive()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/verify_archive.md)
+re-hashes every archived file and reports each one as `ok`, `missing` or
+`mismatch`.
+
+``` r
+
+run_id <- run_status("base/run3.mlxtran")$run_id
+restore_run(run_id, "restored/run3")
+# add the data and config files to that restore
+restore_run(run_id, "restored/run3", project = FALSE, outputs = FALSE,
+            data = TRUE, config = TRUE)
+retrieve_file(run_id, "base/data/pk.csv", "old")
+```
+
+[`restore_run()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/restore_run.md)
+writes an archived run’s files under `to` in the same folder layout, so
+the restored project finds the restored copies of files under the
+store’s folder. By default it restores the project and outputs and
+leaves out the model and data (`model = FALSE`, `data = FALSE`), since
+those are often shared files maintained elsewhere; for each one left out
+it says whether the file now at its original path matches the archived
+copy. `config = TRUE` adds the `config` file and the run’s `config.ini`.
+Files with an absolute path outside the store’s folder go under
+`to/_absolute/`; the project file is not rewritten, so it still points
+at the original location, and a warning names each such file and its
+restored copy. Nothing is written if any target file already exists or
+any archived copy fails its hash check. Called interactively without any
+of these arguments, it shows a menu of the groups with their file counts
+and sizes, the defaults marked `(default)`.
+[`retrieve_file()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/retrieve_file.md)
+writes one archived file. If the archive folder has moved, pass its new
+location as `archive =` to
+[`verify_archive()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/verify_archive.md),
+[`restore_run()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/restore_run.md)
+or
+[`retrieve_file()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/retrieve_file.md).
+
 ## Results table
 
 [`runs_data()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/runs_data.md)

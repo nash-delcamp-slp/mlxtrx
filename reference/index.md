@@ -45,6 +45,19 @@ Recorded runs, their files and statistics as data frames.
 - [`source_note()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/source_note.md)
   : One-line source footnote for a table, figure or listing
 
+## Archive
+
+Exact copies of key runs, kept in a content-addressed archive.
+
+- [`archive_run()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/archive_run.md)
+  : Archive the latest run of a model
+- [`verify_archive()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/verify_archive.md)
+  : Check archived copies against their hashes
+- [`restore_run()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/restore_run.md)
+  : Restore an archived run
+- [`retrieve_file()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/retrieve_file.md)
+  : Retrieve one archived file
+
 ## Store and recovery
 
 - [`default_store()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/default_store.md)

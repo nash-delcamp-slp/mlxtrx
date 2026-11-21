@@ -103,10 +103,27 @@
 <p>The <code>check_*()</code> functions answer narrower questions about project, input and output files.</p>
 </div>
 <div class="section level2">
+<h2 id="archive-key-runs">Archive key runs<a class="anchor" aria-label="anchor" href="#archive-key-runs"></a>
+</h2>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/archive_run.html">archive_run</a></span><span class="op">(</span><span class="st">"base/run3.mlxtran"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/run_status.html">run_status</a></span><span class="op">(</span><span class="st">"base"</span><span class="op">)</span><span class="op">$</span><span class="va">archived</span></span></code></pre></div>
+<p><code><a href="reference/archive_run.html">archive_run()</a></code> keeps an exact copy of a model’s latest run: the project file, its inputs, its outputs and the run’s <code>config.ini</code> copy. Each file is stored once under its SHA-256 in <code>&lt;store&gt;/objects</code> (set <code>options(mlxtrx.archive = )</code> for another folder), so a data set shared by several runs is stored once. The run must be <code>clean</code> or <code>clean_late</code>. The project folder is not touched and stays usable.</p>
+<p><code><a href="reference/verify_archive.html">verify_archive()</a></code> re-hashes every archived file and reports each one as <code>ok</code>, <code>missing</code> or <code>mismatch</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">run_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_status.html">run_status</a></span><span class="op">(</span><span class="st">"base/run3.mlxtran"</span><span class="op">)</span><span class="op">$</span><span class="va">run_id</span></span>
+<span><span class="fu"><a href="reference/restore_run.html">restore_run</a></span><span class="op">(</span><span class="va">run_id</span>, <span class="st">"restored/run3"</span><span class="op">)</span></span>
+<span><span class="co"># add the data and config files to that restore</span></span>
+<span><span class="fu"><a href="reference/restore_run.html">restore_run</a></span><span class="op">(</span><span class="va">run_id</span>, <span class="st">"restored/run3"</span>, project <span class="op">=</span> <span class="cn">FALSE</span>, outputs <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>            data <span class="op">=</span> <span class="cn">TRUE</span>, config <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/retrieve_file.html">retrieve_file</a></span><span class="op">(</span><span class="va">run_id</span>, <span class="st">"base/data/pk.csv"</span>, <span class="st">"old"</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="reference/restore_run.html">restore_run()</a></code> writes an archived run’s files under <code>to</code> in the same folder layout, so the restored project finds the restored copies of files under the store’s folder. By default it restores the project and outputs and leaves out the model and data (<code>model = FALSE</code>, <code>data = FALSE</code>), since those are often shared files maintained elsewhere; for each one left out it says whether the file now at its original path matches the archived copy. <code>config = TRUE</code> adds the <code>config</code> file and the run’s <code>config.ini</code>. Files with an absolute path outside the store’s folder go under <code>to/_absolute/</code>; the project file is not rewritten, so it still points at the original location, and a warning names each such file and its restored copy. Nothing is written if any target file already exists or any archived copy fails its hash check. Called interactively without any of these arguments, it shows a menu of the groups with their file counts and sizes, the defaults marked <code>(default)</code>. <code><a href="reference/retrieve_file.html">retrieve_file()</a></code> writes one archived file. If the archive folder has moved, pass its new location as <code>archive =</code> to <code><a href="reference/verify_archive.html">verify_archive()</a></code>, <code><a href="reference/restore_run.html">restore_run()</a></code> or <code><a href="reference/retrieve_file.html">retrieve_file()</a></code>.</p>
+</div>
+<div class="section level2">
 <h2 id="results-table">Results table<a class="anchor" aria-label="anchor" href="#results-table"></a>
 </h2>
 <p><code><a href="reference/runs_data.html">runs_data()</a></code> returns every recorded run as one data frame, newest first: project, data and model files, settings, command, software version, user, times and state. Sort, filter or export it like any data frame.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">runs</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runs_data.html">runs_data</a></span><span class="op">(</span>include_summary <span class="op">=</span> <span class="cn">TRUE</span>, latest_only <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.csv</a></span><span class="op">(</span><span class="va">runs</span>, <span class="st">"runs.csv"</span>, row.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/get_run_files.html">get_run_files</a></span><span class="op">(</span><span class="va">runs</span><span class="op">$</span><span class="va">run_id</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
@@ -116,7 +133,7 @@
 <h2 id="when-a-session-dies">When a session dies<a class="anchor" aria-label="anchor" href="#when-a-session-dies"></a>
 </h2>
 <p>If the R session that launched runs ends before they finish, their completion is not recorded. Record it later with:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/finalize_runs.html">finalize_runs</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>These runs are marked as recorded late, and any output written well after the rest of the run’s outputs is flagged as suspect.</p>
 </div>

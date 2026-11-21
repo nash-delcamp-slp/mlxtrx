@@ -87,6 +87,8 @@ that holds the store where possible, e.g.
 for <code>"clean_late"</code>; for an untracked path that only older runs
 recorded, <code>"recorded only by an older run (&lt;run_id&gt;)"</code> naming the
 most recent of them (NA if none)</p></li>
+<li><p><code>archived</code> (logical): Whether the latest run has been archived
+with <code><a href="archive_run.html">archive_run()</a></code> (FALSE when there is no run; NA when untracked)</p></li>
 <li><p><code>submitted_at</code> (POSIXct): When the latest run was submitted</p></li>
 <li><p><code>completed_at</code> (POSIXct): When the latest run completed (NA if
 not completed)</p></li>
