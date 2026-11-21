@@ -12,7 +12,8 @@ restore_run(
   data = FALSE,
   outputs = TRUE,
   config = FALSE,
-  store = default_store()
+  store = default_store(),
+  archive = NULL
 )
 }
 \arguments{
@@ -27,6 +28,10 @@ files to restore.}
 
 \item{store}{Character scalar. The run store directory (see
 \code{\link[=default_store]{default_store()}}). Defaults to \code{default_store()}.}
+
+\item{archive}{Character scalar or \code{NULL}. The folder that holds the
+\code{objects} folder, when it has moved since the run was archived. \code{NULL}
+(the default) uses the location the manifest records.}
 }
 \value{
 Invisibly, a data frame with one row per restored file and per
@@ -38,8 +43,8 @@ original path), \code{restored_to} (\code{NA} when not restored) and \code{statu
 }
 \description{
 Writes the archived copies of a run's files under \code{to}, recreating the
-run's folder layout, so the run can be inspected or rerun. The live
-project folder is never written to.
+run's folder layout, so the run can be inspected or rerun. No existing
+file is overwritten.
 }
 \details{
 Files are grouped as: \code{project} (the project file), \code{model} (inputs of
@@ -53,10 +58,14 @@ elsewhere; for each model or data file left out, a message says whether
 the file now at its original path matches the archived copy.
 
 Where: a file recorded relative to the store's folder goes to the same
-relative path under \code{to}, so the restored project's references resolve.
-A file recorded with an absolute path goes under \verb{to/_absolute/}, a
-Windows drive letter becoming a folder (e.g. \verb{_absolute/C/data/pk.csv}).
-The \code{config.ini} copy goes to \verb{<to>/config.ini}.
+relative path under \code{to}, so the restored project's references to files
+under the store's folder resolve to the restored copies. A file recorded
+with an absolute path (outside the store's folder) goes under
+\verb{to/_absolute/}, a Windows drive letter becoming a folder (e.g.
+\verb{_absolute/C/data/pk.csv}); the project file is not rewritten, so it
+still references the original path, and a warning names each such file
+and where its archived copy was written. The \code{config.ini} copy goes to
+\verb{<to>/config.ini}.
 
 Before anything is written, every chosen object is checked against its
 recorded SHA-256 and every target path must be free: \code{to} may exist, but
@@ -65,8 +74,13 @@ written and the error names the file.
 
 Called interactively with none of \code{project}, \code{model}, \code{data}, \code{outputs}
 and \code{config} given, a menu lists each group with its number of files and
-size (and, for model and data, whether the current file matches), with
-the defaults preselected.
+size (and, for model and data, whether the current file matches), the
+default groups marked \code{(default)}. Nothing is preselected; selecting
+nothing restores nothing.
+
+The archive is found where the run's manifest records it; pass
+\code{archive} when it has moved. When the archive folder does not exist the
+error names it.
 }
 \examples{
 \dontrun{

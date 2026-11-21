@@ -4,11 +4,15 @@
 \alias{verify_archive}
 \title{Check archived copies against their hashes}
 \usage{
-verify_archive(store = default_store())
+verify_archive(store = default_store(), archive = NULL)
 }
 \arguments{
 \item{store}{Character scalar. The run store directory (see
 \code{\link[=default_store]{default_store()}}). Defaults to \code{default_store()}.}
+
+\item{archive}{Character scalar or \code{NULL}. The folder that holds the
+\code{objects} folder, for an archive that has moved since it was written.
+\code{NULL} (the default) uses the location each manifest records.}
 }
 \value{
 A data frame with one row per manifest entry and columns \code{run_id}
@@ -24,6 +28,10 @@ against the recorded SHA-256. An object shared by several manifests is
 hashed once per call. Temporary files left in \code{objects} by an interrupted
 write are not referenced by any manifest and are ignored. Nothing is
 changed.
+}
+\details{
+A store folder that does not exist, or a manifest that cannot be read
+(e.g. partly written), is an error naming it.
 }
 \examples{
 \dontrun{

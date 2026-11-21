@@ -55,7 +55,8 @@ test_that("defaults: project and outputs restored, data left with its status", {
     "Data not restored: .*theoph\\.csv \\(current file differs from the archived copy\\)",
     msgs
   )))
-  expect_true(any(grepl("Use data = TRUE / model = TRUE to restore them.", msgs, fixed = TRUE)))
+  expect_true(any(grepl("Use data = TRUE to restore them.", msgs, fixed = TRUE)))
+  expect_false(any(grepl("model = TRUE", msgs, fixed = TRUE)))
 
   unlink(s$data)
   res3 <- suppressMessages(restore_run("r1", withr::local_tempdir(), store = s$store))
@@ -109,7 +110,9 @@ test_that("absolute paths: files outside the store folder go under _absolute", {
   parent <- withr::local_tempdir()
   to <- file.path(parent, "restored")
   before_outside <- files_under(outside_dir)
-  res <- suppressMessages(restore_run("r1", to, data = TRUE, store = s$store))
+  warns <- testthat::capture_warnings(
+    res <- suppressMessages(restore_run("r1", to, data = TRUE, store = s$store))
+  )
 
   abs_part <- sub("^([A-Za-z]):", "\\1", path_key(outside))
   abs_part <- sub("^/+", "", abs_part)
@@ -118,6 +121,15 @@ test_that("absolute paths: files outside the store folder go under _absolute", {
   expect_identical(path_key(res$restored_to[res$group == "data"]), path_key(target))
   expect_identical(files_under(parent), file.path("restored", files_under(to)))
   expect_identical(files_under(outside_dir), before_outside)
+
+  expect_length(warns, 1L)
+  expect_match(warns, "still references", fixed = TRUE)
+  expect_match(warns, res$path[res$group == "data"], fixed = TRUE)
+  expect_match(warns, res$restored_to[res$group == "data"], fixed = TRUE)
+
+  expect_no_warning(suppressMessages(
+    restore_run("r1", withr::local_tempdir(), store = s$store)
+  ))
 })
 
 test_that("corrupt object: restore names the file and writes nothing", {
@@ -193,18 +205,17 @@ test_that("restore_menu: labels with count, size and the current-file note", {
     stringsAsFactors = FALSE
   )
   got <- NULL
-  local_mocked_bindings(select_list = function(choices, preselect, multiple, title) {
-    got <<- list(choices = choices, preselect = preselect, multiple = multiple, title = title)
+  local_mocked_bindings(select_list = function(choices, multiple, title) {
+    got <<- list(choices = choices, multiple = multiple, title = title)
     choices[c(1, 2)]
   })
   res <- restore_menu(groups, "r1")
   expect_identical(got$choices, c(
-    "project  1 file  500 bytes",
+    "project  1 file  500 bytes (default)",
     "data  1 file  2 Kb (current theoph.csv matches)",
-    "outputs  92 files  3 Mb",
+    "outputs  92 files  3 Mb (default)",
     "config  1 file  40 bytes"
   ))
-  expect_identical(got$preselect, got$choices[c(1, 3)])
   expect_true(got$multiple)
   expect_identical(got$title, "Restore which parts of run r1?")
   expect_identical(
@@ -235,4 +246,28 @@ test_that("to: a file in place of the folder is refused before writing", {
   to <- withr::local_tempfile(lines = "x")
   expect_error(restore_run("r1", to, store = s$store), "not a folder")
   expect_error(retrieve_file("r1", s$data, to, store = s$store), "not a folder")
+})
+
+test_that("archive: a moved archive is found with `archive =`", {
+  s <- local_archive_store()
+  first <- file.path(withr::local_tempdir(), "arch")
+  suppressMessages(archive_run(s$project, store = s$store, archive = first))
+  moved <- file.path(withr::local_tempdir(), "moved")
+  expect_true(file.rename(first, moved))
+
+  to <- file.path(withr::local_tempdir(), "restored")
+  expect_error(
+    restore_run("r1", to, store = s$store),
+    "archive folder .*arch not found; pass `archive =` if it moved"
+  )
+  expect_error(
+    retrieve_file("r1", s$data, to, store = s$store),
+    "archive folder .*arch not found; pass `archive =` if it moved"
+  )
+  expect_false(dir.exists(to))
+
+  suppressMessages(restore_run("r1", to, store = s$store, archive = moved))
+  expect_true(same_content(file.path(to, "theoph", "theoph.mlxtran"), s$project))
+  out <- retrieve_file("r1", s$data, file.path(to, "old"), store = s$store, archive = moved)
+  expect_true(same_content(out, s$data))
 })

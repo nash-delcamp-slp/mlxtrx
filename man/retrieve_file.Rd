@@ -4,7 +4,7 @@
 \alias{retrieve_file}
 \title{Retrieve one archived file}
 \usage{
-retrieve_file(run_id, path, to, store = default_store())
+retrieve_file(run_id, path, to, store = default_store(), archive = NULL)
 }
 \arguments{
 \item{run_id}{Character scalar. The run; it must have been archived with
@@ -18,6 +18,10 @@ relative to the store's folder.}
 
 \item{store}{Character scalar. The run store directory (see
 \code{\link[=default_store]{default_store()}}). Defaults to \code{default_store()}.}
+
+\item{archive}{Character scalar or \code{NULL}. The folder that holds the
+\code{objects} folder, when it has moved since the run was archived. \code{NULL}
+(the default) uses the location the manifest records.}
 }
 \value{
 Invisibly, the path of the written file.
@@ -25,7 +29,8 @@ Invisibly, the path of the written file.
 \description{
 Writes the archived copy of one file of a run to \code{to}, under the file's
 name. The object is checked against its recorded SHA-256 first, and an
-existing file is never overwritten.
+existing file is never overwritten. The archive is found where the run's
+manifest records it, or at \code{archive} when given.
 }
 \examples{
 \dontrun{

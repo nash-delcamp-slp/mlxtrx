@@ -91,7 +91,7 @@ archive_run <- function(
     manifest_path <- file.path(run_dirs[[i]], "archive.json")
     if (done[[i]]) {
       message(status$model[[i]], " already archived (run ", status$run_id[[i]], ")")
-      manifest <- jsonlite::read_json(manifest_path, simplifyVector = FALSE)
+      manifest <- read_archive_manifest(manifest_path)
       n_files[[i]] <- length(manifest$files)
       next
     }
@@ -134,8 +134,14 @@ archive_run <- function(
 #' write are not referenced by any manifest and are ignored. Nothing is
 #' changed.
 #'
+#' A store folder that does not exist, or a manifest that cannot be read
+#' (e.g. partly written), is an error naming it.
+#'
 #' @param store Character scalar. The run store directory (see
 #'   [default_store()]). Defaults to `default_store()`.
+#' @param archive Character scalar or `NULL`. The folder that holds the
+#'   `objects` folder, for an archive that has moved since it was written.
+#'   `NULL` (the default) uses the location each manifest records.
 #'
 #' @return A data frame with one row per manifest entry and columns `run_id`
 #'   (the run's folder name), `path` (the archived file's original path),
@@ -149,7 +155,11 @@ archive_run <- function(
 #' }
 #'
 #' @export
-verify_archive <- function(store = default_store()) {
+verify_archive <- function(store = default_store(), archive = NULL) {
+  archive <- archive_override(archive)
+  if (!dir.exists(store)) {
+    stop("Store folder ", store, " not found.", call. = FALSE)
+  }
   root <- store_root_dir(store)
   manifests <- Sys.glob(file.path(store, "runs", "*", "archive.json"))
   manifests <- manifests[order(manifests)]
@@ -159,13 +169,13 @@ verify_archive <- function(store = default_store()) {
   sha256 <- character()
   object <- character()
   for (m in manifests) {
-    manifest <- jsonlite::read_json(m, simplifyVector = FALSE)
-    archive <- path_from_record(manifest$archive, root)
+    manifest <- read_archive_manifest(m)
+    location <- archive %||% path_from_record(manifest$archive, root)
     for (f in manifest$files) {
       run_id <- c(run_id, basename(dirname(m)))
       path <- c(path, path_from_record(f$path, root))
       sha256 <- c(sha256, f$sha256)
-      object <- c(object, archive_object_path(archive, f$sha256))
+      object <- c(object, archive_object_path(location, f$sha256))
     }
   }
 
@@ -175,7 +185,9 @@ verify_archive <- function(store = default_store()) {
     actual[[o]] <- if (file.exists(o)) calculate_sha256(o) else NA_character_
   }
   found <- unname(actual[object])
-  status <- ifelse(is.na(found), "missing", ifelse(found == sha256, "ok", "mismatch"))
+  status <- rep("mismatch", length(object))
+  status[!is.na(found) & found == sha256] <- "ok"
+  status[is.na(found)] <- "missing"
 
   message(
     length(status), " archived files: ",
@@ -235,6 +247,34 @@ archive_entries <- function(run_files, run_dir, root) {
   entries
 }
 
+# A run's archive.json as a list; errors naming the file when it cannot be
+# read or parsed.
+read_archive_manifest <- function(path) {
+  tryCatch(
+    jsonlite::read_json(path, simplifyVector = FALSE),
+    error = function(e) {
+      stop(
+        "Could not read archive manifest ", path, ": ", conditionMessage(e),
+        call. = FALSE
+      )
+    }
+  )
+}
+
+# The `archive` argument of verify_archive(), restore_run() and
+# retrieve_file(): NULL, or an absolute path that replaces the location
+# recorded in each manifest.
+archive_override <- function(archive) {
+  if (is.null(archive)) {
+    return(NULL)
+  }
+  assertthat::assert_that(
+    assertthat::is.string(archive) && !is.na(archive) && nzchar(archive),
+    msg = "`archive` must be NULL or a single path"
+  )
+  as.character(fs::path_abs(fs::path_expand(archive)))
+}
+
 # Where the object with this SHA-256 lives in `archive`.
 archive_object_path <- function(archive, sha256) {
   file.path(archive, "objects", substr(sha256, 1L, 2L), substr(sha256, 3L, 64L))
@@ -279,8 +319,8 @@ archive_put <- function(path, sha256, archive) {
 #' Restore an archived run
 #'
 #' Writes the archived copies of a run's files under `to`, recreating the
-#' run's folder layout, so the run can be inspected or rerun. The live
-#' project folder is never written to.
+#' run's folder layout, so the run can be inspected or rerun. No existing
+#' file is overwritten.
 #'
 #' Files are grouped as: `project` (the project file), `model` (inputs of
 #' role `"model"`; Monolix library models `lib:` are not files and are not
@@ -293,10 +333,14 @@ archive_put <- function(path, sha256, archive) {
 #' the file now at its original path matches the archived copy.
 #'
 #' Where: a file recorded relative to the store's folder goes to the same
-#' relative path under `to`, so the restored project's references resolve.
-#' A file recorded with an absolute path goes under `to/_absolute/`, a
-#' Windows drive letter becoming a folder (e.g. `_absolute/C/data/pk.csv`).
-#' The `config.ini` copy goes to `<to>/config.ini`.
+#' relative path under `to`, so the restored project's references to files
+#' under the store's folder resolve to the restored copies. A file recorded
+#' with an absolute path (outside the store's folder) goes under
+#' `to/_absolute/`, a Windows drive letter becoming a folder (e.g.
+#' `_absolute/C/data/pk.csv`); the project file is not rewritten, so it
+#' still references the original path, and a warning names each such file
+#' and where its archived copy was written. The `config.ini` copy goes to
+#' `<to>/config.ini`.
 #'
 #' Before anything is written, every chosen object is checked against its
 #' recorded SHA-256 and every target path must be free: `to` may exist, but
@@ -305,8 +349,13 @@ archive_put <- function(path, sha256, archive) {
 #'
 #' Called interactively with none of `project`, `model`, `data`, `outputs`
 #' and `config` given, a menu lists each group with its number of files and
-#' size (and, for model and data, whether the current file matches), with
-#' the defaults preselected.
+#' size (and, for model and data, whether the current file matches), the
+#' default groups marked `(default)`. Nothing is preselected; selecting
+#' nothing restores nothing.
+#'
+#' The archive is found where the run's manifest records it; pass
+#' `archive` when it has moved. When the archive folder does not exist the
+#' error names it.
 #'
 #' @param run_id Character scalar. The run to restore; it must have been
 #'   archived with [archive_run()].
@@ -314,6 +363,9 @@ archive_put <- function(path, sha256, archive) {
 #'   needed.
 #' @param project,model,data,outputs,config Logical scalars. Which groups of
 #'   files to restore.
+#' @param archive Character scalar or `NULL`. The folder that holds the
+#'   `objects` folder, when it has moved since the run was archived. `NULL`
+#'   (the default) uses the location the manifest records.
 #' @param store Character scalar. The run store directory (see
 #'   [default_store()]). Defaults to `default_store()`.
 #'
@@ -340,7 +392,8 @@ restore_run <- function(
   data = FALSE,
   outputs = TRUE,
   config = FALSE,
-  store = default_store()
+  store = default_store(),
+  archive = NULL
 ) {
   assertthat::assert_that(
     assertthat::is.string(to) && !is.na(to) && nzchar(to),
@@ -352,7 +405,7 @@ restore_run <- function(
     msg = "`project`, `model`, `data`, `outputs` and `config` must each be TRUE or FALSE"
   )
   to <- restore_folder(to)
-  files <- restore_manifest_files(run_id, store)
+  files <- restore_manifest_files(run_id, store, archive)
   files$restored_to <- file.path(to, files$target)
   current <- files$group %in% c("model", "data")
   files$current <- NA_character_
@@ -404,6 +457,7 @@ restore_run <- function(
   files <- add_current(files, left_out & is.na(files$current))
   left <- files[left_out, , drop = FALSE]
   restore_messages(chosen, left, to)
+  restore_absolute_warning(chosen)
   status <- c(rep("restored", nrow(chosen)), sprintf("not_restored_current_%s", left$current))
   invisible(restore_result(rbind(chosen, left), status))
 }
@@ -412,7 +466,8 @@ restore_run <- function(
 #'
 #' Writes the archived copy of one file of a run to `to`, under the file's
 #' name. The object is checked against its recorded SHA-256 first, and an
-#' existing file is never overwritten.
+#' existing file is never overwritten. The archive is found where the run's
+#' manifest records it, or at `archive` when given.
 #'
 #' @param run_id Character scalar. The run; it must have been archived with
 #'   [archive_run()].
@@ -422,6 +477,9 @@ restore_run <- function(
 #' @param to Character scalar. The folder to write into; created if needed.
 #' @param store Character scalar. The run store directory (see
 #'   [default_store()]). Defaults to `default_store()`.
+#' @param archive Character scalar or `NULL`. The folder that holds the
+#'   `objects` folder, when it has moved since the run was archived. `NULL`
+#'   (the default) uses the location the manifest records.
 #'
 #' @return Invisibly, the path of the written file.
 #'
@@ -432,7 +490,7 @@ restore_run <- function(
 #' }
 #'
 #' @export
-retrieve_file <- function(run_id, path, to, store = default_store()) {
+retrieve_file <- function(run_id, path, to, store = default_store(), archive = NULL) {
   assertthat::assert_that(
     assertthat::is.string(path) && !is.na(path) && nzchar(path),
     msg = "`path` must be a single path"
@@ -443,7 +501,7 @@ retrieve_file <- function(run_id, path, to, store = default_store()) {
   )
   root <- store_root_dir(store)
   to <- restore_folder(to)
-  files <- restore_manifest_files(run_id, store)
+  files <- restore_manifest_files(run_id, store, archive)
   wanted <- path_key(c(path, file.path(root, path)))
   hit <- files$record_path == path | path_key(files$path) %in% wanted
   hit <- files[hit, , drop = FALSE]
@@ -476,8 +534,8 @@ retrieve_file <- function(run_id, path, to, store = default_store()) {
 # For mocking in tests.
 is_interactive <- function() interactive()
 
-select_list <- function(choices, preselect, multiple, title) {
-  utils::select.list(choices, preselect = preselect, multiple = multiple, title = title)
+select_list <- function(choices, multiple, title) {
+  utils::select.list(choices, multiple = multiple, title = title)
 }
 
 # `to` as an absolute path; errors when it exists and is not a folder.
@@ -492,8 +550,10 @@ restore_folder <- function(to) {
 # The files listed in a run's archive.json as a data frame: io_type, group,
 # path (original absolute path), record_path (as recorded), target (path
 # under the restore folder), sha256, size and object (its path in the
-# archive). Errors when the run has no manifest.
-restore_manifest_files <- function(run_id, store) {
+# archive, which is `archive` when given, else the location the manifest
+# records). Errors when the run has no manifest or the archive folder does
+# not exist.
+restore_manifest_files <- function(run_id, store, archive = NULL) {
   assertthat::assert_that(
     assertthat::is.string(run_id) && !is.na(run_id) && nzchar(run_id),
     msg = "`run_id` must be a single run ID"
@@ -506,8 +566,15 @@ restore_manifest_files <- function(run_id, store) {
       call. = FALSE
     )
   }
-  manifest <- jsonlite::read_json(manifest_path, simplifyVector = FALSE)
-  archive <- path_from_record(manifest$archive, root)
+  archive <- archive_override(archive)
+  manifest <- read_archive_manifest(manifest_path)
+  archive <- archive %||% path_from_record(manifest$archive, root)
+  if (!dir.exists(archive)) {
+    stop(
+      "archive folder ", archive, " not found; pass `archive =` if it moved.",
+      call. = FALSE
+    )
+  }
   rows <- lapply(manifest$files, function(f) {
     role <- f$role %||% NA_character_
     group <- switch(
@@ -576,7 +643,7 @@ restore_current_status <- function(path, sha256) {
   if (identical(calculate_sha256(path), sha256)) "matches" else "differs"
 }
 
-# One row per group: group, n (files), bytes, default (preselected in the
+# One row per group: group, n (files), bytes, default (marked in the
 # menu) and note (for model and data, whether each current file matches).
 restore_groups <- function(files) {
   groups <- c("project", "model", "data", "outputs", "config")
@@ -598,9 +665,9 @@ restore_groups <- function(files) {
   )
 }
 
-# Multi-select menu over the groups that have files, defaults preselected.
-# Returns a logical named by every group in `groups`; a cancelled menu
-# selects nothing.
+# Multi-select menu over the groups that have files, default groups marked
+# "(default)" and nothing preselected. Returns a logical named by every group
+# in `groups`; a cancelled menu selects nothing.
 restore_menu <- function(groups, run_id) {
   shown <- groups[groups$n > 0L, , drop = FALSE]
   size <- vapply(shown$bytes, function(b) {
@@ -608,11 +675,10 @@ restore_menu <- function(groups, run_id) {
   }, "")
   labels <- paste0(
     shown$group, "  ", shown$n, ifelse(shown$n == 1L, " file", " files"), "  ",
-    size, shown$note
+    size, shown$note, ifelse(shown$default, " (default)", "")
   )
   picked <- select_list(
     labels,
-    preselect = labels[shown$default],
     multiple = TRUE,
     title = paste0("Restore which parts of run ", run_id, "?")
   )
@@ -644,7 +710,8 @@ archive_copy_object <- function(object, target) {
 }
 
 # One line naming the restored groups, then one line per model or data file
-# left out with how the current file compares, then a hint when any were.
+# left out with how the current file compares, then a hint naming the
+# arguments that restore the groups left out.
 restore_messages <- function(chosen, left, to) {
   if (nrow(chosen) > 0L) {
     parts <- character()
@@ -676,8 +743,25 @@ restore_messages <- function(chosen, left, to) {
     )
   }
   if (nrow(left) > 0L) {
-    message("Use data = TRUE / model = TRUE to restore them.")
+    args <- c("data = TRUE", "model = TRUE")[c("data", "model") %in% left$group]
+    message("Use ", paste(args, collapse = " / "), " to restore them.")
   }
+}
+
+# Warns when restored files went under "_absolute": the restored project
+# still references their original paths, not the restored copies.
+restore_absolute_warning <- function(chosen) {
+  abs <- chosen[startsWith(chosen$target, "_absolute/"), , drop = FALSE]
+  if (nrow(abs) == 0L) {
+    return(invisible())
+  }
+  warning(
+    "The restored project still references these files at their original ",
+    "paths, outside the store's folder; their archived copies were written ",
+    "under _absolute:\n",
+    paste0("  ", abs$path, " -> ", abs$restored_to, collapse = "\n"),
+    call. = FALSE
+  )
 }
 
 restore_result <- function(files, status) {

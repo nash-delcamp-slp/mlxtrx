@@ -211,6 +211,7 @@ test_that("verify_archive: leftover temporary files are ignored; no archives giv
   expect_message(res <- verify_archive(s$store), "0 archived files")
   expect_equal(nrow(res), 0L)
   expect_named(res, c("run_id", "path", "sha256", "status"))
+  expect_type(res$status, "character")
   suppressMessages(archive_run(s$project, store = s$store))
   obj <- archive_object_path(s$store, calculate_sha256(s$data))
   writeLines("partial", paste0(obj, ".tmp-abcd1234"))
@@ -234,4 +235,30 @@ test_that("verify_archive: an object shared by two runs is hashed once", {
   res <- suppressMessages(verify_archive(s$store))
   expect_equal(nrow(res), 8L)
   expect_equal(calls, 4L)
+})
+
+test_that("verify_archive: a moved archive is missing unless `archive =` names it", {
+  s <- local_archive_store()
+  first <- file.path(withr::local_tempdir(), "arch")
+  suppressMessages(archive_run(s$project, store = s$store, archive = first))
+  moved <- file.path(withr::local_tempdir(), "moved")
+  expect_true(file.rename(first, moved))
+  res <- suppressMessages(verify_archive(s$store))
+  expect_true(all(res$status == "missing"))
+  expect_message(
+    res <- verify_archive(s$store, archive = moved),
+    "4 archived files: 4 ok, 0 missing, 0 mismatch"
+  )
+  expect_true(all(res$status == "ok"))
+})
+
+test_that("verify_archive: an unreadable manifest or a missing store is an error naming it", {
+  s <- local_archive_store()
+  suppressMessages(archive_run(s$project, store = s$store))
+  manifest <- file.path(s$run_dirs[["r1"]], "archive.json")
+  writeLines("{\"files\": [", manifest)
+  expect_error(verify_archive(s$store), "r1.archive\\.json")
+
+  nowhere <- file.path(withr::local_tempdir(), "nowhere", ".mlxtrx")
+  expect_error(verify_archive(nowhere), "nowhere")
 })
