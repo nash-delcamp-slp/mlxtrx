@@ -10,12 +10,12 @@ Source:
 [`DESCRIPTION`](https://github.com/nash-delcamp-slp/mlxtrx/blob/main/DESCRIPTION)
 
 Delcamp N (2026). *mlxtrx: Track MonolixSuite Runs*. R package version
-0.1.0, <https://nash-delcamp-slp.github.io/mlxtrx/>.
+0.2.0, <https://nash-delcamp-slp.github.io/mlxtrx/>.
 
     @Manual{,
       title = {mlxtrx: Track MonolixSuite Runs},
       author = {Nash Delcamp},
       year = {2026},
-      note = {R package version 0.1.0},
+      note = {R package version 0.2.0},
       url = {https://nash-delcamp-slp.github.io/mlxtrx/},
     }
