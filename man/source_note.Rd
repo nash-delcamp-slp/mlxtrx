@@ -21,9 +21,10 @@ A character scalar such as
 Names the runs, and their project files, that produced the plot or table
 data files behind a table, figure or listing (TFL), so the TFL can be
 traced back to its run IDs. Intended as a footnote. Each run appears once,
-in the order its first file appears in \code{files}. Project paths are relative
-to the folder that holds the store. A file no run recorded is listed as
-\verb{<file> (no run record)}.
+in the order its first file appears in \code{files}. Project paths and the paths
+of files no run recorded are relative to the folder that holds the store
+where possible. A file no run recorded is listed as
+\verb{<file> (no run record)}. An empty \code{files} is an error.
 }
 \details{
 A warning lists every file whose current state is not \code{"unchanged"} or

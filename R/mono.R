@@ -187,26 +187,27 @@ mono <- function(
         config = config_path
       )
       run <- store_create_run(store)
-      config_ini <- snapshot_config_ini(cmd_recycled[i], run$run_dir, root)
-
-      submitted_at <- Sys.time()
-      # A launch that errors or is interrupted leaves no run.json, so its run
-      # folder is removed before the condition carries on.
+      # A snapshot or launch that errors or is interrupted leaves no run.json,
+      # so its run folder is removed before the condition carries on.
       remove_unwritten_run <- function(cnd) {
         if (!file.exists(file.path(run$run_dir, "run.json"))) {
           unlink(run$run_dir, recursive = TRUE)
         }
       }
-      submission <- withCallingHandlers(
-        execute_job(
-          path = path[i],
-          output_dir = output_dir_recycled[i],
-          thread = thread_recycled[i],
-          tool = tool_recycled[i],
-          mode = mode_recycled[i],
-          config = config_recycled[i],
-          cmd = cmd_recycled[i]
-        ),
+      withCallingHandlers(
+        {
+          config_ini <- snapshot_config_ini(cmd_recycled[i], run$run_dir, root)
+          submitted_at <- Sys.time()
+          submission <- execute_job(
+            path = path[i],
+            output_dir = output_dir_recycled[i],
+            thread = thread_recycled[i],
+            tool = tool_recycled[i],
+            mode = mode_recycled[i],
+            config = config_recycled[i],
+            cmd = cmd_recycled[i]
+          )
+        },
         error = remove_unwritten_run,
         interrupt = remove_unwritten_run
       )

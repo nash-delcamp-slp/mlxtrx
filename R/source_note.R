@@ -3,9 +3,10 @@
 #' Names the runs, and their project files, that produced the plot or table
 #' data files behind a table, figure or listing (TFL), so the TFL can be
 #' traced back to its run IDs. Intended as a footnote. Each run appears once,
-#' in the order its first file appears in `files`. Project paths are relative
-#' to the folder that holds the store. A file no run recorded is listed as
-#' `<file> (no run record)`.
+#' in the order its first file appears in `files`. Project paths and the paths
+#' of files no run recorded are relative to the folder that holds the store
+#' where possible. A file no run recorded is listed as
+#' `<file> (no run record)`. An empty `files` is an error.
 #'
 #' A warning lists every file whose current state is not `"unchanged"` or
 #' `"unchanged_late"` (see [check_output_files()]), with its status, so a
@@ -31,13 +32,16 @@
 #' @export
 source_note <- function(files, store = default_store()) {
   files <- as.character(files)
+  if (length(files) == 0L) {
+    stop("`files` is empty", call. = FALSE)
+  }
   checked <- check_output_files(files, store)
   root <- path_key(fs::path_abs(store_root_dir(store)))
 
   no_record <- is.na(checked$run_id)
   entries <- ifelse(
     no_record,
-    paste0(files, " (no run record)"),
+    paste0(rel_to(path_key(files), root), " (no run record)"),
     paste0(
       rel_to(path_key(checked$project_path), root),
       " (run ", checked$run_id, ")"

@@ -44,16 +44,28 @@ test_that("source_note warns about modified files but still names the run", {
 test_that("source_note flags files with no run record", {
   s <- local_theoph_store(list(list(id = "r1")))
   expect_warning(
-    note <- source_note(c(s$project, s$summary), store = s$store),
+    note <- source_note(c(s$data, s$summary), store = s$store),
     "no_run_record"
   )
   expect_equal(
     note,
     paste0(
-      "Source: ", s$project, " (no run record); ",
+      "Source: theoph/data/theoph.csv (no run record); ",
       "theoph/theoph.mlxtran (run r1)"
     )
   )
+})
+
+test_that("source_note shows a relative path to a file with no run record", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  withr::local_dir(dirname(s$data))
+  suppressWarnings(note <- source_note("theoph.csv", store = s$store))
+  expect_equal(note, "Source: theoph/data/theoph.csv (no run record)")
+})
+
+test_that("source_note refuses an empty file list", {
+  s <- local_theoph_store(list(list(id = "r1")))
+  expect_error(source_note(character(), store = s$store), "`files` is empty")
 })
 
 test_that("source_note warns once listing every non-clean file", {

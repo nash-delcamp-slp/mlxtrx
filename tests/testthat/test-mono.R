@@ -303,6 +303,19 @@ test_that("a launch that errors leaves no run folder behind", {
   expect_length(list.files(file.path(e$store, "runs")), 0L)
 })
 
+test_that("a failing config.ini snapshot leaves no run folder behind", {
+  skip_on_os("windows")
+  e <- local_mono_env()
+  local_mocked_bindings(
+    snapshot_config_ini = function(...) stop("snapshot failed")
+  )
+  expect_error(
+    mono(e$paths[1], store = e$store, require_charts_data = FALSE),
+    "snapshot failed"
+  )
+  expect_length(list.files(file.path(e$store, "runs")), 0L)
+})
+
 test_that("completion reads outputs from the output dir resolved at launch", {
   skip_on_os("windows")
   e <- local_mono_env()
