@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/nash-delcamp-slp/mlxtrx/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/nash-delcamp-slp/mlxtrx/blob/v0.1.0/DESCRIPTION)
 
 Delcamp N (2026). *mlxtrx: Track MonolixSuite Runs*. R package version
 0.1.0, <https://nash-delcamp-slp.github.io/mlxtrx/>.
