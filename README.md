@@ -81,6 +81,20 @@ that no recorded run produced, e.g. from the GUI or lixoftConnectors),
 The `check_*()` functions answer narrower questions about project, input and
 output files.
 
+## Archive key runs
+
+```r
+archive_run("base/run3.mlxtran")
+run_status("base")$archived
+```
+
+`archive_run()` keeps an exact copy of a model's latest run: the project file,
+its inputs, its outputs and the run's `config.ini` copy. Each file is stored
+once under its SHA-256 in `<store>/objects` (set `options(mlxtrx.archive = )`
+for another folder), so a data set shared by several runs is stored once.
+The run must be `clean` or `clean_late`. The project folder is not touched
+and stays usable.
+
 ## Results table
 
 `runs_data()` returns every recorded run as one data frame, newest first:

@@ -33,6 +33,8 @@ that holds the store where possible, e.g.
 for \code{"clean_late"}; for an untracked path that only older runs
 recorded, \code{"recorded only by an older run (<run_id>)"} naming the
 most recent of them (NA if none)
+\item \code{archived} (logical): Whether the latest run has been archived
+with \code{\link[=archive_run]{archive_run()}} (FALSE when there is no run; NA when untracked)
 \item \code{submitted_at} (POSIXct): When the latest run was submitted
 \item \code{completed_at} (POSIXct): When the latest run completed (NA if
 not completed)

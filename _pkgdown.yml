@@ -28,6 +28,10 @@ reference:
       - runs_data
       - get_run_files
       - source_note
+  - title: Archive
+    desc: Exact copies of key runs, kept in a content-addressed archive.
+    contents:
+      - archive_run
   - title: Store and recovery
     contents:
       - default_store

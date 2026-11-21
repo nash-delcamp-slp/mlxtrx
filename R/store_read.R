@@ -136,7 +136,8 @@ read_run_folder <- function(run_dir, root) {
       timestamp = parse_utc(rec$mtime),
       sha256 = scalar_chr(rec$sha256),
       size = scalar_dbl(rec$size),
-      builtin = builtin
+      builtin = builtin,
+      role = if (io_type == "input") scalar_chr(rec$role) else NA_character_
     ))
   }
   files <- c(
@@ -323,6 +324,7 @@ assemble_store_frames <- function(parsed) {
     sha256 = col_of(files, "sha256", ""),
     size = col_of(files, "size", 0),
     builtin = col_of(files, "builtin", TRUE),
+    role = col_of(files, "role", ""),
     stringsAsFactors = FALSE
   )
 

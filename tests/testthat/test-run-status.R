@@ -234,7 +234,7 @@ test_that("read-only: no files or folders are created", {
 test_that("columns: names in order, also for zero rows", {
   cols <- c(
     "path", "project_file", "run_id", "condition", "other_conditions",
-    "details", "submitted_at", "completed_at"
+    "details", "archived", "submitted_at", "completed_at"
   )
   s <- local_theoph_store(list(list(id = "r1")))
   expect_named(run_status(s$root, store = s$store), cols)
