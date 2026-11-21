@@ -98,6 +98,24 @@ and stays usable.
 `verify_archive()` re-hashes every archived file and reports each one as `ok`,
 `missing` or `mismatch`.
 
+```r
+restore_run(run_id, "restored/run3")
+restore_run(run_id, "restored/run3", data = TRUE, config = TRUE)
+retrieve_file(run_id, "base/data/pk.csv", "old")
+```
+
+`restore_run()` writes an archived run's files under `to` in the same folder
+layout, so the restored project finds its files. By default it restores the
+project and outputs and leaves out the model and data (`model = FALSE`,
+`data = FALSE`), since those are often shared files maintained elsewhere; for
+each one left out it says whether the file now at its original path matches
+the archived copy. `config = TRUE` adds the `config` file and the run's
+`config.ini`. Files with an absolute path outside the store's folder go under
+`to/_absolute/`. Nothing is written if any target file already exists or any
+archived copy fails its hash check. Called interactively without any of these
+arguments, it shows a menu of the groups with their file counts and sizes,
+the defaults preselected. `retrieve_file()` writes one archived file.
+
 ## Results table
 
 `runs_data()` returns every recorded run as one data frame, newest first:

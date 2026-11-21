@@ -33,6 +33,8 @@ reference:
     contents:
       - archive_run
       - verify_archive
+      - restore_run
+      - retrieve_file
   - title: Store and recovery
     contents:
       - default_store
