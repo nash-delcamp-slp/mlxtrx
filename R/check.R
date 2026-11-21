@@ -343,7 +343,8 @@ find_project_files <- function(directory, ext) {
     directory,
     pattern = paste0("\\.", ext, "$", collapse = "|"),
     full.names = TRUE,
-    recursive = TRUE
+    recursive = TRUE,
+    ignore.case = TRUE
   ))
 }
 

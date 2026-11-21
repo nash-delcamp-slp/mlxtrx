@@ -172,7 +172,7 @@ status_targets <- function(p, files, known) {
   if (!file.exists(p) && !p %in% known$key) {
     stop("Path not found: ", p, call. = FALSE)
   }
-  if (grepl(paste0("\\.", ext, "$", collapse = "|"), p)) {
+  if (grepl(paste0("\\.", ext, "$", collapse = "|"), p, ignore.case = TRUE)) {
     return(rows(p))
   }
   hits <- files$io_type %in% c("input", "output") & files$key == p

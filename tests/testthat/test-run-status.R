@@ -279,3 +279,15 @@ test_that("untracked path recorded only by older runs names the newest of them",
   expect_equal(res$condition, "untracked")
   expect_equal(res$details, "recorded only by an older run (r2)")
 })
+
+test_that("project files are found whatever the case of their extension", {
+  root <- local_theoph_root()
+  s <- local_store_with_runs(list(), root = root)
+  upper <- file.path(root, "theoph", "OTHER.MLXTRAN")
+  file.copy(file.path(root, "theoph", "theoph.mlxtran"), upper)
+  status <- run_status(file.path(root, "theoph"), store = s$store)
+  expect_true(path_key(upper) %in% status$project_file)
+  one <- run_status(upper, store = s$store)
+  expect_equal(one$project_file, path_key(upper))
+  expect_false(identical(one$condition, "untracked"))
+})
