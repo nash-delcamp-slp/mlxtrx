@@ -1,3 +1,45 @@
+# mlxtrx 0.2.0
+
+## Archiving key runs
+
+* `archive_run()` keeps a complete copy of a clean run: the project file,
+  every input (data, model, regressor, dose and Simulx external files, a
+  `config =` file), every recorded output and the run's `config.ini` copy.
+  Files are stored once each under their SHA-256, inside the store by default
+  or in another folder (`options(mlxtrx.archive = )` or `archive =`). The live
+  project folder stays fully usable.
+* `verify_archive()` checks every archived copy against its hash.
+* `restore_run()` rebuilds chosen parts of an archived run in a new folder,
+  never overwriting a file. By default it restores the project and its
+  outputs; model, data and config files are opt-in, and for each model or
+  data file left out it says whether the current file still matches the
+  archived copy. Called interactively without choosing parts, it shows a
+  menu.
+* `retrieve_file()` fetches one archived file, e.g. the exact data a run used.
+* `run_status()` gains an `archived` column.
+
+## Status and sources
+
+* `run_status()` reports `untracked_results` for a model whose output folder
+  holds results that no recorded run produced, e.g. from the GUI or
+  lixoftConnectors.
+* `source_note()` returns a TFL footnote naming the runs behind its source
+  files, and warns when a source file changed. `check_output_files()` gains
+  `project_path`.
+
+## Reproducibility
+
+* Each run keeps a copy of the tool's `config.ini` in its folder in the store,
+  recorded in `run.json`. `run_status()` does not compare it, so editing
+  preferences doesn't flag models.
+
+## Fixes
+
+* Project files with upper-case extensions (`.MLXTRAN`, `.PKX`, `.SMLX`) are
+  found by `run_status()` and the `check_*()` functions.
+* A runner given by name (`cmd = "monolix.sh"`) is located on PATH, so its
+  software version and `config.ini` copy are recorded.
+
 # mlxtrx 0.1.0
 
 First release.
