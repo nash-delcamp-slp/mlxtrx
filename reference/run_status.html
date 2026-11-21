@@ -37,7 +37,7 @@ state), the same rule as check_completion_status(). Only file content
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Report one condition per model</h1>
-      <small class="dont-index">Source: <a href="https://github.com/nash-delcamp-slp/mlxtrx/blob/v0.1.0/R/run_status.R" class="external-link"><code>R/run_status.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/nash-delcamp-slp/mlxtrx/blob/main/R/run_status.R" class="external-link"><code>R/run_status.R</code></a></small>
       <div class="d-none name"><code>run_status.Rd</code></div>
     </div>
 
@@ -101,6 +101,9 @@ models: one row per such model;</p></li>
 <li><p>any other existing file: one row with condition <code>"untracked"</code>.</p></li>
 </ul><p>A path that does not exist and is not recorded in the store is an error.</p>
 <p>Conditions, most serious first:</p><ol><li><p><code>"never_run"</code>: no run of the model is recorded.</p></li>
+<li><p><code>"untracked_results"</code>: results exist in the model's output folder
+but no recorded run produced them, e.g. a run from the GUI or
+lixoftConnectors.</p></li>
 <li><p><code>"failed"</code>: the latest run failed to submit or finished without
 results.</p></li>
 <li><p><code>"unfinished"</code>: the latest run's completion was not recorded, or

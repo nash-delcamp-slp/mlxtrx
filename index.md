@@ -86,7 +86,9 @@ print_report_summary("base")
 
 [`run_status()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/run_status.md)
 returns one row per model with a single condition, most serious first:
-`never_run`, `failed`, `unfinished`, `inputs_changed`, `output_edited`,
+`never_run`, `untracked_results` (results in the model’s output folder
+that no recorded run produced, e.g. from the GUI or lixoftConnectors),
+`failed`, `unfinished`, `inputs_changed`, `output_edited`,
 `output_suspect`, `clean_late`, `clean`. A file that no run recorded is
 `untracked`. Pass a folder, a project file, or any input or output file.
 [`print_report_summary()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/print_report_summary.md)
@@ -115,6 +117,9 @@ individuals, the compartmental analysis criteria and the bioequivalence
 ratios; for Simulx, the tasks run.
 [`get_run_files()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/get_run_files.md)
 lists every input and output file of a run with its SHA-256 hash.
+[`source_note()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/source_note.md)
+turns the plot or table data files behind a figure or table into a
+one-line footnote naming their runs, for TFL footnotes.
 
 ## When a session dies
 

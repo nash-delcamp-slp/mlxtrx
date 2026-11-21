@@ -125,6 +125,14 @@ Jobs are submitted one at a time. For each job, this function:
 3.  Writes `run.json` straight away: the records above, the command, job
     ID, software version, submission time and output, user and host
 
+Each run also keeps a copy of the tool's user preferences file
+(`config.ini`) as `<run folder>/config.ini`, taken just before the job
+is submitted, and `run.json` records the file (path, SHA-256, size,
+modification time) as `config_ini`. The copy is not compared by
+[`run_status()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/run_status.md).
+A run is recorded without `config_ini` when the file cannot be found or
+copied.
+
 If a step fails, no further jobs are submitted and the error names the
 runs already submitted, which
 [`finalize_runs()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/finalize_runs.md)

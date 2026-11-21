@@ -35,6 +35,8 @@ A data frame with columns:
 - `run_id` (character): Most recently submitted run that recorded this
   file (NA if not found)
 
+- `project_path` (character): Project file of that run (NA if not found)
+
 - `run_submitted_at` (POSIXct): When the generating run was submitted
 
 - `run_completed_at` (POSIXct): When the generating run completed

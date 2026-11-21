@@ -82,28 +82,32 @@ Conditions, most serious first:
 
 1.  `"never_run"`: no run of the model is recorded.
 
-2.  `"failed"`: the latest run failed to submit or finished without
+2.  `"untracked_results"`: results exist in the model's output folder
+    but no recorded run produced them, e.g. a run from the GUI or
+    lixoftConnectors.
+
+3.  `"failed"`: the latest run failed to submit or finished without
     results.
 
-3.  `"unfinished"`: the latest run's completion was not recorded, or
+4.  `"unfinished"`: the latest run's completion was not recorded, or
     recording it crashed.
 
-4.  `"inputs_changed"`: the project file or a recorded input of the
+5.  `"inputs_changed"`: the project file or a recorded input of the
     latest run has different content or is missing. Monolix library
     models (`lib:`) never count.
 
-5.  `"output_edited"`: a recorded output of the latest run has different
+6.  `"output_edited"`: a recorded output of the latest run has different
     content or is missing.
 
-6.  `"output_suspect"`: an unchanged recorded output was flagged when
+7.  `"output_suspect"`: an unchanged recorded output was flagged when
     the latest run's completion was recorded late.
 
-7.  `"clean_late"`: the latest run was recorded late and nothing above
+8.  `"clean_late"`: the latest run was recorded late and nothing above
     applies.
 
-8.  `"clean"`: nothing above applies.
+9.  `"clean"`: nothing above applies.
 
-9.  `"untracked"`: the path is not a model, nor a file recorded by the
+10. `"untracked"`: the path is not a model, nor a file recorded by the
     latest run of any model.
 
 ## See also

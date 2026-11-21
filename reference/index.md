@@ -42,6 +42,8 @@ Recorded runs, their files and statistics as data frames.
   : Extract data about executed Monolix runs
 - [`get_run_files()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/get_run_files.md)
   : Get file information for specific runs
+- [`source_note()`](https://nash-delcamp-slp.github.io/mlxtrx/reference/source_note.md)
+  : One-line source footnote for a table, figure or listing
 
 ## Store and recovery
 
